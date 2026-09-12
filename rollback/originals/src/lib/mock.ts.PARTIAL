@@ -1,0 +1,74 @@
+// RECOVERED PARTIAL — src/lib/mock.ts (deleted on 2026-09-12 during real-data migration)
+// Only the first 60 lines were captured before deletion. This file was never committed
+// to git, so a byte-identical restore is NOT possible. The mock data below matches what
+// was captured; the remainder (mockSubscriptions entries, mockActivity, mockConversations,
+// mockMessages) must be reconstructed from usage in the original rollback/originals files
+// if a rollback of this file is ever requested.
+
+import type { ActivityItem, Conversation, Message, SubscriptionPlan, Subscription } from "@/lib/supabase/types";
+
+export const mockPlans: SubscriptionPlan[] = [
+  {
+    id: "plan_1",
+    coach_id: "coach_1",
+    name: "Starter — 1 Month",
+    description: "Personalized training + weekly check-ins",
+    price_cents: 4900,
+    currency: "usd",
+    duration_days: 30,
+    is_active: true,
+    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "plan_2",
+    coach_id: "coach_1",
+    name: "Pro — 3 Months",
+    description: "Full program, nutrition, daily chat",
+    price_cents: 12900,
+    currency: "usd",
+    duration_days: 90,
+    is_active: true,
+    created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "plan_3",
+    coach_id: "coach_1",
+    name: "Elite — 12 Months",
+    description: "1:1 coaching, competition prep",
+    price_cents: 39900,
+    currency: "usd",
+    duration_days: 365,
+    is_active: false,
+    created_at: new Date(Date.now() - 90 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+export type MockSubscription = Omit<Subscription, "client" | "plan"> & {
+  plan: SubscriptionPlan | null;
+  client: { full_name: string; avatar_url: string | null; email: string };
+};
+
+export const mockSubscriptions: MockSubscription[] = [
+  {
+    id: "sub_1",
+    client_id: "client_1",
+    coach_id: "coach_1",
+    plan_id: "plan_1",
+    status: "active",
+    start_date: new Date(Date.now() - 10 * 86400000).toISOString(),
+    end_date: new Date(Date.now() + 20 * 86400000).toISOString(),
+    stripe_subscription_id: null,
+    stripe_customer_id: null,
+    created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    plan: mockPlans[0],
+    // ... remaining mock subscriptions NOT captured (file truncated at line 60)
+  },
+  // ... NOT CAPTURED — original had more entries and these exports:
+  // export const mockActivity: ActivityItem[] = [...]
+  // export const mockConversations: Conversation[] = [...]
+  // export const mockMessages: Record<string, Message[]> = {...}
+];
