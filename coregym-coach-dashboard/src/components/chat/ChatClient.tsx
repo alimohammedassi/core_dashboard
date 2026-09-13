@@ -9,14 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Paperclip, ImagePlus, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { MediaMessage, messagePreview } from "@/components/chat/MediaMessage";
+import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
 
 type ConvWithClient = Conversation & {
   client?: { full_name: string | null; avatar_url: string | null };
   last_message?: Message | null;
   unread_count?: number;
 };
+
+type PendingAttachment = { file: File; type: "image" | "file" };
 
 export function ChatClient({ coachId, initialConversations }: { coachId: string; initialConversations: ConvWithClient[] }) {
   const supabase = React.useMemo(() => createClient(), []);
@@ -25,9 +29,40 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [composer, setComposer] = React.useState("");
   const [sending, setSending] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const [pending, setPending] = React.useState<PendingAttachment | null>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const selectedConv = conversations.find((c) => c.id === selectedId) ?? null;
+
+  // Latest conversation list / selection for the realtime handler. Keeping
+  // these in refs means the websocket channel is created ONCE per session —
+  // re-subscribing on every state change used to drop events mid-chat.
+  const conversationsRef = React.useRef(initialConversations);
+  const selectedIdRef = React.useRef<string | null>(conversations[0]?.id ?? null);
+  React.useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+  React.useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  function appendMessage(msg: Message) {
+    setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+  }
+
+  function bumpConversation(msg: Message) {
+    setConversations((prev) => {
+      const idx = prev.findIndex((c) => c.id === msg.conversation_id);
+      if (idx === -1) return prev;
+      const copy = [...prev];
+      const [conv] = copy.splice(idx, 1);
+      copy.unshift({ ...conv, last_message: msg, last_message_at: msg.created_at } as ConvWithClient);
+      return copy;
+    });
+  }
 
   // Load messages when selection changes
   React.useEffect(() => {
@@ -52,7 +87,8 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     };
   }, [selectedId, supabase]);
 
-  // Realtime subscription on messages for coach's conversations
+  // Realtime subscription on messages for coach's conversations — single
+  // channel for the whole session (see refs above).
   React.useEffect(() => {
     const channel = supabase
       .channel(`coach:${coachId}:messages`)
@@ -61,21 +97,12 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           const msg = payload.new as Message;
-          // Only show if belongs to coach's conversations
-          const belongs = conversations.some((c) => c.id === msg.conversation_id);
+          const belongs = conversationsRef.current.some((c) => c.id === msg.conversation_id);
           if (!belongs) return;
-          if (msg.conversation_id === selectedId) {
-            setMessages((prev) => [...prev, msg]);
+          if (msg.conversation_id === selectedIdRef.current) {
+            appendMessage(msg);
           }
-          // bump conversation to top and update preview
-          setConversations((prev) => {
-            const idx = prev.findIndex((c) => c.id === msg.conversation_id);
-            if (idx === -1) return prev;
-            const copy = [...prev];
-            const [conv] = copy.splice(idx, 1);
-            copy.unshift({ ...conv, last_message: msg, last_message_at: msg.created_at } as ConvWithClient);
-            return copy;
-          });
+          bumpConversation(msg);
         }
       )
       .subscribe();
@@ -83,15 +110,25 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, coachId, selectedId, conversations]);
+  }, [supabase, coachId]);
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  async function refreshAfterSend(msg: Message) {
+    appendMessage(msg);
+    bumpConversation(msg);
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedId || !composer.trim()) return;
+    if (!selectedId) return;
+    if (pending) {
+      await sendAttachment();
+      return;
+    }
+    if (!composer.trim()) return;
     const content = composer.trim();
     setSending(true);
 
@@ -104,12 +141,59 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     if (error) {
       toast.error(error.message);
     } else if (data) {
-      setMessages((prev) => [...prev, data as Message]);
+      await refreshAfterSend(data as Message);
       setComposer("");
       // update conversation last_message_at
       await supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", selectedId);
     }
     setSending(false);
+  }
+
+  async function sendAttachment() {
+    if (!selectedId || !pending) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.set("conversationId", selectedId);
+      form.set("type", pending.type);
+      form.set("file", pending.file);
+      const res = await fetch("/api/chat/upload", { method: "POST", body: form });
+      const b = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(b?.error ?? "Attachment failed");
+      await refreshAfterSend(b as Message);
+      setPending(null);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Attachment failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleVoiceSend(file: File, durationSec: number) {
+    if (!selectedId) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.set("conversationId", selectedId);
+      form.set("type", "voice");
+      form.set("duration", String(durationSec));
+      form.set("file", file);
+      const res = await fetch("/api/chat/upload", { method: "POST", body: form });
+      const b = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(b?.error ?? "Voice note failed");
+      await refreshAfterSend(b as Message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Voice note failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function pickPending(file: File | null, type: "image" | "file") {
+    if (!file) return;
+    setPending({ file, type });
   }
 
   return (
@@ -123,7 +207,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
           <div className="p-2 space-y-1">
             {conversations.map((c) => {
               const name = c.client?.full_name ?? "Client";
-              const preview = (c.last_message as Message | undefined)?.content ?? "No messages yet";
+              const preview = messagePreview(c.last_message as Message | undefined);
               const isActive = c.id === selectedId;
               return (
                 <button
@@ -178,12 +262,17 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
               <div className="space-y-3">
                 {messages.map((m) => {
                   const isMe = m.sender_id === coachId;
+                  const isMedia = m.type === "image" || m.type === "voice" || m.type === "file";
                   return (
                     <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted rounded-bl-sm"}`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                        {isMedia ? (
+                          <MediaMessage message={m} />
+                        ) : (
+                          <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                        )}
                         <span className={`text-xs mt-1 block ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                           {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           {!m.is_read && !isMe ? " · unread" : ""}
@@ -195,16 +284,57 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
                 <div ref={bottomRef} />
               </div>
             </ScrollArea>
-            <form onSubmit={handleSend} className="p-3 border-t flex gap-2">
-              <Input
-                placeholder="Type a message…"
-                value={composer}
-                onChange={(e) => setComposer(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={sending || !composer.trim()} size="icon" aria-label="Send">
-                <Send className="size-4" />
-              </Button>
+            <form onSubmit={handleSend} className="p-3 border-t space-y-2">
+              {pending && (
+                <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+                  <Loader2 className="hidden size-3.5 animate-spin" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">
+                    {pending.type === "image" ? "📷 " : "📄 "}
+                    {pending.file.name}
+                    <span className="ml-1 text-xs text-muted-foreground">({Math.round(pending.file.size / 1024)} KB)</span>
+                  </span>
+                  <Button type="button" variant="ghost" size="icon" className="size-7" aria-label="Remove attachment" onClick={() => setPending(null)}>
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => pickPending(e.target.files?.[0] ?? null, "image")}
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => pickPending(e.target.files?.[0] ?? null, "file")}
+                />
+                <Button type="button" variant="ghost" size="icon" aria-label="Attach image" disabled={uploading || !!pending} onClick={() => imageInputRef.current?.click()}>
+                  <ImagePlus className="size-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" aria-label="Attach file" disabled={uploading || !!pending} onClick={() => fileInputRef.current?.click()}>
+                  <Paperclip className="size-4" />
+                </Button>
+                <VoiceRecorder onSend={handleVoiceSend} onDiscard={() => undefined} disabled={uploading || !!pending} />
+                <Input
+                  placeholder="Type a message…"
+                  value={composer}
+                  onChange={(e) => setComposer(e.target.value)}
+                  className="flex-1"
+                  disabled={uploading || !!pending}
+                />
+                <Button
+                  type="submit"
+                  disabled={sending || uploading || (!composer.trim() && !pending)}
+                  size="icon"
+                  aria-label={pending ? "Send attachment" : "Send"}
+                >
+                  {(sending || uploading) && pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                </Button>
+              </div>
             </form>
           </>
         )}

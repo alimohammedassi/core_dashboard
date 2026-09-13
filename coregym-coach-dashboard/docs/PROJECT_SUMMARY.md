@@ -143,6 +143,36 @@ item = lime tint + lime left indicator. **Verified rendering live** (background
 
 ---
 
+## 1b. Chat Media Parity
+
+The dashboard chat is at full parity with the mobile app's media messaging
+(`messages.type`: `text | voice | image | file`).
+
+- **Viewing**: non-text messages render through `MediaMessage` — image
+  thumbnails with a click-to-open lightbox, inline voice players with the
+  duration (stored in `messages.content` as seconds, matching mobile), and
+  file cards with name/size/download. The three storage buckets
+  (`chat-images`, `chat-voice-notes`, `chat-files`) are **private**, so
+  `POST /api/chat/attachments` mints short-lived (15-minute) signed URLs after
+  verifying the caller is a participant of the message's conversation; media
+  errors refetch once, then degrade to an "Attachment unavailable" chip.
+- **Sending**: `POST /api/chat/upload` (multipart) authenticates the coach,
+  verifies conversation participation, validates server-side, uploads to the
+  same bucket/path convention the mobile app uses
+  (`{conversationId}/{millis}_{name}`, voice as `{millis}_chat_voice_{millis}.{ext}`),
+  inserts the `messages` row with the mobile content shapes (`""` for images,
+  duration seconds for voice, `{"name","size"}` JSON for files), and updates
+  the conversation preview. Composer adds image/file pickers and a
+  MediaRecorder-based voice note flow.
+- **Validation limits (server-side; adjustable)**: images 10 MB
+  (`image/*`), voice 25 MB (`audio/*`), files 25 MB (any type except an
+  executable blocklist). The storage buckets themselves have no limits —
+  mobile-sent media of any size still renders fine in the dashboard.
+- **Known consideration**: browser MediaRecorder produces webm/opus on
+  Chrome/Edge/Firefox (Safari records mp4/m4a like the mobile app). iOS
+  Flutter players may not play webm — flagged; mobile-side player support or
+  server-side transcoding would close it.
+
 ## 2. Coach Weekly Programs (extension)
 
 ### What it does
