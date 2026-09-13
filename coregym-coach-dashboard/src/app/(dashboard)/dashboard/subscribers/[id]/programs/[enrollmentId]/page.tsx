@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { loadEnrollmentProgress, weekdayLabel } from "@/lib/programs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,19 @@ export default async function EnrollmentProgressPage({
   const ctx = await requireCoachContext();
   if (!ctx) notFound();
 
-  const progress = await loadEnrollmentProgress(ctx.coachId, id, enrollmentId);
+  // `id` is the SUBSCRIPTION id (matching the profile route's convention);
+  // resolve the real client profile id from it.
+  const supabase = await createClient();
+  const { data: subRow } = await supabase
+    .from("subscriptions")
+    .select("client_id")
+    .eq("id", id)
+    .eq("coach_id", ctx.coachId)
+    .maybeSingle();
+  if (!subRow) notFound();
+  const clientId = (subRow as { client_id: string }).client_id;
+
+  const progress = await loadEnrollmentProgress(ctx.coachId, clientId, enrollmentId);
   if (!progress) notFound();
 
   const { enrollment, programDays, grid, weeklyVolume } = progress;
@@ -154,7 +167,7 @@ export default async function EnrollmentProgressPage({
                     <div
                       className="w-full rounded-t-md bg-primary/70"
                       style={{ height: `${Math.max((w.volume / max) * 100, w.volume > 0 ? 4 : 1)}%` }}
-                      title={`Week ${w.week}: ${w.volume.toLocaleString()} kg · ${w.sessions} sessions`}
+                      title={`Week ${w.week}: ${w.volume.toLocaleString("en-US")} kg · ${w.sessions} sessions`}
                     />
                     <span className="text-[10px] text-muted-foreground">W{w.week}</span>
                   </div>

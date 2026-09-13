@@ -385,6 +385,14 @@ begin
       if v_scheduled <= current_date then
         continue;
       end if;
+      -- a slot whose row survived the delete (completed / started / skipped)
+      -- must keep its existing assignment — never create a duplicate
+      if exists (
+        select 1 from workout_assignments
+        where enrollment_id = p_enrollment_id and scheduled_date = v_scheduled
+      ) then
+        continue;
+      end if;
       insert into workout_assignments
         (template_id, coach_id, client_id, scheduled_date, status, enrollment_id, week_number, program_id)
       values

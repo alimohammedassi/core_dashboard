@@ -260,9 +260,9 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
             <Footprints className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(today?.steps ?? 0).toLocaleString()}</div>
+            <div className="text-2xl font-bold">{(today?.steps ?? 0).toLocaleString("en-US")}</div>
             <p className="text-xs text-muted-foreground">
-              {goals?.daily_steps ? `Goal ${goals.daily_steps.toLocaleString()}` : "No goal set"}
+              {goals?.daily_steps ? `Goal ${goals.daily_steps.toLocaleString("en-US")}` : "No goal set"}
             </p>
           </CardContent>
         </Card>
@@ -336,7 +336,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                       </Badge>
                       <Button
                         render={
-                          <Link href={`/dashboard/subscribers/${clientId}/workouts/${a.id}`} />
+                          <Link href={`/dashboard/subscribers/${sub.id}/workouts/${a.id}`} />
                         }
                         variant="outline"
                         size="sm"
@@ -380,7 +380,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                 {en.status}
               </Badge>
               <Button
-                render={<Link href={`/dashboard/subscribers/${clientId}/programs/${en.id}`} />}
+                render={<Link href={`/dashboard/subscribers/${sub.id}/programs/${en.id}`} />}
                 variant="outline"
                 size="sm"
               >
@@ -416,7 +416,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                 <div>
                   <p className="text-xs text-muted-foreground">Volume (this week)</p>
                   <p className="text-2xl font-extrabold">
-                    {(progress.weekly[progress.weekly.length - 1]?.volume ?? 0).toLocaleString()} kg
+                    {(progress.weekly[progress.weekly.length - 1]?.volume ?? 0).toLocaleString("en-US")} kg
                   </p>
                 </div>
               </div>
@@ -439,7 +439,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                           <div
                             className="w-full rounded-t-md bg-primary/70"
                             style={{ height: `${Math.max((w.volume / max) * 100, w.volume > 0 ? 4 : 1)}%` }}
-                            title={`${w.weekStart}: ${w.volume.toLocaleString()} kg · ${w.sessions} sessions`}
+                            title={`${w.weekStart}: ${w.volume.toLocaleString("en-US")} kg · ${w.sessions} sessions`}
                           />
                           <span className="text-[10px] text-muted-foreground">{w.weekStart.slice(5)}</span>
                         </div>
@@ -500,7 +500,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                   <TableCell>{d.summary_date}</TableCell>
                   <TableCell>{d.calories_consumed ?? 0} kcal</TableCell>
                   <TableCell>{d.protein_g ?? 0} g</TableCell>
-                  <TableCell>{(d.steps ?? 0).toLocaleString()}</TableCell>
+                  <TableCell>{(d.steps ?? 0).toLocaleString("en-US")}</TableCell>
                   <TableCell>{d.water_ml ?? 0} ml</TableCell>
                   <TableCell>{d.sleep_hours ?? 0} h</TableCell>
                   <TableCell>{d.workout_done ? <Badge>done</Badge> : <Badge variant="secondary">rest</Badge>}</TableCell>

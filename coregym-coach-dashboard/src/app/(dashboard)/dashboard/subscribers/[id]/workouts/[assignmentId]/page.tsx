@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { requireCoachContext, loadAssignmentPerformance, loadClientProgress } from "@/lib/workouts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +25,21 @@ export default async function PerformancePage({
   const ctx = await requireCoachContext();
   if (!ctx) notFound();
 
+  // `id` is the SUBSCRIPTION id (matching the profile route's convention);
+  // resolve the real client profile id from it.
+  const supabase = await createClient();
+  const { data: subRow } = await supabase
+    .from("subscriptions")
+    .select("client_id")
+    .eq("id", id)
+    .eq("coach_id", ctx.coachId)
+    .maybeSingle();
+  if (!subRow) notFound();
+  const clientId = (subRow as { client_id: string }).client_id;
+
   const [performance, progress] = await Promise.all([
-    loadAssignmentPerformance(ctx.coachId, id, assignmentId),
-    loadClientProgress(ctx.coachId, id),
+    loadAssignmentPerformance(ctx.coachId, clientId, assignmentId),
+    loadClientProgress(ctx.coachId, clientId),
   ]);
   if (!performance) notFound();
 
@@ -106,7 +119,7 @@ export default async function PerformancePage({
                 <CardDescription>Total volume (working sets)</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-extrabold">{performance.totalVolume.toLocaleString()} kg</p>
+                <p className="text-2xl font-extrabold">{performance.totalVolume.toLocaleString("en-US")} kg</p>
               </CardContent>
             </Card>
             <Card>
@@ -182,7 +195,7 @@ export default async function PerformancePage({
                                 <TableCell>{s.reps ?? "—"}</TableCell>
                                 <TableCell>
                                   {s.weight_kg != null && s.reps != null
-                                    ? `${(Number(s.weight_kg) * s.reps).toLocaleString()} kg`
+                                    ? `${(Number(s.weight_kg) * s.reps).toLocaleString("en-US")} kg`
                                     : "—"}
                                 </TableCell>
                                 <TableCell>{s.rest_sec != null ? `${s.rest_sec}s` : "—"}</TableCell>
@@ -213,7 +226,7 @@ export default async function PerformancePage({
                         </span>
                         <span>
                           Volume:{" "}
-                          <span className="font-medium text-foreground">{ex.totalVolume.toLocaleString()} kg</span>
+                          <span className="font-medium text-foreground">{ex.totalVolume.toLocaleString("en-US")} kg</span>
                         </span>
                         {ex.restSec != null && <span>Target rest: {ex.restSec}s</span>}
                         {ex.notes && <span>Coach note: {ex.notes}</span>}
@@ -273,7 +286,7 @@ export default async function PerformancePage({
             <CardDescription>Goes through the existing chat — the client sees it in the app.</CardDescription>
           </CardHeader>
           <CardContent>
-            <FeedbackBox clientId={id} />
+            <FeedbackBox clientId={clientId} />
           </CardContent>
         </Card>
         <Card>
