@@ -1,0 +1,17 @@
+# ── Environment / secrets (match at ANY depth, incl. rollback/) ─────────────
+# Never track real credentials. Example/template env files can be re-included
+# with a leading "!" if ever needed.
+.env
+.env.*
+!.env.example
+!.env.template
+env.download
+
+# ── Node / Next.js build output (belt & braces with app-level ignore) ───────
+node_modules/
+.next/
+out/
+
+# ── OS noise ─────────────────────────────────────────────────────────────────
+Thumbs.db
+.DS_Store
