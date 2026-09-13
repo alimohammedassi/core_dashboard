@@ -1,11 +1,15 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
+import { loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
+import { loadClientEnrollments } from "@/lib/programs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Flame, Footprints, Dumbbell, Scale } from "lucide-react";
+import { Flame, Footprints, Dumbbell, Scale, TrendingUp, Trophy } from "lucide-react";
 
 type SubDetail = {
   id: string;
@@ -74,10 +78,11 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   } = await supabase.auth.getUser();
 
   let sub: SubDetail | null = null;
+  let coachId = "";
 
   if (user) {
     // subscriptions.coach_id references coaches.id, not the auth uid
-    const coachId = await resolveCoachId(supabase, user.id);
+    coachId = await resolveCoachId(supabase, user.id);
     const { data } = await supabase
       .from("subscriptions")
       .select(
@@ -110,6 +115,26 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
 
   if (!sub || !sub.client) notFound();
   const clientId = sub.client.id;
+
+  // ── Assigned workouts + progress (real records, no fabrication) ─────────────
+  const [assigned, progress, enrollments] = await Promise.all([
+    loadAssignedWorkouts(coachId, clientId),
+    loadClientProgress(coachId, clientId),
+    loadClientEnrollments(coachId, clientId),
+  ]);
+  const upcoming = assigned
+    .filter((a) => a.status === "assigned")
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+  const inProgress = assigned.filter((a) => a.status === "started");
+  const completed = assigned.filter((a) => a.status === "completed");
+  const skipped = assigned.filter((a) => a.status === "skipped");
+
+  const statusLabel: Record<string, string> = {
+    assigned: "Assigned",
+    started: "In progress",
+    completed: "Completed",
+    skipped: "Skipped",
+  };
 
   // ── Customer logged data (shared DB; RLS lets a coach read subscribed clients)
   const since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
@@ -176,9 +201,9 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <a href="/dashboard/subscribers" className="hover:text-foreground">← Subscribers</a>
+        <Link href="/dashboard/subscribers" className="hover:text-foreground">← Subscribers</Link>
       </div>
-      <h1 className="-mt-4 text-2xl font-semibold tracking-tight">Customer profile</h1>
+      <h1 className="-mt-4 text-2xl font-bold tracking-tight">Customer profile</h1>
 
       {/* Identity + subscription */}
       <Card>
@@ -267,6 +292,188 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
           </CardContent>
         </Card>
       </div>
+
+      {/* Assigned workouts */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Assigned workouts</CardTitle>
+          <CardDescription>
+            Templates assigned to this client. Completed workouts open a target-vs-actual performance review.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {assigned.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No assigned workouts yet. Create a template in Workouts, then assign it to this client.
+            </p>
+          )}
+
+          {[
+            { title: "Upcoming", rows: upcoming },
+            { title: "In progress", rows: inProgress },
+            { title: "Completed", rows: completed },
+            { title: "Skipped", rows: skipped },
+          ]
+            .filter((section) => section.rows.length > 0)
+            .map((section) => (
+              <div key={section.title} className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{section.title}</p>
+                <ul className="space-y-2">
+                  {section.rows.map((a) => (
+                    <li key={a.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{a.template?.name ?? "Workout"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Scheduled {a.scheduled_date}
+                          {a.program_id ? " · via program" : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        className="ml-auto"
+                        variant={a.status === "completed" ? "default" : a.status === "skipped" ? "secondary" : "outline"}
+                      >
+                        {statusLabel[a.status] ?? a.status}
+                      </Badge>
+                      <Button
+                        render={
+                          <Link href={`/dashboard/subscribers/${clientId}/workouts/${a.id}`} />
+                        }
+                        variant="outline"
+                        size="sm"
+                      >
+                        {a.status === "completed" || a.status === "started" ? "Review" : "View"}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </CardContent>
+      </Card>
+
+      {/* Programs — weekly enrollments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Programs</CardTitle>
+          <CardDescription>
+            Weekly program enrollments. Open one to see the weeks × days progress grid.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {enrollments.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No program enrollments yet. Create a program in Programs, then enroll this client.
+            </p>
+          )}
+          {enrollments.map((en) => (
+            <div key={en.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{en.program_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {en.start_date} · {en.duration_weeks} weeks
+                </p>
+              </div>
+              <Badge
+                className="ml-auto"
+                variant={en.status === "active" ? "default" : en.status === "completed" ? "outline" : "secondary"}
+              >
+                {en.status}
+              </Badge>
+              <Button
+                render={<Link href={`/dashboard/subscribers/${clientId}/programs/${en.id}`} />}
+                variant="outline"
+                size="sm"
+              >
+                Open progress
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Progress — weekly volume + PRs from real records */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Progress</CardTitle>
+          <CardDescription>
+            Weekly training volume and personal records, computed from the app&apos;s workout logs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!progress ? (
+            <p className="text-sm text-muted-foreground">Progress becomes available once this client is one of your subscribers.</p>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Sessions (30 days)</p>
+                  <p className="text-2xl font-extrabold">{progress.sessionsLast30}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Completed assignments</p>
+                  <p className="text-2xl font-extrabold">{progress.completedAssignments}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Volume (this week)</p>
+                  <p className="text-2xl font-extrabold">
+                    {(progress.weekly[progress.weekly.length - 1]?.volume ?? 0).toLocaleString()} kg
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <TrendingUp className="size-3.5" /> Weekly volume (8 weeks)
+                </p>
+                {progress.weekly.every((w) => w.volume === 0) ? (
+                  <p className="text-sm text-muted-foreground">No logged volume in the last 8 weeks yet.</p>
+                ) : (
+                  <div className="flex h-32 items-end gap-2">
+                    {progress.weekly.map((w) => {
+                      const max = Math.max(...progress.weekly.map((x) => x.volume), 1);
+                      return (
+                        <div key={w.weekStart} className="flex flex-1 flex-col items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">
+                            {w.volume > 0 ? `${(w.volume / 1000).toFixed(1)}t` : ""}
+                          </span>
+                          <div
+                            className="w-full rounded-t-md bg-primary/70"
+                            style={{ height: `${Math.max((w.volume / max) * 100, w.volume > 0 ? 4 : 1)}%` }}
+                            title={`${w.weekStart}: ${w.volume.toLocaleString()} kg · ${w.sessions} sessions`}
+                          />
+                          <span className="text-[10px] text-muted-foreground">{w.weekStart.slice(5)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <Trophy className="size-3.5" /> Personal records
+                </p>
+                {progress.prs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No personal records logged yet.</p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {progress.prs.slice(0, 6).map((pr) => (
+                      <div key={pr.exercise_name} className="rounded-lg border p-3">
+                        <p className="text-sm font-medium">{pr.exercise_name}</p>
+                        <p className="text-lg font-extrabold">
+                          {pr.max_weight != null ? `${Number(pr.max_weight)} kg` : "—"}
+                          {pr.reps != null ? <span className="text-xs font-normal text-muted-foreground"> × {pr.reps}</span> : null}
+                        </p>
+                        {pr.achieved_date && <p className="text-xs text-muted-foreground">{pr.achieved_date}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Daily summaries */}
       <Card>

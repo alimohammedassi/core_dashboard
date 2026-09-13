@@ -20,7 +20,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings — Payouts</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Settings — Payouts</h1>
 
       <Card>
         <CardHeader>
@@ -49,10 +49,9 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="text-sm space-y-2">
           <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-            <li>POST <code>/api/stripe/connect</code> → create Express account if missing.</li>
-            <li>POST <code>/api/stripe/account-link</code> → redirect to Stripe onboarding.</li>
-            <li>Store <code>stripe_account_id</code> on <code>profiles</code>.</li>
-            <li>Checkout creates PaymentIntent with <code>application_fee_amount</code> + <code>transfer_data.destination</code>.</li>
+            <li>POST <code>/api/stripe/connect</code> → creates the Express account if missing plus an Account Link, and returns the onboarding URL.</li>
+            <li>Route stores <code>stripe_account_id</code> on <code>profiles</code>.</li>
+            <li>Checkout creates PaymentIntent with <code>application_fee_amount</code> + <code>transfer_data.destination</code> (to be implemented).</li>
           </ol>
         </CardContent>
       </Card>

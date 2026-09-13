@@ -53,7 +53,7 @@ export default async function ChatPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Chat</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Chat</h1>
       <p className="text-sm text-muted-foreground">
         Same conversations as the mobile app. Realtime via <code className="font-mono">messages</code> table. Mirrors
         Flutter chat with no changes needed there.

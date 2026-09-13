@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-poppins);
+  --font-arabic: var(--font-cairo);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -39,6 +39,19 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* CoreGym "Graphite & Soft Volt" data accents (spec §90–§93).
+     Used for data-viz emphasis, active indicators and status colors — never
+     for large fills or body text. */
+  --color-volt: var(--volt);
+  --color-teal: var(--teal);
+  --color-gold: var(--gold);
+  --color-warning: var(--warning);
+  --color-muscle-chest: var(--muscle-chest);
+  --color-muscle-arms: var(--muscle-arms);
+  --color-muscle-legs: var(--muscle-legs);
+  --color-muscle-core: var(--muscle-core);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,73 +61,95 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ── Light theme ─────────────────────────────────────────────────────────── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #fafafa;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #506b1a;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f1ef;
+  --secondary-foreground: #1a1a1a;
+  --muted: #f1f1ef;
+  --muted-foreground: #6b6b6b;
+  --accent: #f0f0ec;
+  --accent-foreground: #1a1a1a;
+  --destructive: #b84a30;
+  --border: #e8e8e8;
+  --input: #e8e8e8;
+  --ring: #506b1a;
+  --chart-1: #f5a623;
+  --chart-2: #ea7a72;
+  --chart-3: #e8c468;
+  --chart-4: #36b37e;
+  --chart-5: #4fd1c5;
+  --radius: 0.715rem;
+  --sidebar: #f5f5f2;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #506b1a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ececdf;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e8e8e8;
+  --sidebar-ring: #506b1a;
+
+  /* Data accents (light-mode variants for contrast on white) */
+  --volt: #8fb800;
+  --teal: #0f766e;
+  --gold: #8a6a1e;
+  --warning: #b45309;
+  --muscle-chest: #d96a62;
+  --muscle-arms: #3e9483;
+  --muscle-legs: #7e71e0;
+  --muscle-core: #d4578c;
 }
 
+/* ── Dark theme (primary mode) — Graphite & Soft Volt v2.1 ───────────────── */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #121310;
+  --foreground: #eceee2;
+  --card: #171814;
+  --card-foreground: #eceee2;
+  --popover: #171814;
+  --popover-foreground: #eceee2;
+  --primary: #b2d742;
+  --primary-foreground: #161806;
+  --secondary: #1f201b;
+  --secondary-foreground: #eceee2;
+  --muted: #1b1c17;
+  --muted-foreground: #a9ada0;
+  --accent: #252620;
+  --accent-foreground: #eceee2;
+  --destructive: #ee7f60;
+  --border: #2c2d27;
+  --input: #2c2d27;
+  --ring: #b2d742;
+  --chart-1: #f5a623;
+  --chart-2: #ea7a72;
+  --chart-3: #e8c468;
+  --chart-4: #36b37e;
+  --chart-5: #4fd1c5;
+  --sidebar: #151612;
+  --sidebar-foreground: #eceee2;
+  --sidebar-primary: #b2d742;
+  --sidebar-primary-foreground: #161806;
+  --sidebar-accent: #1f201b;
+  --sidebar-accent-foreground: #eceee2;
+  --sidebar-border: #2c2d27;
+  --sidebar-ring: #b2d742;
+
+  /* Data accents (dark-mode values from the app spec) */
+  --volt: #d1fc00;
+  --teal: #4fd1c5;
+  --gold: #e8c468;
+  --warning: #f59e0b;
+  --muscle-chest: #ea7a72;
+  --muscle-arms: #54c7be;
+  --muscle-legs: #7e71e0;
+  --muscle-core: #e87fa2;
 }
 
 @layer base {

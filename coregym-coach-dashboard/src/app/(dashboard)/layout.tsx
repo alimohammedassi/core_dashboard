@@ -1,26 +1,21 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import {
-  LayoutDashboard,
-  MessageSquare,
-  Users,
-  CreditCard,
-  Settings,
-  LogOut,
-  Dumbbell,
-} from "lucide-react";
+import { SidebarNav } from "@/components/dashboard/SidebarNav";
+import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
+import { Dumbbell, LogOut } from "lucide-react";
 
 const nav = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard/subscribers", label: "Subscribers", icon: Users },
-  { href: "/dashboard/plans", label: "Plans", icon: CreditCard },
-  { href: "/dashboard/revenue", label: "Revenue", icon: CreditCard },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
+  { href: "/dashboard/workouts", label: "Workouts", icon: "ClipboardList" },
+  { href: "/dashboard/programs", label: "Programs", icon: "CalendarDays" },
+  { href: "/dashboard/chat", label: "Chat", icon: "MessageSquare" },
+  { href: "/dashboard/subscribers", label: "Subscribers", icon: "Users" },
+  { href: "/dashboard/plans", label: "Plans", icon: "CreditCard" },
+  { href: "/dashboard/revenue", label: "Revenue", icon: "CreditCard" },
+  { href: "/dashboard/settings", label: "Settings", icon: "Settings" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -87,18 +82,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <span className="font-semibold tracking-tight">CoreGym</span>
           <span className="text-xs text-muted-foreground ml-1">Coach</span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
-            >
-              <item.icon className="size-4 text-muted-foreground" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={nav} />
         <Separator />
         <div className="p-3 flex items-center gap-3">
           <Avatar className="size-8">
@@ -108,6 +92,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <p className="text-sm font-medium truncate">{displayName}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
+          <ThemeToggle />
           <form action="/api/auth/signout" method="post">
             <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
               <LogOut className="size-4" />
@@ -124,13 +109,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <header className="flex h-14 items-center gap-2 border-b px-4 md:hidden">
           <Dumbbell className="size-5" />
           <span className="font-semibold">CoreGym Coach</span>
-          <nav className="ml-auto flex gap-1 overflow-x-auto">
-            {nav.map((item) => (
-              <Link key={item.href} href={item.href} className="px-2 py-1 text-xs rounded hover:bg-muted">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <SidebarNav items={nav} layout="topbar" />
         </header>
         <main className="flex-1 bg-muted/20 p-4 md:p-6">{children}</main>
       </div>

@@ -33,7 +33,7 @@ export default async function PlansPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Subscription plans</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Subscription plans</h1>
           <p className="text-sm text-muted-foreground">Create and edit your coaching plans. Writes go to <code className="font-mono">subscription_plans</code>.</p>
         </div>
         {error && (

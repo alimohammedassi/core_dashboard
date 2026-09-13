@@ -121,6 +121,86 @@ export interface RevenueSummary {
   payout_count: number;
 }
 
+// ── Workout management ────────────────────────────────────────────────────────
+// Templates are the coach's reusable prescription; assignments connect a
+// template to one client and date; performance lives only in the mobile
+// app's workout_sessions / workout_sets records (never written back here).
+
+export type AssignmentStatus = "assigned" | "started" | "completed" | "skipped";
+
+export interface WorkoutTemplate {
+  id: string;
+  coach_id: string; // references coaches.id
+  name: string;
+  target_muscles: string[];
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  // joined
+  exercises?: WorkoutTemplateExercise[];
+}
+
+export interface WorkoutTemplateExercise {
+  id: string;
+  template_id: string;
+  exercise_name: string;
+  target_sets: number;
+  target_reps: number | null;
+  target_weight_kg: number | null;
+  rest_sec: number | null;
+  notes: string | null;
+  order_index: number;
+}
+
+export interface WorkoutAssignment {
+  id: string;
+  template_id: string;
+  coach_id: string; // references coaches.id
+  client_id: string; // references profiles.id
+  program_id: string | null;
+  scheduled_date: string; // date-only (YYYY-MM-DD)
+  status: AssignmentStatus;
+  created_at: string;
+  // joined
+  template?: WorkoutTemplate | null;
+  client?: Profile | null;
+}
+
+export interface WorkoutSession {
+  id: string;
+  user_id: string;
+  muscle_group: string | null;
+  session_name: string | null;
+  duration_min: number | null;
+  notes: string | null;
+  session_date: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  assignment_id: string | null;
+}
+
+export interface WorkoutSetLog {
+  id: string;
+  session_id: string;
+  user_id: string;
+  exercise_name: string | null;
+  set_number: number | null;
+  reps: number | null;
+  weight_kg: number | null;
+  duration_sec: number | null;
+  rest_sec: number | null;
+  is_warmup: boolean | null;
+  logged_at: string | null;
+}
+
+export interface PersonalRecord {
+  user_id: string;
+  exercise_name: string;
+  max_weight: number | null;
+  reps: number | null;
+  achieved_date: string | null;
+}
+
 export interface OverviewStats {
   active_subscribers: number;
   net_revenue_this_month_cents: number;

@@ -69,7 +69,7 @@ export default async function SubscribersPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Subscribers</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Subscribers</h1>
         {error && (
           <Badge variant="outline" className="text-red-700 border-red-200 bg-red-50">
             {error}

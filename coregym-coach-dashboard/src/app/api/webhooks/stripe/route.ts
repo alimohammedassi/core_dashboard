@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent;
         if (pi.id) {
-          await supabase.from("payment_intents").update({ status: "succeeded" }).eq("stripe_payment_intent_id", pi.id);
+          await supabase.from("payment_intents").update({ status: "succeeded" }).eq("stripe_payment_id", pi.id);
           const subId = (pi.metadata as Record<string, string> | undefined)?.subscription_id;
           if (subId) {
             await supabase.from("subscriptions").update({ status: "active" }).eq("id", subId);
@@ -46,10 +46,7 @@ export async function POST(req: Request) {
         break;
       }
       case "account.updated": {
-        const acct = event.data.object as Stripe.Account;
-        if (acct.id) {
-          await supabase.from("profiles").update({ stripe_account_id: acct.id }).eq("stripe_account_id", acct.id);
-        }
+        // profiles has no charges_enabled/payouts_enabled columns to persist yet.
         break;
       }
       case "customer.subscription.created":
@@ -66,7 +63,7 @@ export async function POST(req: Request) {
         };
         const mapped = statusMap[sub.status] ?? sub.status;
         if (sub.id) {
-          await supabase.from("subscriptions").update({ status: mapped }).eq("stripe_subscription_id", sub.id);
+          await supabase.from("subscriptions").update({ status: mapped }).eq("stripe_sub_id", sub.id);
         }
         break;
       }

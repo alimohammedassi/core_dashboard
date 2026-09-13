@@ -105,7 +105,7 @@ export default async function DashboardOverviewPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
         {hadError && (
           <Badge variant="outline" className="text-red-700 border-red-200 bg-red-50">
             Some data could not be loaded — check table permissions
@@ -120,7 +120,7 @@ export default async function DashboardOverviewPage() {
             <Users className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
+            <div className="text-2xl font-extrabold">{stats.active}</div>
             <p className="text-xs text-muted-foreground">Across all plans</p>
           </CardContent>
         </Card>
@@ -130,7 +130,7 @@ export default async function DashboardOverviewPage() {
             <DollarSign className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currency(netCents)}</div>
+            <div className="text-2xl font-extrabold">{currency(netCents)}</div>
             <p className="text-xs text-muted-foreground">Gross {currency(stats.revenue_cents)} · 15% fee deducted</p>
           </CardContent>
         </Card>
@@ -140,7 +140,7 @@ export default async function DashboardOverviewPage() {
             <MessageSquare className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.unread}</div>
+            <div className="text-2xl font-extrabold">{stats.unread}</div>
             <p className="text-xs text-muted-foreground">Realtime via Supabase</p>
           </CardContent>
         </Card>
