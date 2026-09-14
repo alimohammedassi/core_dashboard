@@ -23,7 +23,7 @@ export function SettingsClient({ stripeAccountId }: { stripeAccountId: string | 
       // Mock fallback when Stripe not configured
       if (msg.includes("not configured") || msg.includes("placeholder")) {
         toast.info("Stripe keys are placeholders — connect flow will work after you add STRIPE_SECRET_KEY.", {
-          description: "See .env.local and supabase/schema.sql (stripe_account_id column).",
+          description: "See the coach's row in Supabase (coaches.stripe_account_id).",
         });
       } else {
         toast.error(msg);

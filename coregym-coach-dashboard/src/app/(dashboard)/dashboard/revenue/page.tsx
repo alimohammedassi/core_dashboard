@@ -47,8 +47,9 @@ export default async function RevenuePage() {
 
     // Try Stripe payouts if account is connected (real Stripe data)
     try {
-      const { data: profile } = await supabase.from("profiles").select("stripe_account_id").eq("id", user.id).single();
-      const acct = (profile as { stripe_account_id?: string } | null)?.stripe_account_id;
+      // stripe_account_id lives on the coaches row (canonical), not profiles
+      const { data: coach } = await supabase.from("coaches").select("stripe_account_id").eq("id", coachId).single();
+      const acct = (coach as { stripe_account_id?: string } | null)?.stripe_account_id;
       if (acct && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
         const stripe = getStripe();
         // Both calls in parallel — independent external round trips that used
@@ -69,12 +70,16 @@ export default async function RevenuePage() {
           isStripe = true;
         }
         if (bt) {
-          const stripeGross = bt.data.filter((t) => t.type === "payment").reduce((s, t) => s + t.net, 0);
-          if (stripeGross > 0) gross = stripeGross;
-          net = gross;
-          // Skip local commission calc when Stripe is live
-          if (isStripe) {
-            commission = 0;
+          // Honest accounting from real balance transactions:
+          //   gross  = Σ amount   net = Σ net (Stripe fees already deducted)
+          //   platform commission shown as the actual amount − net delta
+          const payments = bt.data.filter((t) => t.type === "payment");
+          const stripeGross = payments.reduce((s, t) => s + t.amount, 0);
+          const stripeNet = payments.reduce((s, t) => s + t.net, 0);
+          if (stripeGross > 0) {
+            gross = stripeGross;
+            net = stripeNet;
+            commission = stripeGross - stripeNet;
           }
         }
       }

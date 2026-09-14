@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveCoachId } from "@/lib/coach";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SettingsClient } from "@/components/settings/SettingsClient";
@@ -12,7 +13,9 @@ export default async function SettingsPage() {
   let stripeAccountId: string | null = null;
 
   if (user) {
-    const { data } = await supabase.from("profiles").select("stripe_account_id, full_name, email").eq("id", user.id).single();
+    // stripe_account_id lives on the coaches row (canonical), not profiles
+    const coachId = await resolveCoachId(supabase, user.id);
+    const { data } = await supabase.from("coaches").select("stripe_account_id").eq("id", coachId).single();
     if (data && (data as { stripe_account_id?: string }).stripe_account_id) {
       stripeAccountId = (data as { stripe_account_id: string }).stripe_account_id;
     }
@@ -26,7 +29,7 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Stripe Connect (Express)</CardTitle>
           <CardDescription>
-            Coach onboarding: creates an Express account and redirects through Stripe Account Link flow. Stores <code className="font-mono">stripe_account_id</code> on the coach row ([NEW] column if missing).
+            Coach onboarding: creates an Express account and redirects through Stripe Account Link flow. Stores <code className="font-mono">stripe_account_id</code> on the coach row (<code className="font-mono">coaches</code> table).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -50,7 +53,7 @@ export default async function SettingsPage() {
         <CardContent className="text-sm space-y-2">
           <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
             <li>POST <code>/api/stripe/connect</code> → creates the Express account if missing plus an Account Link, and returns the onboarding URL.</li>
-            <li>Route stores <code>stripe_account_id</code> on <code>profiles</code>.</li>
+            <li>Route stores <code>stripe_account_id</code> on the coach row in the <code>coaches</code> table.</li>
             <li>Checkout creates PaymentIntent with <code>application_fee_amount</code> + <code>transfer_data.destination</code> (to be implemented).</li>
           </ol>
         </CardContent>

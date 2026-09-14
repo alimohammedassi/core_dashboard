@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveCoachId } from "@/lib/coach";
 
 export async function POST() {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -16,23 +17,28 @@ export async function POST() {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: profile } = await supabase.from("profiles").select("stripe_account_id, email").eq("id", user.id).single();
-  const existing = (profile as { stripe_account_id?: string } | null)?.stripe_account_id;
+  // stripe_account_id lives on the coaches row (canonical), not profiles.
+  const coachId = await resolveCoachId(supabase, user.id);
+  const [{ data: coach }, { data: profile }] = await Promise.all([
+    supabase.from("coaches").select("stripe_account_id").eq("id", coachId).single(),
+    supabase.from("profiles").select("email").eq("id", user.id).single(),
+  ]);
+  const existing = (coach as { stripe_account_id?: string } | null)?.stripe_account_id ?? null;
 
   // Dynamic import so build doesn't fail when key is placeholder
   const { getStripe } = await import("@/lib/stripe/server");
   const stripe = getStripe();
 
-  let accountId = existing ?? null;
+  let accountId = existing;
 
   if (!accountId) {
     const account = await stripe.accounts.create({
       type: "express",
-      email: (profile as { email?: string })?.email ?? user.email ?? undefined,
+      email: (profile as { email?: string } | null)?.email ?? user.email ?? undefined,
       capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
     });
     accountId = account.id;
-    await supabase.from("profiles").update({ stripe_account_id: accountId }).eq("id", user.id);
+    await supabase.from("coaches").update({ stripe_account_id: accountId }).eq("id", coachId);
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

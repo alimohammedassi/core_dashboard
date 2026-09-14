@@ -24,8 +24,20 @@ export interface Profile {
   fitness_goal: string | null;
   avatar_url: string | null;
   role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
+// Live coaches row (canonical Stripe Connect account location)
+export interface Coach {
+  id: string;
+  user_id: string;
+  bio: string | null;
+  price_monthly: number | null;
+  specialization: string[] | null;
+  rating: number | null;
+  is_active: boolean | null;
   stripe_account_id: string | null;
-  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
 }
