@@ -1,6 +1,6 @@
 # CoreGym Coach Dashboard — Project Summary
 
-Last updated: 2026-09-13.
+Last updated: 2026-09-15.
 
 The Coach Dashboard is the web side of the CoreGym product: coaches manage
 their clients, revenue, chat — and, as of the two features documented here, a
@@ -260,80 +260,79 @@ and has future assigned rows.
 
 ---
 
-## Current status
+## Current status (refreshed 2026-09-15)
 
 ### Verified working (executed, observed)
 
-- Dependencies install cleanly; `npx tsc --noEmit` passes; production build
-  passes (22 routes); `node --test tests/program-dates.test.ts` — 7/7.
-- Theme verified in a real browser on every dashboard page (Graphite &
-  Soft Volt, dark default, Poppins, active nav states, theme toggle).
-- Existing pages (Overview, Chat, Subscribers, Plans, Revenue, Settings) and
-  auth (login/signup, coach-role gate, signout, session refresh) verified
-  working under the new theme.
-- Template builder UI + save error path verified live: with migrations absent,
-  saving surfaces the precise database error in a toast and leaves no partial
-  data — confirming auth → coach resolution → validation → RPC call all work.
-- Programs UI (library empty state, nav integration, builder dialog with the
-  7-day grid) smoke-tested.
-- Test fixtures exist in the live DB: QA coach (`qa.coach.0912@coregymtest.dev`)
-  and QA test client (`qa.client.0913@coregymtest.dev`) with an **active
-  subscription** to that coach — ready for assignment/enrollment tests.
-- Discovery: the live DB auto-creates `profiles` rows on signup via a trigger,
-  so the earlier "signup leaves no profile" concern does not apply to the live
-  project.
+- Both workout migrations **applied to the live database** (2026-09-13, via the
+  Supabase Management API): 6/6 tables, all link columns, 5/5 RPCs, 11/11 RLS
+  policies, triggers verified.
+- Full acceptance suite passed **live**: template CRUD + duplicate/edit/delete,
+  assignment with validation rejections, mobile-simulated session linked by
+  `assignment_id`, performance review (exact target-vs-actual), feedback into
+  the existing chat, next-workout duplication (originals untouched), PPL
+  program enrollment (24 correct assignments), progress grid, week-1
+  completion, program edit + "Update Remaining Weeks" regeneration (23 rows,
+  completed rows preserved), protected deletes (409).
+- **Chat media parity** shipped and accepted: view + send image/voice/file,
+  participant-gated signed URLs, server-side limits; load test confirmed media
+  renders at volume.
+- **Performance fixes shipped** from the audit: #1 chat history pagination
+  (verified flat at a 123-message history during the load test), #3 loading
+  skeletons on four routes, #2 revenue Stripe calls parallelized.
+- **50-client load test** completed and cleaned up (see
+  `docs/load-test-report.md`): all scenarios 200s/zero errors, real-data
+  spot-checks intact.
+- `stripe_account_id` reads/writes **corrected to `coaches`** (canonical
+  location) across `/api/stripe/connect`, the revenue page, the settings page,
+  and `types.ts` — the Stripe Connect path is now wired to the real column.
 
-### Built, pending migration application
+### Remaining production blockers
 
-**Neither `supabase/workout_templates_migration.sql` nor
-`supabase/coach_programs_migration.sql` has been applied to the live Supabase
-project yet** (checked 2026-09-13). Until both are run (in that order):
-
-- Template/program CRUD and assignment/enrollment generation will fail with a
-  "could not find function/table" error — the UI surfaces these cleanly.
-- The live acceptance scenario (create PPL template → assign → mobile links
-  session → review → feedback → next workout → programs enrollment → grid →
-  Update Remaining Weeks) is designed and implemented but **not yet executed
-  against the live database**.
+1. **Credential rotation (owner action, mandatory)** — Supabase service-role +
+   anon keys and the Stripe test secret are exposed in pushed git history
+   (commit `46a6ee4`: `rollback/*/.env.local`, plus a hardcoded anon-key JWT in
+   `rollback/originals/coregymali/lib/supabase/supabase_config.dart`). Tracking
+   files were removed in `cdde65a`; the keys themselves are still active.
+2. **Vercel deployment + verification (staged)** — CLI installed; blocked on a
+   one-time `vercel login`. After deploy: login page + one read-only
+   authenticated page verified.
+3. **`plans_coach_all` RLS fix (live schema change, awaiting approval)** — the
+   live policy compares `coach_id = auth.uid()` and never matches; fix exists in
+   `supabase/rls_role_updates.sql` (lines 158–164). Until applied, the Plans
+   page stays read-only-for-coaches via service-role writes only.
+4. **Mobile assignment linking (external)** — see
+   `docs/mobile-assignment-linking.md`.
 
 ### Mobile dependency
 
 `workout_sessions.assignment_id` is written by the mobile app when a client
-starts an assigned workout (column already created by migration 1). Until the
-mobile engineer ships that, completed assigned workouts show the explicit
-"session data is not available yet" state rather than performance data.
+starts an assigned workout (column already created by migration 1). Full
+handoff: `docs/mobile-assignment-linking.md`. Until it ships, completed
+assigned workouts show the explicit "session data is not available yet" state
+rather than performance data.
 
 ---
 
 ## Known issues
 
-1. **`stripe_account_id` lives on `coaches`, not `profiles`.** The live
-   database has the column on `coaches`; however the Settings page
-   (`dashboard/settings/page.tsx`) and `/api/stripe/connect` read/write it on
-   `profiles`, and `src/lib/supabase/types.ts` documents it on `Profile` —
-   schema drift. Effect: Stripe Connect onboarding would fail at the DB write
-   once real keys are configured. Fix (not yet made): point those reads/writes
-   at `coaches.stripe_account_id` (and correct `types.ts`), or add the column
-   to `profiles` — one or the other, deliberately not changed alongside this
-   feature set.
-2. **Live `plans_coach_all` RLS policy is broken**: it compares
+1. **`plans_coach_all` RLS policy is broken in the live DB**: it compares
    `subscription_plans.coach_id` to `auth.uid()` while rows are keyed by
    `coaches.id`, so coaches cannot SELECT their own plans through the user
    context (the dashboard writes plans via service role, so plans "vanish" on
    refresh). The fix already exists in `supabase/rls_role_updates.sql`
-   (lines 158–164) but has not been applied to the live project.
-3. **Both workout migrations pending** (see status above) — run
-   `workout_templates_migration.sql` first, then `coach_programs_migration.sql`.
-4. **Credentials are committed to git history**: `env.download` (repo root) and
-   `rollback/current/.env.local`, `rollback/originals/.env.local` are tracked
-   and contain real Supabase/Stripe values. New `.env*` files are properly
-   gitignored, but the committed copies should be removed (`git rm --cached`),
-   the keys rotated, and history scrubbed if this repo is shared.
-5. **Three pre-existing lint errors** (intentionally left): two
-   `react-hooks/purity` warnings for `Date.now()` in a server component
-   (false positives — server components render per request) and one
-   `set-state-in-effect` in `PlansClient.tsx`.
-6. **Dead code kept deliberately**: `src/lib/supabase/queries.ts` (unused and
-   drifted from the live schema) and `src/lib/stripe/client.ts` (no Stripe.js
-   checkout exists yet). The Revenue page also labels its net estimate as
-   "gross".
+   (lines 158–164) — **applying it is a live schema change awaiting owner
+   approval**.
+2. **Credentials are committed to git history**: `rollback/current/.env.local`,
+   `rollback/originals/.env.local`, and a hardcoded anon-key JWT in
+   `rollback/originals/coregymali/lib/supabase/supabase_config.dart` are in
+   pushed history (commit `46a6ee4`); tracking was removed in `cdde65a` but the
+   keys remain active — **rotation is mandatory**, history scrub optional
+   (owner decision).
+3. **Lint warnings in the (uncommitted) overview WIP** (`Sidebar.tsx`
+   components-in-render errors, `KpiCard`/`RetentionGaugeCard` unused vars) —
+   belong to that stream, fixed when it lands.
+4. **`personal_records` scale note**: the view's user filter does push down
+   (verified via EXPLAIN — an earlier assumption it scanned without filtering
+   was wrong), but the scan is sequential; `supabase/personal_records_index.sql`
+   adds a supporting index when approved/applied.
