@@ -101,7 +101,6 @@ export function MediaMessage({ message }: { message: Message }) {
       <div className="flex min-w-52 items-center gap-2">
         <AudioLines className="size-4 shrink-0 opacity-70" />
         {src ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption -- short voice notes have no transcript track
           <audio controls preload="metadata" src={src} onError={reRefetch} className="h-8 max-w-52" />
         ) : (
           <span className="text-xs opacity-70">Loading voice note…</span>

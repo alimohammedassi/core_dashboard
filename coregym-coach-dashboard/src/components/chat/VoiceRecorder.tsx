@@ -124,7 +124,6 @@ export function VoiceRecorder({
   return (
     <div className="flex items-center gap-2 rounded-full border px-3 py-1.5">
       {blob ? (
-        // eslint-disable-next-line jsx-a11y/media-has-caption -- short voice notes have no transcript track
         <audio controls src={URL.createObjectURL(blob)} className="h-8 max-w-44" />
       ) : null}
       <span className="text-xs tabular-nums opacity-70">{formatTime(seconds)}</span>

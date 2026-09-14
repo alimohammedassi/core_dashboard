@@ -20,6 +20,10 @@ type ConvWithClient = Conversation & {
   unread_count?: number;
 };
 
+// Chat history pagination: load the newest page, then keyset-paginate older
+// messages on demand so opening a conversation never loads unbounded history.
+const PAGE_SIZE = 50;
+
 type PendingAttachment = { file: File; type: "image" | "file" };
 
 export function ChatClient({ coachId, initialConversations }: { coachId: string; initialConversations: ConvWithClient[] }) {
@@ -27,11 +31,14 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
   const [conversations, setConversations] = React.useState<ConvWithClient[]>(initialConversations);
   const [selectedId, setSelectedId] = React.useState<string | null>(conversations[0]?.id ?? null);
   const [messages, setMessages] = React.useState<Message[]>([]);
+  const [hasMore, setHasMore] = React.useState(false);
+  const [loadingOlder, setLoadingOlder] = React.useState(false);
   const [composer, setComposer] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [pending, setPending] = React.useState<PendingAttachment | null>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const threadWrapRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -64,7 +71,8 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     });
   }
 
-  // Load messages when selection changes
+  // Load the newest PAGE_SIZE messages when selection changes; older history
+  // is fetched on demand via loadOlder().
   React.useEffect(() => {
     if (!selectedId) return;
     let cancelled = false;
@@ -73,12 +81,15 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(PAGE_SIZE + 1);
       if (!cancelled) {
         if (error) {
           toast.error("Failed to load messages: " + error.message);
         } else {
-          setMessages((data as Message[]) ?? []);
+          const rows = (data as Message[]) ?? [];
+          setHasMore(rows.length > PAGE_SIZE);
+          setMessages(rows.slice(0, PAGE_SIZE).reverse());
         }
       }
     })();
@@ -86,6 +97,38 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
       cancelled = true;
     };
   }, [selectedId, supabase]);
+
+  async function loadOlder() {
+    if (!selectedId || !hasMore || loadingOlder) return;
+    const oldest = messages[0];
+    if (!oldest) return;
+    setLoadingOlder(true);
+    try {
+      const viewport = threadWrapRef.current?.querySelector("[data-slot='scroll-area-viewport']");
+      const prevHeight = viewport?.scrollHeight ?? 0;
+      const prevTop = viewport?.scrollTop ?? 0;
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", selectedId)
+        .lt("created_at", oldest.created_at)
+        .order("created_at", { ascending: false })
+        .limit(PAGE_SIZE + 1);
+      if (error) {
+        toast.error("Failed to load older messages: " + error.message);
+        return;
+      }
+      const rows = (data as Message[]) ?? [];
+      setHasMore(rows.length > PAGE_SIZE);
+      setMessages((prev) => [...rows.slice(0, PAGE_SIZE).reverse(), ...prev]);
+      // keep the viewport anchored on the message the user was reading
+      requestAnimationFrame(() => {
+        if (viewport) viewport.scrollTop = viewport.scrollHeight - prevHeight + prevTop;
+      });
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
 
   // Realtime subscription on messages for coach's conversations — single
   // channel for the whole session (see refs above).
@@ -112,8 +155,15 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     };
   }, [supabase, coachId]);
 
+  // Auto-scroll only when a NEWEST message arrives — loading older history
+  // must not yank the viewport to the bottom.
+  const lastVisibleIdRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const last = messages[messages.length - 1];
+    if (last && last.id !== lastVisibleIdRef.current) {
+      lastVisibleIdRef.current = last.id;
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   async function refreshAfterSend(msg: Message) {
@@ -258,9 +308,17 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
                 <p className="text-xs text-muted-foreground">Realtime</p>
               </div>
             </div>
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-3">
-                {messages.map((m) => {
+            <div ref={threadWrapRef} className="flex-1 min-h-0">
+              <ScrollArea className="h-full p-4">
+                <div className="space-y-3">
+                  {hasMore && (
+                    <div className="flex justify-center pb-2">
+                      <Button type="button" variant="outline" size="sm" disabled={loadingOlder} onClick={loadOlder}>
+                        {loadingOlder ? "Loading older messages…" : "Load older messages"}
+                      </Button>
+                    </div>
+                  )}
+                  {messages.map((m) => {
                   const isMe = m.sender_id === coachId;
                   const isMedia = m.type === "image" || m.type === "voice" || m.type === "file";
                   return (
@@ -284,6 +342,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
                 <div ref={bottomRef} />
               </div>
             </ScrollArea>
+            </div>
             <form onSubmit={handleSend} className="p-3 border-t space-y-2">
               {pending && (
                 <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
