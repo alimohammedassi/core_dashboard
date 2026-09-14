@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Cairo:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#121310;
+    background-image: radial-gradient(rgba(178,215,66,0.07) 1px, transparent 1px);
+    background-size: 26px 26px;
+    font-family:'Poppins',sans-serif;
+    color:#ECEEE2;
+    padding:56px 40px 48px;
+    width:1800px;
+  }
+  .ar { font-family:'Cairo','Poppins',sans-serif; direction:rtl; }
+
+  /* ── CORE node ── */
+  .core-wrap { text-align:center; margin-bottom:0; }
+  .core {
+    display:inline-block; padding:26px 84px;
+    border:3px solid #B2D742; border-radius:28px;
+    background:linear-gradient(135deg, rgba(178,215,66,0.14), rgba(178,215,66,0.05));
+    box-shadow:0 0 60px rgba(178,215,66,0.18);
+  }
+  .core h1 { font-size:58px; font-weight:800; letter-spacing:-1px; color:#B2D742; line-height:1; }
+  .core h1 span { color:#D1FC00; }
+  .core p { margin-top:10px; font-size:17px; color:#A9ADA0; font-weight:600; }
+  .core p b { color:#ECEEE2; }
+
+  /* ── tree connectors ── */
+  .stem { width:3px; height:44px; background:#B2D742; margin:0 auto; }
+  .split { position:relative; height:56px; width:1280px; margin:0 auto; }
+  .split .bar { position:absolute; top:0; left:0; right:0; height:3px; background:#B2D742; }
+  .split .l { position:absolute; top:0; left:0; width:3px; height:56px; background:#B2D742; }
+  .split .r { position:absolute; top:0; right:0; width:3px; height:56px; background:#B2D742; }
+  .split .dot { position:absolute; top:-7px; left:calc(50% - 7px); width:14px; height:14px; border-radius:50%; background:#D1FC00; }
+
+  /* ── columns ── */
+  .cols { display:flex; gap:0; justify-content:space-between; margin-top:0; }
+  .col { width:760px; }
+  .col-head {
+    display:flex; align-items:center; gap:16px;
+    padding:18px 26px; border-radius:18px; margin-bottom:26px;
+  }
+  .col-head.app  { background:rgba(178,215,66,0.10); border:2px solid rgba(178,215,66,0.45); }
+  .col-head.dash { background:rgba(209,252,0,0.08);  border:2px solid rgba(209,252,0,0.40); }
+  .col-head .ico { font-size:40px; }
+  .col-head h2 { font-size:26px; font-weight:800; letter-spacing:-0.3px; }
+  .col-head.app h2  { color:#B2D742; }
+  .col-head.dash h2 { color:#D1FC00; }
+  .col-head p { font-size:14px; font-weight:600; color:#A9ADA0; margin-top:2px; }
+
+  .step {
+    position:relative;
+    background:#171814; border:1px solid #2C2D27; border-radius:16px;
+    padding:16px 22px; margin:0 0 22px; width:100%;
+  }
+  .step.key { border-color:rgba(178,215,66,0.55); background:linear-gradient(135deg, rgba(178,215,66,0.10), #171814 60%); }
+  .step .n {
+    display:inline-block; min-width:30px; padding:2px 9px; margin-right:12px;
+    border-radius:9px; background:rgba(178,215,66,0.16); color:#B2D742;
+    font-size:13px; font-weight:800; text-align:center;
+  }
+  .step h3 { display:inline; font-size:17.5px; font-weight:700; color:#ECEEE2; }
+  .step p  { margin-top:7px; font-size:14.5px; line-height:1.55; color:#A9ADA0; font-weight:400; }
+  .step p b { color:#B2D742; font-weight:600; }
+  .arrow { text-align:center; color:#6E7268; font-size:20px; line-height:0.4; margin:-10px 0 10px; }
+
+  /* ── middle sync lane ── */
+  .sync {
+    position:absolute; top:0; left:0; right:0; height:100%;
+    pointer-events:none;
+  }
+  .sync .pill {
+    position:absolute;
+    left:760px; width:280px;
+    transform:translateY(-50%);
+    text-align:center;
+  }
+  .sync .pill .tag {
+    display:inline-block; padding:9px 14px; border-radius:12px;
+    background:#1F201B; border:1.5px dashed #6E7268;
+    font-size:12.5px; font-weight:700; color:#A9ADA0; line-height:1.45;
+  }
+  .sync .pill.to-app .tag    { border-color:rgba(178,215,66,0.6); color:#B2D742; }
+  .sync .pill.to-coach .tag  { border-color:rgba(79,209,197,0.55); color:#4FD1C5; }
+  .sync .pill.both .tag      { border-color:rgba(232,196,104,0.55); color:#E8C468; }
+
+  /* ── footer ── */
+  .footer {
+    margin-top:34px; text-align:center;
+    border:1.5px dashed #45473E; border-radius:18px; padding:20px 30px;
+  }
+  .footer h3 { font-size:18px; font-weight:700; color:#ECEEE2; }
+  .footer h3 b { color:#B2D742; }
+  .footer p { margin-top:6px; font-size:13.5px; color:#8A8E82; font-weight:600; letter-spacing:0.2px; }
+</style>
+</head>
+<body>
+
+  <div class="core-wrap">
+    <div class="core">
+      <h1>C O R E <span>⚡</span></h1>
+      <p><b>One Brain — Supabase</b> · Auth · Database · Realtime · Storage · One single source of truth</p>
+    </div>
+  </div>
+  <div class="stem"></div>
+  <div class="split"><div class="bar"></div><div class="dot"></div><div class="l"></div><div class="r"></div></div>
+
+  <div style="position:relative;">
+    <div class="cols">
+
+      <!-- ══ APP ══ -->
+      <div class="col">
+        <div class="col-head app">
+          <div class="ico">📱</div>
+          <div>
+            <h2>CoreGym Mobile App</h2>
+            <p>CLIENTS ONLY — created in the app, never a coach</p>
+          </div>
+        </div>
+
+        <div class="step"><span class="n">1</span><h3>Sign Up / Login (Google · Email)</h3>
+          <p>Every account is automatically a <b>Customer</b> — no coach option inside the app</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">2</span><h3>Onboarding — Body Data &amp; Goals</h3>
+          <p>Daily calories · protein · steps · water · target weight → saved to <b>user_goals</b></p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">3</span><h3>Home — Today at a Glance</h3>
+          <p>Calories gauge · steps · macros · streak — live from <b>daily_summary</b></p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">4</span><h3>AI Food Logging</h3>
+          <p><b>Photo · Barcode · Voice · Text</b> → nutrition_logs (calories, protein, carbs, fat) → auto daily summary</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">5</span><h3>Health Sync (automatic)</h3>
+          <p>Steps &amp; activity from the phone → <b>daily_summary</b> with zero effort</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">6</span><h3>Find a Coach → Subscribe</h3>
+          <p>Browse coach profiles <b>created on the website</b> → subscribe with <b>Stripe</b> → chat opens</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">7</span><h3>Chat with Coach (Realtime)</h3>
+          <p>Same conversation as the dashboard — instant both ways</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">8</span><h3>Today's Workout → Start Workout</h3>
+          <p>Assigned by the coach from the dashboard — exercises, target sets, reps, weight, rest</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">9</span><h3>Log Every Exercise → Log Every Set</h3>
+          <p><b>Weight + Reps</b> per set — pre-filled with the coach's targets → workout_sets</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">10</span><h3>Complete → WORKOUT LOG</h3>
+          <p>Session saved (duration, sets) — flows back to the coach instantly</p></div>
+      </div>
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="col">
+        <div class="col-head dash">
+          <div class="ico">💻</div>
+          <div>
+            <h2>Core Dashboard (Web)</h2>
+            <p>COACHES ONLY — sign up on the website only</p>
+          </div>
+        </div>
+
+        <div class="step"><span class="n">1</span><h3>Sign Up as Coach (website)</h3>
+          <p>Profile created → <b>appears in the app's Find a Coach instantly</b> — no manual step</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">2</span><h3>Overview — Live Stats</h3>
+          <p>Active subscribers · Revenue · Unread messages — real numbers, zero mock data</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">3</span><h3>Customer Profile (per client)</h3>
+          <p>Calories vs goal · steps · workouts · weight trend · <b>meal-level logs</b> · body measurements</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">4</span><h3>Create Workout Template</h3>
+          <p><b>Exercises · Target Muscles · Sets · Target Reps · Target Weight · Rest / Notes</b></p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">5</span><h3>Save Template → Assign to Client / Add to Program</h3>
+          <p>Lands in the client's app as <b>"Today's Workout"</b> for the scheduled date</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">6</span><h3>Realtime Chat → Feedback</h3>
+          <p>Replies to clients from the same conversation as the mobile app</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step key"><span class="n">7</span><h3>Review Performance — Target vs Actual</h3>
+          <p>Every logged set compared to the template: <b>"target 3×10 @ 40kg — actual 3×10 @ 42.5kg"</b></p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">8</span><h3>Progress Charts → Adjust → Next Workout</h3>
+          <p>Weekly volume · personal records · duplicate-and-tweak the next assignment — the loop closes</p></div>
+        <div class="arrow">↓</div>
+
+        <div class="step"><span class="n">9</span><h3>Plans &amp; Revenue (Stripe)</h3>
+          <p>Gross → <b>15% platform commission</b> → net payout to the coach</p></div>
+      </div>
+    </div>
+
+    <!-- ── sync lane labels (between the two columns) ── -->
+    <div class="sync">
+      <div class="pill to-app"   style="top:255px;"><span class="tag">Coach → Client<br>Coach profiles ·<br>Workout assignments</span></div>
+      <div class="pill both"     style="top:520px;"><span class="tag">⇄ Realtime Chat<br>+ Stripe payments</span></div>
+      <div class="pill to-coach" style="top:800px;"><span class="tag">Client → Coach<br>Calories · steps ·<br>workout logs · weight (live)</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <h3>🔐 One shared database = <b>single source of truth</b> — role: <b>client</b> | <b>coach</b> — enforced by Row Level Security</h3>
+    <p>Clients are born in the app · Coaches are born on the website · Both meet in the middle: ONE Core</p>
+  </div>
+
+</body>
+</html>

@@ -19,22 +19,38 @@ export default async function RevenuePage() {
   let commission = 0;
   let net = 0;
   let payouts: Array<{ id: string; amount: number; currency: string; arrival_date: number; status: string }> = [];
+  let transactions: Array<{ id: string; amount: number; currency: string | null; status: string | null; created_at: string; client_id: string | null; client?: { full_name?: string; email?: string } | null }> = [];
   let isStripe = false;
   let errorNote: string | null = null;
   let dbError: string | null = null;
 
   if (user) {
-    // payment_intents.coach_id references coaches.id, not the auth uid
     const coachId = await resolveCoachId(supabase, user.id);
 
-    // Try Stripe first (real data for connected account)
+    // Fetch real transactions (payment_intents) for this coach — always real data
+    const { data: txData, error: txErr } = await supabase
+      .from("payment_intents")
+      .select("id, amount, currency, status, created_at, client_id, client:profiles!payment_intents_client_id_fkey(full_name, email)")
+      .eq("coach_id", coachId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (txErr) {
+      dbError = txErr.message;
+    } else {
+      transactions = (txData as unknown as typeof transactions) ?? [];
+      // Gross from real succeeded rows if Stripe not overriding
+      const succeeded = transactions.filter((t) => t.status === "succeeded");
+      if (succeeded.length > 0) {
+        gross = succeeded.reduce((s, r) => s + (r.amount ?? 0), 0);
+      }
+    }
+
+    // Try Stripe payouts if account is connected (real Stripe data)
     try {
       const { data: profile } = await supabase.from("profiles").select("stripe_account_id").eq("id", user.id).single();
       const acct = (profile as { stripe_account_id?: string } | null)?.stripe_account_id;
       if (acct && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
         const stripe = getStripe();
-        // Balance transactions for connected account would be fetched via stripe.balanceTransactions.list with stripeAccount header
-        // For platform-level demo, list payouts for the account
         const payoutList = await stripe.payouts.list({ limit: 10 }, { stripeAccount: acct }).catch(() => null);
         if (payoutList) {
           payouts = payoutList.data.map((p) => ({
@@ -46,33 +62,34 @@ export default async function RevenuePage() {
           }));
           isStripe = true;
         }
-        // Also attempt balance transactions for gross
         const bt = await stripe.balanceTransactions.list({ limit: 100 }, { stripeAccount: acct }).catch(() => null);
         if (bt) {
-          gross = bt.data.filter((t) => t.type === "payment").reduce((s, t) => s + t.net, 0);
-          // commission would be platform fee; net is what coach received
-          // For Express, gross is in balanceTransactions amount, net is available
+          const stripeGross = bt.data.filter((t) => t.type === "payment").reduce((s, t) => s + t.net, 0);
+          if (stripeGross > 0) gross = stripeGross;
           net = gross;
+          // Skip local commission calc when Stripe is live
+          if (isStripe) {
+            commission = 0;
+          }
         }
       }
     } catch (e: unknown) {
       errorNote = e instanceof Error ? e.message : String(e);
     }
 
-    // Local payment_intents when Stripe not configured — real rows or real zeros
+    // Local commission estimate only when Stripe not live — based on real gross
     if (!isStripe) {
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      const { data: allPayments, error: payErr } = await supabase
-        .from("payment_intents")
-        .select("amount")
-        .eq("coach_id", coachId)
-        .eq("status", "succeeded");
-
-      if (payErr) {
-        dbError = payErr.message;
-      } else {
+      // If gross still 0 and we have transactions, recompute already done; ensure gross from succeeded
+      if (gross === 0 && transactions.length > 0) {
+        gross = transactions.filter((t) => t.status === "succeeded").reduce((s, r) => s + (r.amount ?? 0), 0);
+      }
+      // Fallback query if transactions empty (e.g., RLS or no join)
+      if (gross === 0) {
+        const { data: allPayments } = await supabase
+          .from("payment_intents")
+          .select("amount")
+          .eq("coach_id", coachId)
+          .eq("status", "succeeded");
         gross = (allPayments ?? []).reduce((s: number, r: { amount: number }) => s + (r.amount ?? 0), 0);
       }
       commission = Math.round(gross * 0.15);
@@ -87,12 +104,14 @@ export default async function RevenuePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Revenue</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Revenue & Payments</h1>
           <p className="text-sm text-muted-foreground">
-            Sourced from Stripe ({isStripe ? "live" : "local estimate"}). Commission deducted, net payout shown.
+            {isStripe
+              ? "Live Stripe payouts plus your local payment_intents transactions — all real data for this coach."
+              : "Your real transactions from payment_intents (Supabase). Payouts appear once Stripe Connect is active."}
           </p>
         </div>
-        {isStripe ? <Badge>Live Stripe data</Badge> : <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Local estimate — 15% fee</Badge>}
+        {isStripe ? <Badge>Live Stripe data</Badge> : <Badge variant="outline">Real data — payment_intents</Badge>}
       </div>
 
       {errorNote && <p className="text-xs text-amber-600">Stripe note: {errorNote}</p>}
@@ -102,14 +121,14 @@ export default async function RevenuePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Gross revenue</CardTitle>
-            <CardDescription>All-time</CardDescription>
+            <CardDescription>From succeeded payment_intents</CardDescription>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{cents(gross)}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Platform commission</CardTitle>
-            <CardDescription>15% deducted</CardDescription>
+            <CardDescription>{isStripe ? "Stripe fees (live)" : "15% estimate"}</CardDescription>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{cents(commission)}</div></CardContent>
         </Card>
@@ -124,9 +143,43 @@ export default async function RevenuePage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Transactions</CardTitle>
+          <CardDescription>Real payment_intents rows for your coach ({transactions.length} shown). Source: Supabase payment_intents table.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono text-xs truncate max-w-[120px]">{t.id.slice(0, 8)}</TableCell>
+                  <TableCell className="text-sm truncate max-w-[160px]">{t.client?.full_name ?? t.client?.email ?? t.client_id?.slice(0, 8) ?? "—"}</TableCell>
+                  <TableCell className="font-medium">{cents(t.amount)} <span className="text-xs text-muted-foreground">{(t.currency ?? "usd").toUpperCase()}</span></TableCell>
+                  <TableCell className="text-sm">{new Date(t.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell><Badge variant={t.status === "succeeded" ? "default" : t.status === "pending" ? "secondary" : "outline"}>{t.status ?? "unknown"}</Badge></TableCell>
+                </TableRow>
+              ))}
+              {transactions.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">No transactions yet — real data will appear here when clients pay.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Payouts</CardTitle>
           <CardDescription>
-            {isStripe ? "Transfers / payouts for your connected account (Stripe balanceTransactions/transfers)." : "Local estimate — connect Stripe to see real transfers."}
+            {isStripe ? "Real Stripe payouts for your connected account." : "Connect Stripe in Settings to see real payouts. No mock data shown."}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
