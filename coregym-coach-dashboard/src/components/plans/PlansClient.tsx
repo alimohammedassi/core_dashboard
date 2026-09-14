@@ -21,8 +21,13 @@ export function PlansClient({
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
-  // Keep initial in sync if server revalidates
-  React.useEffect(() => setPlans(initialPlans), [initialPlans]);
+  // Keep local state in sync when the server revalidates (render-time
+  // adjustment instead of a cascading setState effect).
+  const [prevInitial, setPrevInitial] = React.useState(initialPlans);
+  if (prevInitial !== initialPlans) {
+    setPrevInitial(initialPlans);
+    setPlans(initialPlans);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

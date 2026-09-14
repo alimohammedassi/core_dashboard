@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
-import { loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
+import { daysAgoISO, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
 import { loadClientEnrollments } from "@/lib/programs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -137,7 +137,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   };
 
   // ── Customer logged data (shared DB; RLS lets a coach read subscribed clients)
-  const since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+  const since = daysAgoISO(14);
   const [goalsRes, summariesRes, nutritionRes, sessionsRes, measurementsRes] = await Promise.all([
     supabase.from("user_goals").select("*").eq("user_id", clientId).maybeSingle(),
     supabase
@@ -188,7 +188,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
 
   // ── Derived numbers
   const today = summaries[0] ?? null;
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const weekAgo = daysAgoISO(7);
   const workoutsThisWeek = sessions.filter((s) => (s.session_date ?? "") >= weekAgo).length;
   const weights = measurements.filter((m) => m.weight_kg != null);
   const latestWeight = weights[0]?.weight_kg ?? null;

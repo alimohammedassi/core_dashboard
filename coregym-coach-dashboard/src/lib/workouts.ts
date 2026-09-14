@@ -9,6 +9,14 @@ import type {
   WorkoutTemplateExercise,
 } from "@/lib/supabase/types";
 
+// ── Small shared helpers ─────────────────────────────────────────────────────
+
+// Date-only string for N days ago (server-rendered pages use this for query
+// windows; kept outside components so render stays lint-pure).
+export function daysAgoISO(days: number): string {
+  return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+}
+
 // ── Coach context ────────────────────────────────────────────────────────────
 
 export type CoachContext = { userId: string; coachId: string };
