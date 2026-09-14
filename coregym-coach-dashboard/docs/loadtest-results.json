@@ -1,0 +1,178 @@
+{
+ "sequential": {
+  "S1 subscribers list (50 clients)": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 1584
+    },
+    {
+     "status": 200,
+     "ms": 1664
+    },
+    {
+     "status": 200,
+     "ms": 1572
+    }
+   ],
+   "median": 1584,
+   "min": 1572,
+   "max": 1664,
+   "statuses": "200,200,200"
+  },
+  "S2 profile — workout history client": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 2064
+    },
+    {
+     "status": 200,
+     "ms": 2115
+    },
+    {
+     "status": 200,
+     "ms": 2565
+    }
+   ],
+   "median": 2115,
+   "min": 2064,
+   "max": 2565,
+   "statuses": "200,200,200"
+  },
+  "S3 program progress grid": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 6249
+    },
+    {
+     "status": 200,
+     "ms": 2310
+    },
+    {
+     "status": 200,
+     "ms": 1492
+    }
+   ],
+   "median": 2310,
+   "min": 1492,
+   "max": 6249,
+   "statuses": "200,200,200"
+  },
+  "S4 performance review (assigned, no session)": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 1600
+    },
+    {
+     "status": 200,
+     "ms": 2103
+    },
+    {
+     "status": 200,
+     "ms": 1459
+    }
+   ],
+   "median": 1600,
+   "min": 1459,
+   "max": 2103,
+   "statuses": "200,200,200"
+  },
+  "S5 chat page": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 560
+    },
+    {
+     "status": 200,
+     "ms": 632
+    },
+    {
+     "status": 200,
+     "ms": 512
+    }
+   ],
+   "median": 560,
+   "min": 512,
+   "max": 632,
+   "statuses": "200,200,200"
+  },
+  "S6 revenue": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 1504
+    },
+    {
+     "status": 200,
+     "ms": 948
+    },
+    {
+     "status": 200,
+     "ms": 1037
+    }
+   ],
+   "median": 1037,
+   "min": 948,
+   "max": 1504,
+   "statuses": "200,200,200"
+  },
+  "S7 overview": {
+   "runs": [
+    {
+     "status": 200,
+     "ms": 995
+    },
+    {
+     "status": 200,
+     "ms": 1064
+    },
+    {
+     "status": 200,
+     "ms": 973
+    }
+   ],
+   "median": 995,
+   "min": 973,
+   "max": 1064,
+   "statuses": "200,200,200"
+  }
+ },
+ "concurrency": [
+  {
+   "wave": 1,
+   "wallMs": 4373,
+   "statuses": "200,200,200,200,200,200,200",
+   "slowest": 4372,
+   "fastest": 2188,
+   "errors": 0
+  },
+  {
+   "wave": 2,
+   "wallMs": 4424,
+   "statuses": "200,200,200,200,200,200,200",
+   "slowest": 4423,
+   "fastest": 2640,
+   "errors": 0
+  },
+  {
+   "wave": 3,
+   "wallMs": 4530,
+   "statuses": "200,200,200,200,200,200,200",
+   "slowest": 4530,
+   "fastest": 2649,
+   "errors": 0
+  }
+ ],
+ "errors": [],
+ "chatPagination": {
+  "conversationId": "ed362b81-bd5b-4cc5-9c97-fe45ea494097",
+  "totalMessages": 123,
+  "cappedRows": 51,
+  "cappedBytes": 16680,
+  "unboundedBytes": 39989
+ }
+}
