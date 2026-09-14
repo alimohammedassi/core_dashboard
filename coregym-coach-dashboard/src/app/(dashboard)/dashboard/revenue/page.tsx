@@ -51,7 +51,13 @@ export default async function RevenuePage() {
       const acct = (profile as { stripe_account_id?: string } | null)?.stripe_account_id;
       if (acct && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
         const stripe = getStripe();
-        const payoutList = await stripe.payouts.list({ limit: 10 }, { stripeAccount: acct }).catch(() => null);
+        // Both calls in parallel — independent external round trips that used
+        // to stack during render (audit item #2). limit 100 kept: these rows
+        // feed the gross sum below.
+        const [payoutList, bt] = await Promise.all([
+          stripe.payouts.list({ limit: 10 }, { stripeAccount: acct }).catch(() => null),
+          stripe.balanceTransactions.list({ limit: 100 }, { stripeAccount: acct }).catch(() => null),
+        ]);
         if (payoutList) {
           payouts = payoutList.data.map((p) => ({
             id: p.id,
@@ -62,7 +68,6 @@ export default async function RevenuePage() {
           }));
           isStripe = true;
         }
-        const bt = await stripe.balanceTransactions.list({ limit: 100 }, { stripeAccount: acct }).catch(() => null);
         if (bt) {
           const stripeGross = bt.data.filter((t) => t.type === "payment").reduce((s, t) => s + t.net, 0);
           if (stripeGross > 0) gross = stripeGross;
