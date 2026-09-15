@@ -8,9 +8,15 @@ schedule the adjusted next workout. Clients train in the CoreGym Flutter
 mobile app against the same Supabase database; this dashboard never writes
 mobile-side data and mobile never changes for dashboard features.
 
-> Docs: [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) — full feature and
-> status summary · [`docs/coach-weekly-programs.md`](docs/coach-weekly-programs.md)
-> — deep dive on the recurring Programs feature.
+> Docs: [`docs/product-workflow.md`](docs/product-workflow.md) — the complete
+> product/user workflow (start here) ·
+> [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) — feature and status
+> summary · [`docs/coach-weekly-programs.md`](docs/coach-weekly-programs.md) —
+> weekly programs deep dive ·
+> [`docs/mobile-assignment-linking.md`](docs/mobile-assignment-linking.md) —
+> mobile engineer handoff ·
+> [`docs/performance-audit.md`](docs/performance-audit.md) and
+> [`docs/load-test-report.md`](docs/load-test-report.md) — performance record.
 
 ## Stack
 
@@ -26,6 +32,9 @@ mobile-side data and mobile never changes for dashboard features.
 
 - **Coach dashboard** — overview stats, subscribers (rich client profile),
   plans, revenue, settings, realtime chat reusing the app's conversation tables.
+- **Chat media parity** — coaches view and send images, voice notes and files
+  (private buckets, participant-gated signed URLs, server-side validation),
+  fully compatible with the mobile app's messages.
 - **Workout Management System** — template library with a full builder
   (target muscles, exercises with sets/reps/weight/rest/order, autocomplete
   from the shared `exercises` catalog), assignment to active subscribers,
@@ -63,11 +72,10 @@ npm run dev                  # http://localhost:3000
 | `STRIPE_WEBHOOK_SECRET` | `/api/webhooks/stripe` | Placeholder values safely degrade to mock mode. |
 | `NEXT_PUBLIC_APP_URL` | Connect redirects | Defaults to `http://localhost:3000`. |
 
-### Database migrations
+## Database migrations
 
-The app expects schema objects created by two idempotent SQL files in
-`supabase/` — run them **in order** in the Supabase SQL Editor (safe to
-re-run):
+Applied migrations live in `supabase/` (both **already applied** to the live
+project, idempotent — safe to re-run):
 
 1. `supabase/workout_templates_migration.sql` — workout templates, exercises,
    assignments, the `workout_sessions.assignment_id` mobile link, RLS, and the
@@ -76,9 +84,18 @@ re-run):
    client enrollments, `enrollment_id`/`week_number` columns, generation and
    regeneration RPCs.
 
-`supabase/schema.sql` and `supabase/rls_role_updates.sql` are proposals/notes
-against the live schema — see `docs/PROJECT_SUMMARY.md` before applying
-anything from them.
+**Pending owner approval** (created, reviewed, not applied to the live
+project):
+
+- `supabase/rls_role_updates.sql` — fixes the live `plans_coach_all` policy
+  (compares `coach_id` to `auth.uid()`, which never matches `coaches.id`) and
+  adds the coach-read policies that let the subscriber profile show client
+  data.
+- `supabase/personal_records_index.sql` — supporting index for the
+  `personal_records` view at scale.
+
+`supabase/schema.sql` is an early proposal kept for reference — see
+`docs/PROJECT_SUMMARY.md` before using anything from it.
 
 ## Scripts
 
@@ -111,10 +128,17 @@ Vercel project, and deploy. Point the Stripe webhook endpoint at
 `https://<your-domain>/api/webhooks/stripe` and copy its signing secret into
 `STRIPE_WEBHOOK_SECRET`.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every PR:
+`npm ci` → typecheck → lint → build (all blocking, placeholder env vars — no
+secrets in CI). Deployments stay on Vercel's own integration.
+
 ## Testing status
 
-Unit tests and the full type/build/lint suite pass; both features were
-accepted end-to-end against the live Supabase project (see
-`docs/PROJECT_SUMMARY.md` → "Current status" for the detailed pass list and
-known issues — including the unapplied `plans_coach_all` RLS fix and the
-`stripe_account_id` column-location mismatch flagged there).
+Unit tests and the full type/build/lint suite pass. Both feature sets were
+accepted end-to-end against the live Supabase project, and a 50-client load
+test validated the dashboard at volume (`docs/load-test-report.md`). Remaining
+production blockers are tracked in `docs/PROJECT_SUMMARY.md` → "Remaining
+production blockers" (credential rotation, Vercel login, two
+pending-approval SQL files, and the mobile app's `assignment_id` write).
