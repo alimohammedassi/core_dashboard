@@ -1,7 +1,11 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export async function createClient() {
+// Request-scoped: React cache() memoizes per server request/render, so the
+// layout and page share one client instance (and one getUser round trip via
+// getCurrentUser) without sharing anything across requests or users.
+export const createClient = cache(async () => {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -25,7 +29,7 @@ export async function createClient() {
       },
     }
   );
-}
+});
 
 export async function createServiceClient() {
   const { createClient: createSupabaseClient } = await import(

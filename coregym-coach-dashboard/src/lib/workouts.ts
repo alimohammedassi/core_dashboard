@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import type {
   PersonalRecord,
@@ -25,9 +26,7 @@ export type CoachContext = { userId: string; coachId: string };
 // visitor is not authenticated or has no coach row — callers return 401/403.
 export async function requireCoachContext(): Promise<CoachContext | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return null;
   const coachId = await resolveCoachId(supabase, user.id);
   if (coachId === user.id) return null; // no coaches row yet

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { loadActiveClients, loadExerciseCatalog } from "@/lib/workouts";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";import { WorkoutsClient } from "@/components/workouts/WorkoutsClient";
@@ -8,9 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function WorkoutsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) return null;
 

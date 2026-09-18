@@ -1,14 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SettingsClient } from "@/components/settings/SettingsClient";
+import { CoachProfileForm } from "@/components/settings/CoachProfileForm";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   let stripeAccountId: string | null = null;
 
@@ -23,7 +23,19 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold tracking-tight">Settings — Payouts</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Coach profile & policy</CardTitle>
+          <CardDescription>
+            Your public coaching profile and training policy. Changes are visible to clients in the app.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CoachProfileForm />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

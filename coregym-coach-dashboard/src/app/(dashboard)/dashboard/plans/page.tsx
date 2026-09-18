@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { PlansClient } from "@/components/plans/PlansClient";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +7,7 @@ import type { SubscriptionPlan } from "@/lib/supabase/types";
 
 export default async function PlansPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   let plans: SubscriptionPlan[] = [];
   let coachId = "";

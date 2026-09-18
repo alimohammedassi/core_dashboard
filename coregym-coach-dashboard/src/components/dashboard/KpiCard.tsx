@@ -19,7 +19,6 @@ export type KpiCardProps = {
 export function KpiCard({ label, value, trend, trendLabel, icon, iconBg, className }: KpiCardProps) {
   const Icon = ICONS[icon] ?? Users;
   const isUp = trend !== undefined && trend >= 0;
-  const isDown = trend !== undefined && trend < 0;
 
   return (
     <Card

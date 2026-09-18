@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { daysAgoISO, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
 import { loadClientEnrollments } from "@/lib/programs";
+import { ExerciseResults } from "@/components/subscribers/ExerciseResults";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +62,7 @@ type WorkoutSet = {
   set_number: number | null;
   reps: number | null;
   weight_kg: number | null;
+  is_warmup: boolean | null;
 };
 
 type Measurement = {
@@ -73,9 +76,7 @@ type Measurement = {
 export default async function SubscriberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   let sub: SubDetail | null = null;
   let coachId = "";
@@ -174,15 +175,16 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   const sessions = (sessionsRes.data ?? []) as unknown as WorkoutSession[];
   const measurements = (measurementsRes.data ?? []) as unknown as Measurement[];
 
-  // Sets for the latest sessions (single query, grouped in memory)
-  const sessionIds = sessions.slice(0, 3).map((s) => s.id);
+  // Sets for all recent sessions (single query, grouped in memory) — feeds
+  // both the detail lists and the Exercise Results visual
+  const sessionIds = sessions.map((s) => s.id);
   const { data: setsData } = sessionIds.length
     ? await supabase
         .from("workout_sets")
-        .select("id, session_id, exercise_name, set_number, reps, weight_kg")
+        .select("id, session_id, exercise_name, set_number, reps, weight_kg, is_warmup")
         .in("session_id", sessionIds)
         .order("logged_at", { ascending: true })
-        .limit(120)
+        .limit(400)
     : { data: [] as unknown[] };
   const sets = (setsData ?? []) as unknown as WorkoutSet[];
 
@@ -197,6 +199,45 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
     latestWeight != null && firstWeight != null ? Math.round((latestWeight - firstWeight) * 10) / 10 : null;
 
   const name = sub.client.full_name ?? sub.client.email ?? "Client";
+
+  // ── Exercise Results visual data (working sets only; warmups excluded)
+  const sessionById = new Map(sessions.map((s) => [s.id, s]));
+  const volumeBySession = new Map<string, number>();
+  const volumeByExercise = new Map<string, number>();
+  const progression = new Map<string, Map<string, number>>(); // exercise → date → max weight
+  for (const st of sets) {
+    if (st.is_warmup || st.reps == null || st.weight_kg == null || !st.exercise_name) continue;
+    const w = Number(st.weight_kg);
+    const vol = w * st.reps;
+    volumeBySession.set(st.session_id, (volumeBySession.get(st.session_id) ?? 0) + vol);
+    volumeByExercise.set(st.exercise_name, (volumeByExercise.get(st.exercise_name) ?? 0) + vol);
+    const date = sessionById.get(st.session_id)?.session_date ?? "";
+    if (!date) continue;
+    const perDate = progression.get(st.exercise_name) ?? new Map<string, number>();
+    perDate.set(date, Math.max(perDate.get(date) ?? 0, w));
+    progression.set(st.exercise_name, perDate);
+  }
+  const exerciseVolume = [...volumeBySession.entries()]
+    .map(([sessionId, volume]) => {
+      const s = sessionById.get(sessionId);
+      return {
+        date: s?.session_date ?? sessionId,
+        label: s?.session_date ? s.session_date.slice(5) : "—",
+        volume: Math.round(volume),
+      };
+    })
+    .filter((p) => p.volume > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const topExercises = [...volumeByExercise.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([exerciseName]) => ({
+      name: exerciseName,
+      points: [...(progression.get(exerciseName) ?? new Map()).entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, weight]) => ({ date: date.slice(5), weight })),
+    }))
+    .filter((e) => e.points.length >= 2);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -292,6 +333,60 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
           </CardContent>
         </Card>
       </div>
+
+      {/* Nutrition — meals (moved up top per product request) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Nutrition — meals (recent)</CardTitle>
+          <CardDescription>Meal-level entries from the app&apos;s food scanner and logger.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Meal</TableHead>
+                <TableHead>Food</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>kcal</TableHead>
+                <TableHead>P / C / F</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {nutrition.map((n) => (
+                <TableRow key={n.id}>
+                  <TableCell>{n.logged_date}</TableCell>
+                  <TableCell>{n.meal_type ?? "—"}</TableCell>
+                  <TableCell>{n.food_name ?? "—"}</TableCell>
+                  <TableCell>{n.quantity ?? "—"} {n.serving_unit ?? ""}</TableCell>
+                  <TableCell>{n.calories ?? 0}</TableCell>
+                  <TableCell>{n.protein_g ?? 0} / {n.carbs_g ?? 0} / {n.fat_g ?? 0}</TableCell>
+                </TableRow>
+              ))}
+              {nutrition.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                    No nutrition logs yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Exercise Results — what the customer actually did */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Exercise results</CardTitle>
+          <CardDescription>
+            Working-set volume per session and weight progression, computed from the app&apos;s set logs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ExerciseResults sessionVolume={exerciseVolume} exercises={topExercises} />
+        </CardContent>
+      </Card>
 
       {/* Assigned workouts */}
       <Card>
@@ -510,47 +605,6 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
                     No daily summaries logged yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Nutrition */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Nutrition logs (recent)</CardTitle>
-          <CardDescription>Meal-level entries from the app&apos;s food scanner and logger.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Meal</TableHead>
-                <TableHead>Food</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>kcal</TableHead>
-                <TableHead>P / C / F</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {nutrition.map((n) => (
-                <TableRow key={n.id}>
-                  <TableCell>{n.logged_date}</TableCell>
-                  <TableCell>{n.meal_type ?? "—"}</TableCell>
-                  <TableCell>{n.food_name ?? "—"}</TableCell>
-                  <TableCell>{n.quantity ?? "—"} {n.serving_unit ?? ""}</TableCell>
-                  <TableCell>{n.calories ?? 0}</TableCell>
-                  <TableCell>{n.protein_g ?? 0} / {n.carbs_g ?? 0} / {n.fat_g ?? 0}</TableCell>
-                </TableRow>
-              ))}
-              {nutrition.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                    No nutrition logs yet.
                   </TableCell>
                 </TableRow>
               )}

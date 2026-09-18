@@ -49,6 +49,33 @@ const subPayments = [
   { href: "/dashboard/revenue", label: "Payouts", icon: Wallet },
 ];
 
+function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+        active
+          ? "bg-[var(--surface-2)] font-semibold text-white"
+          : "font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-white"
+      )}
+    >
+      {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)]" />}
+      <Icon className={cn("size-4", active ? "text-white" : "text-[var(--text-muted)]")} />
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+      {!collapsed && item.badge !== undefined && (
+        <Badge
+          variant="secondary"
+          className="h-5 min-w-5 justify-center rounded-full bg-[var(--surface-3)] px-1.5 text-[11px] font-medium text-[var(--text-secondary)] border-0"
+        >
+          {item.badge}
+        </Badge>
+      )}
+    </Link>
+  );
+}
+
 export function Sidebar({ clientCount }: { clientCount?: number }) {
   const pathname = usePathname();
   const [paymentsOpen, setPaymentsOpen] = React.useState(true);
@@ -58,33 +85,6 @@ export function Sidebar({ clientCount }: { clientCount?: number }) {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname === href || pathname.startsWith(`${href}/`);
   }
-
-  const NavLink = ({ item, active }: { item: NavItem; active: boolean }) => {
-    const Icon = item.icon;
-    return (
-      <Link
-        href={item.href}
-        className={cn(
-          "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
-          active
-            ? "bg-[var(--surface-2)] font-semibold text-white"
-            : "font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-white"
-        )}
-      >
-        {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)]" />}
-        <Icon className={cn("size-4", active ? "text-white" : "text-[var(--text-muted)]")} />
-        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-        {!collapsed && item.badge !== undefined && (
-          <Badge
-            variant="secondary"
-            className="h-5 min-w-5 justify-center rounded-full bg-[var(--surface-3)] px-1.5 text-[11px] font-medium text-[var(--text-secondary)] border-0"
-          >
-            {item.badge}
-          </Badge>
-        )}
-      </Link>
-    );
-  };
 
   if (collapsed) {
     return (
@@ -141,7 +141,7 @@ export function Sidebar({ clientCount }: { clientCount?: number }) {
         <nav className="space-y-1">
           {primaryNav.map((item) => {
             const badgeVal = item.label === "Clients" && clientCount !== undefined ? clientCount : item.badge;
-            return <NavLink key={item.href} item={{ ...item, badge: badgeVal }} active={isActive(item.href)} />;
+            return <NavLink key={item.href} item={{ ...item, badge: badgeVal }} active={isActive(item.href)} collapsed={collapsed} />;
           })}
 
           {/* Payments expandable */}
@@ -183,15 +183,15 @@ export function Sidebar({ clientCount }: { clientCount?: number }) {
           </div>
 
           {analyticsNav.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item.href)} />
+            <NavLink key={item.href} item={item} active={isActive(item.href)} collapsed={collapsed} />
           ))}
         </nav>
 
         <Separator className="bg-[rgba(255,255,255,0.08)]" />
 
         <nav className="space-y-1">
-          <NavLink item={{ href: "/dashboard/settings", label: "Settings", icon: Settings }} active={isActive("/dashboard/settings")} />
-          <NavLink item={{ href: "/dashboard/settings", label: "Help & Support", icon: CircleHelp }} active={false} />
+          <NavLink item={{ href: "/dashboard/settings", label: "Settings", icon: Settings }} active={isActive("/dashboard/settings")} collapsed={collapsed} />
+          <NavLink item={{ href: "/dashboard/settings", label: "Help & Support", icon: CircleHelp }} active={false} collapsed={collapsed} />
         </nav>
 
         <div className="mt-auto pt-2">

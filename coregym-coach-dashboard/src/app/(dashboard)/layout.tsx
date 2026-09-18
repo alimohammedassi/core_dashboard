@@ -1,43 +1,50 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { resolveCoachId } from "@/lib/coach";
+import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopBar } from "@/components/dashboard/TopBar";
-import { Dumbbell } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { SidebarNav } from "@/components/dashboard/SidebarNav";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
+import { Dumbbell, LogOut } from "lucide-react";
+
+const nav = [
+  { href: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
+  { href: "/dashboard/workouts", label: "Workouts", icon: "ClipboardList" },
+  { href: "/dashboard/programs", label: "Programs", icon: "CalendarDays" },
+  { href: "/dashboard/chat", label: "Chat", icon: "MessageSquare" },
+  { href: "/dashboard/subscribers", label: "Subscribers", icon: "Users" },
+  { href: "/dashboard/plans", label: "Plans", icon: "CreditCard" },
+  { href: "/dashboard/revenue", label: "Revenue", icon: "CreditCard" },
+  { href: "/dashboard/settings", label: "Settings", icon: "Settings" },
+];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
   // Verify coach role — never assume every user is a coach
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, full_name, name, email, avatar_url")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("role, full_name, name, email").eq("id", user.id).single();
 
+  // If profiles table not yet migrated, profile will be null — allow through in dev but flag
   const role = (profile as { role?: string } | null)?.role;
-  const isCoach = role === "coach" || role === undefined;
+  const isCoach = role === "coach" || role === undefined; // undefined = schema not applied yet (dev mode)
 
   if (role && role !== "coach") {
     return (
-      <div className="flex min-h-svh items-center justify-center p-8 bg-[var(--background)]">
-        <div className="max-w-md text-center space-y-4 border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 bg-[var(--surface-2)]">
-          <h1 className="text-xl font-semibold text-white">Access denied</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Your account role is <span className="font-mono font-medium text-white">{role}</span>. Only coaches can access this
+      <div className="flex min-h-svh items-center justify-center p-8">
+        <div className="max-w-md text-center space-y-4 border rounded-xl p-8">
+          <h1 className="text-xl font-semibold">Access denied</h1>
+          <p className="text-sm text-muted-foreground">
+            Your account role is <span className="font-mono font-medium">{role}</span>. Only coaches can access this
             dashboard.
           </p>
           <form action="/api/auth/signout" method="post">
-            <Button type="submit" variant="outline" className="rounded-full">
+            <Button type="submit" variant="outline">
               Sign out
             </Button>
           </form>
@@ -47,6 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   if (role === undefined) {
+    // Dev hint when schema not applied
     console.warn("[DashboardLayout] profiles.role not found — RLS/schema.sql may not be applied yet.");
   }
 
@@ -61,61 +69,48 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  const avatarUrl = (profile as { avatar_url?: string | null } | null)?.avatar_url ?? (user.user_metadata as { avatar_url?: string })?.avatar_url ?? null;
-
-  // Live client count for sidebar badge (active subscriptions)
-  let clientCount: number | undefined = undefined;
-  let unread = 0;
-  try {
-    const coachId = await resolveCoachId(supabase, user.id);
-    const [subsRes, convRes] = await Promise.all([
-      supabase.from("subscriptions").select("id", { count: "exact" }).eq("coach_id", coachId).eq("status", "active"),
-      supabase.from("conversations").select("coach_unread").eq("coach_id", user.id),
-    ]);
-    if (typeof subsRes.count === "number") clientCount = subsRes.count;
-    else if (Array.isArray(subsRes.data)) clientCount = subsRes.data.length;
-    if (convRes.data) {
-      unread = (convRes.data as { coach_unread: number | null }[]).reduce((s, r) => s + (r.coach_unread ?? 0), 0);
-    }
-  } catch {
-    // badge is optional
-  }
 
   return (
-    <div className="flex min-h-svh bg-[var(--background)]">
-      <Sidebar clientCount={clientCount} />
-
-      <div className="flex flex-1 flex-col min-w-0 bg-[var(--background)]">
-        {/* Mobile header */}
-        <header className="flex h-14 items-center gap-2 border-b border-[rgba(255,255,255,0.08)] bg-[var(--surface)] px-4 lg:hidden">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
+    <div className="flex min-h-svh">
+      {/* Sidebar */}
+      <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
+        <div className="flex h-14 items-center gap-2 border-b px-4">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Dumbbell className="size-4" />
           </div>
-          <span className="font-semibold tracking-tight text-white">CoreGym</span>
-          <span className="text-xs text-[var(--text-muted)] ml-1">Coach</span>
-          <div className="ml-auto flex items-center gap-1">
-            <ThemeToggle />
-            <form action="/api/auth/signout" method="post">
-              <Button type="submit" variant="ghost" size="icon" className="size-8 rounded-full">
-                <span className="text-xs">{initials}</span>
-              </Button>
-            </form>
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-          {/* Top bar — Shopeers-style search + actions, inside main content */}
-          <div className="hidden lg:block">
-            <TopBar avatarUrl={avatarUrl} initials={initials} email={user.email} unread={unread} />
-          </div>
-
-          {/* Page content */}
-          <main className="flex-1 space-y-4">{children}</main>
-
-          {!isCoach && (
-            <p className="text-xs text-amber-600">Dev: coach check bypassed (schema not applied).</p>
-          )}
+          <span className="font-semibold tracking-tight">CoreGym</span>
+          <span className="text-xs text-muted-foreground ml-1">Coach</span>
         </div>
+        <SidebarNav items={nav} />
+        <Separator />
+        <div className="p-3 flex items-center gap-3">
+          <Avatar className="size-8">
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+          <ThemeToggle />
+          <form action="/api/auth/signout" method="post">
+            <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
+              <LogOut className="size-4" />
+            </Button>
+          </form>
+        </div>
+        {!isCoach && (
+          <p className="px-3 pb-3 text-xs text-amber-600">Dev: coach check bypassed (schema not applied).</p>
+        )}
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="flex flex-1 flex-col min-w-0">
+        <header className="flex h-14 items-center gap-2 border-b px-4 md:hidden">
+          <Dumbbell className="size-5" />
+          <span className="font-semibold">CoreGym Coach</span>
+          <SidebarNav items={nav} layout="topbar" />
+        </header>
+        <main className="flex-1 bg-muted/20 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

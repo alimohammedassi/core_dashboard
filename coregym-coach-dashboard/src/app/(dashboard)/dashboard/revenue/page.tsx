@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { getStripe } from "@/lib/stripe/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,15 +12,13 @@ function cents(c: number) {
 
 export default async function RevenuePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   let gross = 0;
   let commission = 0;
   let net = 0;
   let payouts: Array<{ id: string; amount: number; currency: string; arrival_date: number; status: string }> = [];
-  let transactions: Array<{ id: string; amount: number; currency: string | null; status: string | null; created_at: string; client_id: string | null; client?: { full_name?: string; email?: string } | null }> = [];
+  let transactions: Array<{ id: string; amount: number; currency: string | null; status: string | null; created_at: string; client_id: string | null; client?: { full_name: string | null; email: string | null } | null }> = [];
   let isStripe = false;
   let errorNote: string | null = null;
   let dbError: string | null = null;
@@ -27,17 +26,41 @@ export default async function RevenuePage() {
   if (user) {
     const coachId = await resolveCoachId(supabase, user.id);
 
-    // Fetch real transactions (payment_intents) for this coach — always real data
+    // Fetch real transactions (payment_intents) for this coach — always real data.
+    // payment_intents.client_id references auth.users (NOT profiles), so there is
+    // no PostgREST-joinable relationship to profiles: fetch the rows and the
+    // client names separately, then map in memory (profiles.id = auth.uid, so
+    // the id values match one-to-one).
     const { data: txData, error: txErr } = await supabase
       .from("payment_intents")
-      .select("id, amount, currency, status, created_at, client_id, client:profiles!payment_intents_client_id_fkey(full_name, email)")
+      .select("id, amount, currency, status, created_at, client_id")
       .eq("coach_id", coachId)
       .order("created_at", { ascending: false })
       .limit(20);
     if (txErr) {
       dbError = txErr.message;
     } else {
-      transactions = (txData as unknown as typeof transactions) ?? [];
+      const txRows = (txData ?? []) as unknown as Array<{
+        id: string;
+        amount: number;
+        currency: string;
+        status: string;
+        created_at: string;
+        client_id: string | null;
+      }>;
+      const clientIds = [...new Set(txRows.map((t) => t.client_id).filter(Boolean))] as string[];
+      const { data: clientRows } = clientIds.length
+        ? await supabase.from("profiles").select("id, full_name, email").in("id", clientIds)
+        : { data: [] as unknown[] };
+      const nameById = new Map(
+        ((clientRows ?? []) as unknown as Array<{ id: string; full_name: string | null; email: string | null }>).map(
+          (p) => [p.id, { full_name: p.full_name, email: p.email }]
+        )
+      );
+      transactions = txRows.map((t) => ({
+        ...t,
+        client: t.client_id ? nameById.get(t.client_id) ?? null : null,
+      }));
       // Gross from real succeeded rows if Stripe not overriding
       const succeeded = transactions.filter((t) => t.status === "succeeded");
       if (succeeded.length > 0) {

@@ -3,7 +3,6 @@
 import * as React from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line } from "recharts";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal } from "lucide-react";
 
 export type RevenuePoint = { date: string; value: number; compare?: number };

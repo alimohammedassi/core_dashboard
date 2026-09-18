@@ -47,10 +47,6 @@ export function RetentionGaugeCard({ value, target = 80, total }: { value?: numb
             const mid = (startAngle + endAngle) / 2;
             const isFilled = i < filled;
             const rInner = radius - 10;
-            const p1 = polarToCartesian(centerX, centerY, radius, startAngle);
-            const p2 = polarToCartesian(centerX, centerY, radius, endAngle);
-            const p3 = polarToCartesian(centerX, centerY, rInner, endAngle);
-            const p4 = polarToCartesian(centerX, centerY, rInner, startAngle);
             // Use stroke approach simpler: draw short arc line
             const a = polarToCartesian(centerX, centerY, radius, mid);
             const b = polarToCartesian(centerX, centerY, rInner, mid);

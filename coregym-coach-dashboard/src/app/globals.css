@@ -40,19 +40,9 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* CoreGym Kinetic Obsidian & Electric Volt tokens */
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-accent-cyan: var(--accent-cyan);
-  --color-accent-gold: var(--accent-gold);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
-
-  /* CoreGym data accents */
+  /* CoreGym "Graphite & Soft Volt" data accents (spec §90–§93).
+     Used for data-viz emphasis, active indicators and status colors — never
+     for large fills or body text. */
   --color-volt: var(--volt);
   --color-teal: var(--teal);
   --color-gold: var(--gold);
@@ -71,7 +61,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ── Light theme (secondary, dark is default per spec) ─────────────────────── */
+/* ── Light theme ─────────────────────────────────────────────────────────── */
 :root {
   --background: #fafafa;
   --foreground: #1a1a1a;
@@ -79,46 +69,34 @@
   --card-foreground: #1a1a1a;
   --popover: #ffffff;
   --popover-foreground: #1a1a1a;
-  --primary: #D1FC00;
-  --primary-foreground: #000000;
+  --primary: #506b1a;
+  --primary-foreground: #ffffff;
   --secondary: #f1f1ef;
   --secondary-foreground: #1a1a1a;
   --muted: #f1f1ef;
   --muted-foreground: #6b6b6b;
   --accent: #f0f0ec;
   --accent-foreground: #1a1a1a;
-  --destructive: #ef4444;
+  --destructive: #b84a30;
   --border: #e8e8e8;
   --input: #e8e8e8;
-  --ring: #D1FC00;
-  --chart-1: #D1FC00;
-  --chart-2: #4fd1c5;
+  --ring: #506b1a;
+  --chart-1: #f5a623;
+  --chart-2: #ea7a72;
   --chart-3: #e8c468;
   --chart-4: #36b37e;
   --chart-5: #4fd1c5;
-  --radius: 0.875rem;
-  --sidebar: #ffffff;
+  --radius: 0.715rem;
+  --sidebar: #f5f5f2;
   --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #D1FC00;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #f1f1ef;
+  --sidebar-primary: #506b1a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ececdf;
   --sidebar-accent-foreground: #1a1a1a;
   --sidebar-border: #e8e8e8;
-  --sidebar-ring: #D1FC00;
+  --sidebar-ring: #506b1a;
 
-  /* Kinetic Obsidian — light variants (visible only if user toggles) */
-  --surface: #f5f5f2;
-  --surface-2: #ffffff;
-  --surface-3: #e8e8e8;
-  --accent-cyan: #0f766e;
-  --accent-gold: #8a6a1e;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --text-primary: #0a0a0a;
-  --text-secondary: #52525b;
-  --text-muted: #71717a;
-
-  /* Data accents (light-mode) */
+  /* Data accents (light-mode variants for contrast on white) */
   --volt: #8fb800;
   --teal: #0f766e;
   --gold: #8a6a1e;
@@ -129,55 +107,42 @@
   --muscle-core: #d4578c;
 }
 
-/* ── Dark theme (primary) — Kinetic Obsidian & Electric Volt ───────────────── */
+/* ── Dark theme (primary mode) — Graphite & Soft Volt v2.1 ───────────────── */
 .dark {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #1A1A1A;
-  --card-foreground: #ffffff;
-  --popover: #1A1A1A;
-  --popover-foreground: #ffffff;
-  --primary: #D1FC00;
-  --primary-foreground: #000000;
-  --secondary: #1A1A1A;
-  --secondary-foreground: #ffffff;
-  --muted: #1A1A1A;
-  --muted-foreground: #A3A3A3;
-  --accent: #2C2C2C;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: #D1FC00;
-  --chart-1: #D1FC00;
-  --chart-2: #4fd1c5;
+  --background: #121310;
+  --foreground: #eceee2;
+  --card: #171814;
+  --card-foreground: #eceee2;
+  --popover: #171814;
+  --popover-foreground: #eceee2;
+  --primary: #b2d742;
+  --primary-foreground: #161806;
+  --secondary: #1f201b;
+  --secondary-foreground: #eceee2;
+  --muted: #1b1c17;
+  --muted-foreground: #a9ada0;
+  --accent: #252620;
+  --accent-foreground: #eceee2;
+  --destructive: #ee7f60;
+  --border: #2c2d27;
+  --input: #2c2d27;
+  --ring: #b2d742;
+  --chart-1: #f5a623;
+  --chart-2: #ea7a72;
   --chart-3: #e8c468;
-  --chart-4: #22c55e;
-  --chart-5: #06b6d4;
-  --radius: 1rem;
-  --sidebar: #121212;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #D1FC00;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #1A1A1A;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #D1FC00;
+  --chart-4: #36b37e;
+  --chart-5: #4fd1c5;
+  --sidebar: #151612;
+  --sidebar-foreground: #eceee2;
+  --sidebar-primary: #b2d742;
+  --sidebar-primary-foreground: #161806;
+  --sidebar-accent: #1f201b;
+  --sidebar-accent-foreground: #eceee2;
+  --sidebar-border: #2c2d27;
+  --sidebar-ring: #b2d742;
 
-  /* Kinetic Obsidian tokens — spec §1 */
-  --surface: #121212;
-  --surface-2: #1A1A1A;
-  --surface-3: #2C2C2C;
-  --accent-cyan: #4fd1c5;
-  --accent-gold: #e8c468;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --text-primary: #FFFFFF;
-  --text-secondary: #A3A3A3;
-  --text-muted: #6B6B6B;
-
-  /* Data accents */
-  --volt: #D1FC00;
+  /* Data accents (dark-mode values from the app spec) */
+  --volt: #d1fc00;
   --teal: #4fd1c5;
   --gold: #e8c468;
   --warning: #f59e0b;

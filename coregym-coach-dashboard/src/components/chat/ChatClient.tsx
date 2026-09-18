@@ -90,6 +90,28 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
           const rows = (data as Message[]) ?? [];
           setHasMore(rows.length > PAGE_SIZE);
           setMessages(rows.slice(0, PAGE_SIZE).reverse());
+          // Opening the conversation marks it read: reset the coach's unread
+          // counter and flip the client-sent messages to read. RLS lets
+          // conversation participants do both with their own session. The UI
+          // is updated immediately so the badge disappears instantly, and the
+          // state persists in the DB (refresh-safe).
+          const unreadInPage = rows.some((m) => !m.is_read && m.sender_id !== coachId);
+          const conv = conversationsRef.current.find((c) => c.id === selectedId);
+          if (unreadInPage || (conv?.unread_count ?? 0) > 0) {
+            setConversations((prev) =>
+              prev.map((c) => (c.id === selectedId ? { ...c, unread_count: 0 } : c))
+            );
+            setMessages((prev) =>
+              prev.map((m) => (m.sender_id !== coachId ? { ...m, is_read: true } : m))
+            );
+            void supabase
+              .from("messages")
+              .update({ is_read: true })
+              .eq("conversation_id", selectedId)
+              .neq("sender_id", coachId)
+              .eq("is_read", false);
+            void supabase.from("conversations").update({ coach_unread: 0 }).eq("id", selectedId);
+          }
         }
       }
     })();
@@ -144,6 +166,12 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
           if (!belongs) return;
           if (msg.conversation_id === selectedIdRef.current) {
             appendMessage(msg);
+            // The coach is actively viewing this conversation — mark the new
+            // client message read immediately so the unread badge never
+            // appears for the open thread.
+            if (msg.sender_id !== coachId) {
+              void supabase.from("messages").update({ is_read: true }).eq("id", msg.id);
+            }
           }
           bumpConversation(msg);
         }

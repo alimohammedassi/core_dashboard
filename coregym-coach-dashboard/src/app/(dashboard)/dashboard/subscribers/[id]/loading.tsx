@@ -48,6 +48,27 @@ export default function SubscriberProfileLoading() {
           </CardContent>
         </Card>
       ))}
+      {/* Nutrition table */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-4 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+      {/* Exercise results charts */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-4 w-36" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-44 w-full" />
+          <Skeleton className="h-44 w-full" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

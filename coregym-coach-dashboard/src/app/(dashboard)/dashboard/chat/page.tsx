@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { ChatClient } from "@/components/chat/ChatClient";
 
 export default async function ChatPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) return null;
 
@@ -15,17 +14,23 @@ export default async function ChatPage() {
   let initial: never[] = [];
 
   try {
+    // Embed ONLY each conversation's latest message (bounded — the full
+    // history made this payload grow linearly with total messages; the
+    // selected thread is fetched separately by ChatClient). `type` is
+    // included because the preview renderer needs it for media messages.
     const { data, error } = await supabase
       .from("conversations")
       .select(
         `
         *,
         client:profiles!conversations_client_id_fkey(id, full_name, avatar_url, email),
-        messages(id, content, created_at, sender_id, is_read)
+        messages(id, content, type, created_at, sender_id, is_read)
       `
       )
       .eq("coach_id", coachId)
       .order("last_message_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false, referencedTable: "messages" })
+      .limit(1, { referencedTable: "messages" })
       .limit(50);
 
     if (!error && data) {
