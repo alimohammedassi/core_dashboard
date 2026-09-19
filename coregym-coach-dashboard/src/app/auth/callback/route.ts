@@ -150,34 +150,45 @@ export async function GET(request: Request) {
     }
   }
 
-  // ── Completeness-based routing (never by provider — by profile state) ──
-  // Complete coach profile = coaches row + coach_onboarding.is_completed.
-  // Incomplete/new users go to onboarding; completed coaches go to the
-  // dashboard. Explicit non-coach roles keep the existing access denial.
+  // ── Footprint-based routing (never by provider — by application state) ──
+  // profiles.role defaults to 'client' for every new user (the trigger never
+  // sets it), so role alone cannot tell an existing client from a brand-new
+  // sign-in. Application footprint is the discriminator: an existing client
+  // has rows in subscriptions / onboarding / daily_summary, a brand-new user
+  // has none. Complete coach = coaches row + coach_onboarding.is_completed.
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
       const svc = await createServiceClient();
-      const [coachRes, onboardingRes, profileRes] = await Promise.all([
+      const [coachRes, onboardingRes, profileRes, subsRes, clientOnbRes, dailyRes] = await Promise.all([
         svc.from("coaches").select("id").eq("user_id", user.id).maybeSingle(),
         svc.from("coach_onboarding").select("is_completed").eq("user_id", user.id).maybeSingle(),
         svc.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+        svc.from("subscriptions").select("id").eq("client_id", user.id).limit(1).maybeSingle(),
+        svc.from("onboarding").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+        svc.from("daily_summary").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
       ]);
       const role = (profileRes.data as { role?: string } | null)?.role;
-      if (role && role !== "coach") {
-        return NextResponse.redirect(`${origin}/login?error=not_coach`);
-      }
-      const complete =
-        Boolean(coachRes.data) &&
-        (onboardingRes.data as { is_completed?: boolean } | null)?.is_completed === true;
-      if (!complete) {
+      if (role === "coach") {
+        const complete =
+          Boolean(coachRes.data) &&
+          (onboardingRes.data as { is_completed?: boolean } | null)?.is_completed === true;
+        if (!complete) {
+          return NextResponse.redirect(`${origin}/onboarding`);
+        }
+      } else {
+        const hasClientFootprint =
+          Boolean(subsRes.data) || Boolean(clientOnbRes.data) || Boolean(dailyRes.data);
+        if (hasClientFootprint) {
+          return NextResponse.redirect(`${origin}/login?error=not_coach`);
+        }
         return NextResponse.redirect(`${origin}/onboarding`);
       }
     }
   } catch (e) {
-    console.error("[auth/callback] completeness check failed", e);
+    console.error("[auth/callback] routing check failed", e);
     // fall through to the intended destination; the dashboard layout gate
     // performs the same check server-side.
   }
