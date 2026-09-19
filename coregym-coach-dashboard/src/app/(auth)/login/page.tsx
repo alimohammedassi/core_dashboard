@@ -31,7 +31,9 @@ export default function LoginPage() {
   // Only offer Google sign-in when the provider is enabled in Supabase Auth
   // (public settings endpoint — no secrets involved).
   React.useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`)
+    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
+    })
       .then((r) => r.json())
       .then((j) => setGoogleAvailable(Boolean(j.external?.google)))
       .catch(() => setGoogleAvailable(false));
