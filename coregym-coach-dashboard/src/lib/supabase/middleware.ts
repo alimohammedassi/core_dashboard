@@ -8,6 +8,9 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // The middleware must never consume the OAuth ?code= parameter on
+      // /auth/callback — the callback route owns the PKCE exchange.
+      auth: { detectSessionInUrl: false },
       cookies: {
         getAll() {
           return request.cookies.getAll();
