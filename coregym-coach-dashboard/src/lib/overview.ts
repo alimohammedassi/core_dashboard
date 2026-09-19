@@ -161,6 +161,8 @@ export interface OverviewData {
     revenueCents: number;
   }[];
   statusCounts: { active: number; trial: number; cancelled: number; total: number };
+  today: { checkIns: number; meals: number };
+  activePrograms: number;
 }
 
 export async function getOverviewData(
@@ -274,7 +276,16 @@ export async function getOverviewData(
       : Promise.resolve({ data: [] as unknown[] }),
   ]);
 
-  const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sender_id: string }>;
+    // Round 3 — today-level engagement + active program counts (independent)
+  const [checkinsRes, mealsRes, enrollmentsRes] = await Promise.all([
+    activeIds.length ? supabase.from('daily_summary').select('user_id, summary_date').in('user_id', activeIds).eq('summary_date', new Date().toISOString().slice(0, 10)).limit(500) : Promise.resolve({ data: [] as unknown[] }),
+    activeIds.length ? supabase.from('nutrition_logs').select('id, user_id').in('user_id', activeIds).eq('logged_date', new Date().toISOString().slice(0, 10)).limit(500) : Promise.resolve({ data: [] as unknown[] }),
+    supabase.from('client_program_enrollments').select('id', { count: 'exact', head: true }).eq('coach_id', coachId).eq('status', 'active'),
+  ]);
+  const todayCheckIns = new Set(((checkinsRes.data ?? []) as unknown as Array<{ user_id: string }>).map((r) => r.user_id)).size;
+  const todayMeals = (mealsRes.data ?? []).length;
+  const activePrograms = enrollmentsRes.count ?? 0;
+const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sender_id: string }>;
   const msgsCur = msgs.filter((m) => inWindow(m.created_at, period.start, period.end)).length;
   const msgsPrev = msgs.filter((m) => inWindow(m.created_at, period.prevStart, period.prevEnd)).length;
 
@@ -386,5 +397,7 @@ export async function getOverviewData(
     adherence: { rate: adherenceRate, onTrack, tracked },
     topSubscribers,
     statusCounts,
+    today: { checkIns: todayCheckIns, meals: todayMeals },
+    activePrograms,
   };
 }

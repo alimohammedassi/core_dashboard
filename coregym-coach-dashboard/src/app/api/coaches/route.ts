@@ -16,6 +16,8 @@ type CoachPayload = {
   price_monthly?: number;
   specialization?: string[];
   years_experience?: number;
+  /** false = onboarding in progress (coach_onboarding.is_completed stays false) */
+  complete?: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
     price_monthly: priceMonthly,
     specialization,
     ...(yearsExperience !== null ? { years_experience: yearsExperience } : {}),
-    is_completed: true,
+    is_completed: body.complete !== false,
   };
   const { data: existingOnboarding } = await svc
     .from("coach_onboarding")

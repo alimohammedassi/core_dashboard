@@ -3,15 +3,15 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
-import { daysAgoISO, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
+import { daysAgoISO, diffDays, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
 import { loadClientEnrollments } from "@/lib/programs";
 import { ExerciseResults } from "@/components/subscribers/ExerciseResults";
+import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Flame, Footprints, Dumbbell, Scale, TrendingUp, Trophy } from "lucide-react";
 
 type SubDetail = {
   id: string;
@@ -123,6 +123,9 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
     loadClientProgress(coachId, clientId),
     loadClientEnrollments(coachId, clientId),
   ]);
+  const prs = progress?.prs ?? [];
+  const weekly = progress?.weekly ?? [];
+  const sessionsLast30 = progress?.sessionsLast30 ?? 0;
   const upcoming = assigned
     .filter((a) => a.status === "assigned")
     .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
@@ -239,6 +242,32 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
     }))
     .filter((e) => e.points.length >= 2);
 
+
+  // ── Hierarchy derivations (priority: progress → nutrition → workouts)
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayMeals = nutrition.filter((n) => n.logged_date === todayISO);
+  const macros = todayMeals.reduce(
+    (a, n) => ({
+      kcal: a.kcal + (n.calories ?? 0),
+      p: a.p + (n.protein_g ?? 0),
+      c: a.c + (n.carbs_g ?? 0),
+      f: a.f + (n.fat_g ?? 0),
+    }),
+    { kcal: 0, p: 0, c: 0, f: 0 }
+  );
+  const activeEnrollment = enrollments.find((e) => e.status === 'active') ?? null;
+  const programWeek = activeEnrollment
+    ? Math.min(
+        Math.max(Math.floor((todayISO > activeEnrollment.start_date ? diffDays(todayISO, activeEnrollment.start_date) : 0) / 7) + 1, 1),
+        activeEnrollment.duration_weeks
+      )
+    : null;
+  const latestPR = [...prs]
+    .filter((pr) => pr.achieved_date)
+    .sort((a, b) => (b.achieved_date ?? '').localeCompare(a.achieved_date ?? ''))[0] ?? null;
+  const nextUpcoming = upcoming[0] ?? null;
+  const recentMeals = nutrition.slice(0, 3);
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -260,7 +289,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
             {sub.status}
           </Badge>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-4">
+        <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <div>
             <p className="text-xs text-muted-foreground">Plan</p>
             <p className="font-medium">{sub.plan?.name ?? "—"}</p>
@@ -280,107 +309,198 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
-      {/* Key stats vs goals */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Calories (latest day)</CardTitle>
-            <Flame className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{today?.calories_consumed ?? 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {goals?.daily_calories ? `Goal ${goals.daily_calories} kcal` : "No goal set"}
-              {today ? ` · ${today.summary_date}` : ""}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Steps (latest day)</CardTitle>
-            <Footprints className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(today?.steps ?? 0).toLocaleString("en-US")}</div>
-            <p className="text-xs text-muted-foreground">
-              {goals?.daily_steps ? `Goal ${goals.daily_steps.toLocaleString("en-US")}` : "No goal set"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Workouts (this week)</CardTitle>
-            <Dumbbell className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{workoutsThisWeek}</div>
-            <p className="text-xs text-muted-foreground">
-              {goals?.weekly_workouts ? `Goal ${goals.weekly_workouts}/week` : "No goal set"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Weight</CardTitle>
-            <Scale className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{latestWeight != null ? `${latestWeight} kg` : "—"}</div>
-            <p className="text-xs text-muted-foreground">
-              {weightDelta != null ? `${weightDelta > 0 ? "+" : ""}${weightDelta} kg since first log` : "Need 2+ logs"}
-              {goals?.target_weight_kg ? ` · Target ${goals.target_weight_kg} kg` : ""}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Nutrition — meals (moved up top per product request) */}
+      {/* ── PRIORITY 1: Client progress ─────────────────────────────────── */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Nutrition — meals (recent)</CardTitle>
-          <CardDescription>Meal-level entries from the app&apos;s food scanner and logger.</CardDescription>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Progress</CardTitle>
+          <CardDescription>Goal progress, program status and recent achievements.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Meal</TableHead>
-                <TableHead>Food</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>kcal</TableHead>
-                <TableHead>P / C / F</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {nutrition.map((n) => (
-                <TableRow key={n.id}>
-                  <TableCell>{n.logged_date}</TableCell>
-                  <TableCell>{n.meal_type ?? "—"}</TableCell>
-                  <TableCell>{n.food_name ?? "—"}</TableCell>
-                  <TableCell>{n.quantity ?? "—"} {n.serving_unit ?? ""}</TableCell>
-                  <TableCell>{n.calories ?? 0}</TableCell>
-                  <TableCell>{n.protein_g ?? 0} / {n.carbs_g ?? 0} / {n.fat_g ?? 0}</TableCell>
-                </TableRow>
-              ))}
-              {nutrition.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                    No nutrition logs yet.
-                  </TableCell>
-                </TableRow>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Weight</p>
+              <div className="text-2xl font-bold">{latestWeight != null ? `${latestWeight} kg` : "—"}</div>
+              <p className="text-xs text-muted-foreground">
+                {weightDelta != null ? `${weightDelta > 0 ? "+" : ""}${weightDelta} kg since first log` : "Need 2+ logs"}
+                {goals?.target_weight_kg ? ` · Target ${goals.target_weight_kg} kg` : ""}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Calories (latest day)</p>
+              <div className="text-2xl font-bold">{today?.calories_consumed ?? 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {goals?.daily_calories ? `Goal ${goals.daily_calories} kcal` : "No goal set"}
+                {today ? ` · ${today.summary_date}` : ""}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Steps (latest day)</p>
+              <div className="text-2xl font-bold">{(today?.steps ?? 0).toLocaleString("en-US")}</div>
+              <p className="text-xs text-muted-foreground">
+                {goals?.daily_steps ? `Goal ${goals.daily_steps.toLocaleString("en-US")}` : "No goal set"}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Workouts (this week)</p>
+              <div className="text-2xl font-bold">{workoutsThisWeek}</div>
+              <p className="text-xs text-muted-foreground">
+                {goals?.weekly_workouts ? `Goal ${goals.weekly_workouts}/week` : "No goal set"}
+                {" · "}
+                {sessionsLast30} in 30d
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Current program</p>
+              {activeEnrollment ? (
+                <>
+                  <p className="mt-1 text-sm font-medium">{activeEnrollment.program_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Week {programWeek} of {activeEnrollment.duration_weeks} · started {activeEnrollment.start_date}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">No active program</p>
               )}
-            </TableBody>
-          </Table>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Latest personal record</p>
+              {latestPR ? (
+                <>
+                  <p className="mt-1 text-sm font-medium">
+                    {latestPR.exercise_name} · {latestPR.max_weight != null ? `${Number(latestPR.max_weight)} kg` : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Achieved {latestPR.achieved_date}</p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">No personal records yet</p>
+              )}
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Volume trend (8 weeks)</p>
+              {weekly.every((w) => w.volume === 0) ? (
+                <p className="mt-1 text-sm text-muted-foreground">No logged volume yet</p>
+              ) : (
+                <div className="mt-2 flex h-14 items-end gap-1">
+                  {weekly.map((w) => {
+                    const max = Math.max(...weekly.map((x) => x.volume), 1);
+                    return (
+                      <div
+                        key={w.weekStart}
+                        className="flex-1 rounded-t bg-primary/70"
+                        style={{ height: `${Math.max((w.volume / max) * 100, w.volume > 0 ? 8 : 2)}%` }}
+                        title={`${w.weekStart}: ${w.volume.toLocaleString("en-US")} kg`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Exercise Results — what the customer actually did */}
+      {/* ── PRIORITY 2: Nutrition ─────────────────────────────────────────── */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Exercise results</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Nutrition</CardTitle>
+          <CardDescription>Recent meals and today&apos;s macros, logged in the app.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="rounded-lg border bg-muted/30 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Today&apos;s kcal</p>
+              <p className="text-xl font-bold">{macros.kcal.toLocaleString("en-US")}</p>
+              {goals?.daily_calories ? (
+                <p className="text-xs text-muted-foreground">
+                  {macros.kcal > goals.daily_calories ? "Over" : macros.kcal > 0 ? "Within" : "No"} {goals.daily_calories} goal
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">No goal set</p>
+              )}
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-xs text-muted-foreground">Protein</p>
+              <p className="text-xl font-bold">{macros.p} g</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-xs text-muted-foreground">Carbs</p>
+              <p className="text-xl font-bold">{macros.c} g</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-xs text-muted-foreground">Fat</p>
+              <p className="text-xl font-bold">{macros.f} g</p>
+            </div>
+          </div>
+
+          {recentMeals.length > 0 && (
+            <ul className="space-y-1.5">
+              {recentMeals.map((n) => (
+                <li key={n.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{n.food_name ?? "Food"}</span>
+                    <span className="text-muted-foreground"> · {n.meal_type ?? "meal"} · {n.logged_date}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {n.calories ?? 0} kcal · {n.protein_g ?? 0}/{n.carbs_g ?? 0}/{n.fat_g ?? 0}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {recentMeals.length === 0 && (
+            <p className="text-sm text-muted-foreground">No meals logged yet — meals appear here as the client logs food in the app.</p>
+          )}
+
+          <CollapsibleSection
+            title="View all meals"
+            description={`Full nutrition history (${nutrition.length} recent entries).`}
+          >
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Meal</TableHead>
+                    <TableHead>Food</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>kcal</TableHead>
+                    <TableHead>P / C / F</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nutrition.map((n) => (
+                    <TableRow key={n.id}>
+                      <TableCell>{n.logged_date}</TableCell>
+                      <TableCell>{n.meal_type ?? "—"}</TableCell>
+                      <TableCell>{n.food_name ?? "—"}</TableCell>
+                      <TableCell>{n.quantity ?? "—"} {n.serving_unit ?? ""}</TableCell>
+                      <TableCell>{n.calories ?? 0}</TableCell>
+                      <TableCell>{n.protein_g ?? 0} / {n.carbs_g ?? 0} / {n.fat_g ?? 0}</TableCell>
+                    </TableRow>
+                  ))}
+                  {nutrition.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                        No nutrition logs yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CollapsibleSection>
+        </CardContent>
+      </Card>
+
+      {/* ── PRIORITY 3: Workout performance ───────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Workout performance</CardTitle>
           <CardDescription>
-            Working-set volume per session and weight progression, computed from the app&apos;s set logs.
+            {completed.length} completed · {workoutsThisWeek} this week · {sessionsLast30} in the last 30 days
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -388,21 +508,66 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
-      {/* Assigned workouts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Assigned workouts</CardTitle>
-          <CardDescription>
-            Templates assigned to this client. Completed workouts open a target-vs-actual performance review.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      <CollapsibleSection
+        title="Session details"
+        description="Set-by-set log of recent sessions from the app."
+        summary={
+          sessions.length > 0
+            ? `${sessions.length} recent session${sessions.length === 1 ? "" : "s"} · latest ${sessions[0]?.session_date ?? "—"}`
+            : "No sessions logged yet"
+        }
+      >
+        <div className="space-y-3">
+          {sessions.map((s) => {
+            const sessionSets = sets.filter((st) => st.session_id === s.id);
+            return (
+              <div key={s.id} className="rounded-lg border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-sm">{s.session_name ?? "Workout"}</p>
+                  {s.muscle_group && <Badge variant="secondary">{s.muscle_group}</Badge>}
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {s.session_date ? new Date(s.session_date).toLocaleDateString() : ""} · {s.duration_min ?? 0} min
+                  </span>
+                </div>
+                {sessionSets.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {sessionSets.map((st) => (
+                      <li key={st.id} className="text-xs text-muted-foreground">
+                        {st.exercise_name ?? "Exercise"} — set {st.set_number ?? 1}: {st.reps ?? 0} reps
+                        {st.weight_kg != null ? ` @ ${st.weight_kg} kg` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+          {sessions.length === 0 && <p className="text-sm text-muted-foreground">No workout sessions logged yet.</p>}
+        </div>
+      </CollapsibleSection>
+
+      {/* ── Secondary: collapsed reference sections ───────────────────────── */}
+      <CollapsibleSection
+        title="Assigned workouts"
+        description="Templates assigned to this client."
+        badge={
+          <span className="flex gap-1.5">
+            {upcoming.length > 0 && <Badge variant="outline">{upcoming.length} upcoming</Badge>}
+            {completed.length > 0 && <Badge variant="secondary">{completed.length} completed</Badge>}
+          </span>
+        }
+        summary={
+          upcoming.length > 0
+            ? `Next: ${nextUpcoming?.template?.name ?? "Workout"} on ${nextUpcoming?.scheduled_date ?? "—"}`
+            : "No upcoming workouts"
+        }
+      >
+        <div className="space-y-5">
           {assigned.length === 0 && (
             <p className="text-sm text-muted-foreground">
               No assigned workouts yet. Create a template in Workouts, then assign it to this client.
             </p>
           )}
-
           {[
             { title: "Upcoming", rows: upcoming },
             { title: "In progress", rows: inProgress },
@@ -430,9 +595,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                         {statusLabel[a.status] ?? a.status}
                       </Badge>
                       <Button
-                        render={
-                          <Link href={`/dashboard/subscribers/${sub.id}/workouts/${a.id}`} />
-                        }
+                        render={<Link href={`/dashboard/subscribers/${sub.id}/workouts/${a.id}`} />}
                         variant="outline"
                         size="sm"
                       >
@@ -443,18 +606,20 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                 </ul>
               </div>
             ))}
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleSection>
 
-      {/* Programs — weekly enrollments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Programs</CardTitle>
-          <CardDescription>
-            Weekly program enrollments. Open one to see the weeks × days progress grid.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <CollapsibleSection
+        title="Programs"
+        description="Weekly program enrollments with progress grids."
+        badge={enrollments.some((e) => e.status === "active") ? <Badge>{enrollments.filter((e) => e.status === "active").length} active</Badge> : undefined}
+        summary={
+          enrollments.length > 0
+            ? `${enrollments.length} enrollment${enrollments.length === 1 ? "" : "s"} · latest ${enrollments[0].program_name}`
+            : "No program enrollments"
+        }
+      >
+        <div className="space-y-2">
           {enrollments.length === 0 && (
             <p className="text-sm text-muted-foreground">
               No program enrollments yet. Create a program in Programs, then enroll this client.
@@ -483,100 +648,15 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               </Button>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleSection>
 
-      {/* Progress — weekly volume + PRs from real records */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Progress</CardTitle>
-          <CardDescription>
-            Weekly training volume and personal records, computed from the app&apos;s workout logs.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {!progress ? (
-            <p className="text-sm text-muted-foreground">Progress becomes available once this client is one of your subscribers.</p>
-          ) : (
-            <>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Sessions (30 days)</p>
-                  <p className="text-2xl font-extrabold">{progress.sessionsLast30}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Completed assignments</p>
-                  <p className="text-2xl font-extrabold">{progress.completedAssignments}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Volume (this week)</p>
-                  <p className="text-2xl font-extrabold">
-                    {(progress.weekly[progress.weekly.length - 1]?.volume ?? 0).toLocaleString("en-US")} kg
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <TrendingUp className="size-3.5" /> Weekly volume (8 weeks)
-                </p>
-                {progress.weekly.every((w) => w.volume === 0) ? (
-                  <p className="text-sm text-muted-foreground">No logged volume in the last 8 weeks yet.</p>
-                ) : (
-                  <div className="flex h-32 items-end gap-2">
-                    {progress.weekly.map((w) => {
-                      const max = Math.max(...progress.weekly.map((x) => x.volume), 1);
-                      return (
-                        <div key={w.weekStart} className="flex flex-1 flex-col items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground">
-                            {w.volume > 0 ? `${(w.volume / 1000).toFixed(1)}t` : ""}
-                          </span>
-                          <div
-                            className="w-full rounded-t-md bg-primary/70"
-                            style={{ height: `${Math.max((w.volume / max) * 100, w.volume > 0 ? 4 : 1)}%` }}
-                            title={`${w.weekStart}: ${w.volume.toLocaleString("en-US")} kg · ${w.sessions} sessions`}
-                          />
-                          <span className="text-[10px] text-muted-foreground">{w.weekStart.slice(5)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <Trophy className="size-3.5" /> Personal records
-                </p>
-                {progress.prs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No personal records logged yet.</p>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {progress.prs.slice(0, 6).map((pr) => (
-                      <div key={pr.exercise_name} className="rounded-lg border p-3">
-                        <p className="text-sm font-medium">{pr.exercise_name}</p>
-                        <p className="text-lg font-extrabold">
-                          {pr.max_weight != null ? `${Number(pr.max_weight)} kg` : "—"}
-                          {pr.reps != null ? <span className="text-xs font-normal text-muted-foreground"> × {pr.reps}</span> : null}
-                        </p>
-                        {pr.achieved_date && <p className="text-xs text-muted-foreground">{pr.achieved_date}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Daily summaries */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Daily summaries (last 14 days)</CardTitle>
-          <CardDescription>From daily_summary — auto-maintained by the app&apos;s triggers.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleSection
+        title="Daily summaries"
+        description="Auto-maintained by the app's daily logging (last 14 days)."
+        summary={summaries.length > 0 ? `Latest: ${summaries[0]?.summary_date} · ${summaries[0]?.calories_consumed ?? 0} kcal` : "No daily summaries yet"}
+      >
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -610,50 +690,15 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleSection>
 
-      {/* Workouts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Workout sessions</CardTitle>
-          <CardDescription>Sessions logged in the app, with the sets of the latest ones.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {sessions.map((s) => {
-            const sessionSets = sets.filter((st) => st.session_id === s.id);
-            return (
-              <div key={s.id} className="rounded-lg border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-sm">{s.session_name ?? "Workout"}</p>
-                  {s.muscle_group && <Badge variant="secondary">{s.muscle_group}</Badge>}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {s.session_date ? new Date(s.session_date).toLocaleDateString() : ""} · {s.duration_min ?? 0} min
-                  </span>
-                </div>
-                {sessionSets.length > 0 && (
-                  <ul className="mt-2 space-y-1">
-                    {sessionSets.map((st) => (
-                      <li key={st.id} className="text-xs text-muted-foreground">
-                        {st.exercise_name ?? "Exercise"} — set {st.set_number ?? 1}: {st.reps ?? 0} reps
-                        {st.weight_kg != null ? ` @ ${st.weight_kg} kg` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
-          {sessions.length === 0 && <p className="text-sm text-muted-foreground">No workout sessions logged yet.</p>}
-        </CardContent>
-      </Card>
-
-      {/* Measurements */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Body measurements</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleSection
+        title="Body measurements"
+        description="Weight and body composition logs."
+        summary={measurements.length > 0 ? `Latest: ${measurements[0]?.measured_date} · ${measurements[0]?.weight_kg ?? "—"} kg` : "No measurements yet"}
+      >
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -681,8 +726,8 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleSection>
     </div>
   );
 }

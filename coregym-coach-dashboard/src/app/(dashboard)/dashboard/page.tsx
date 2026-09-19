@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RangeSelector } from "@/components/dashboard/overview/RangeSelector";
 import { OverviewAreaChart, WeekdayBarChart, AdherenceGauge } from "@/components/dashboard/overview/OverviewCharts";
-import { Users, DollarSign, MessageSquare, Dumbbell, Download, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Users, DollarSign, MessageSquare, Dumbbell, Download, TrendingUp, TrendingDown, Minus, ClipboardList } from "lucide-react";
 
 export default async function DashboardOverviewPage({
   searchParams,
@@ -88,6 +88,28 @@ export default async function DashboardOverviewPage({
             <p className="flex items-center gap-1 text-xs text-muted-foreground">
               {trendIcon(data.kpis.workouts.tr.dir)} {data.kpis.workouts.tr.label} · {data.kpis.workouts.tr.vs}
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Today engagement + active programs */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><Users className="size-4" /></span>
+            <div><p className="text-sm font-semibold">{data.today.checkIns} today</p><p className="text-xs text-muted-foreground">Client check-ins</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><ClipboardList className="size-4" /></span>
+            <div><p className="text-sm font-semibold">{data.today.meals} logged</p><p className="text-xs text-muted-foreground">Meals today</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><TrendingUp className="size-4" /></span>
+            <div><p className="text-sm font-semibold">{data.activePrograms} active</p><p className="text-xs text-muted-foreground">Programs in progress</p></div>
           </CardContent>
         </Card>
       </div>

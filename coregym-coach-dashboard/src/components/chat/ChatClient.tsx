@@ -118,7 +118,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     return () => {
       cancelled = true;
     };
-  }, [selectedId, supabase]);
+  }, [selectedId, supabase, coachId]);
 
   async function loadOlder() {
     if (!selectedId || !hasMore || loadingOlder) return;

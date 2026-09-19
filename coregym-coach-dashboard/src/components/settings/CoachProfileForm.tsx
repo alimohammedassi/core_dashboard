@@ -25,6 +25,7 @@ export function CoachProfileForm() {
   const [name, setName] = React.useState("");
   const [bio, setBio] = React.useState("");
   const [price, setPrice] = React.useState("0");
+  const [experience, setExperience] = React.useState("");
   const [specializations, setSpecializations] = React.useState<string[]>([]);
   const [customSpec, setCustomSpec] = React.useState("");
   const [noticeDays, setNoticeDays] = React.useState("");
@@ -40,6 +41,7 @@ export function CoachProfileForm() {
         setName(body.name ?? "");
         setBio(body.bio ?? "");
         setPrice(String(body.price_monthly ?? 0));
+        setExperience(body.years_experience == null ? "" : String(body.years_experience));
         setSpecializations(body.specialization ?? []);
         const p = body.policy ?? {};
         setNoticeDays(p.cancellationNoticeDays == null ? "" : String(p.cancellationNoticeDays));
@@ -74,6 +76,7 @@ export function CoachProfileForm() {
           name: name.trim(),
           bio: bio.trim(),
           price_monthly: Number(price) || 0,
+          years_experience: experience === "" ? null : Number(experience),
           specialization: specializations,
           policy: {
             cancellationNoticeDays: noticeDays === "" ? null : Number(noticeDays),
@@ -103,17 +106,19 @@ export function CoachProfileForm() {
       {/* Profile */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cp-name">Display name</Label>
-          <Input id="cp-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} className={inputCls} placeholder="Coach Ali" />
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="cp-bio">Bio</Label>
           <Textarea id="cp-bio" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} className={inputCls} placeholder="Tell clients about your coaching style…" />
           <p className="text-xs text-muted-foreground">{bio.length} / 1000</p>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="cp-exp">Experience (years)</Label>
+          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={inputCls} placeholder="e.g. 5" />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="cp-price">Monthly price (USD)</Label>
           <Input id="cp-price" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={inputCls} />
+        </div>
         </div>
         <div className="space-y-2">
           <Label>Specializations</Label>

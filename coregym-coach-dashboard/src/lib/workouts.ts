@@ -18,6 +18,11 @@ export function daysAgoISO(days: number): string {
   return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 }
 
+// Whole days between two date-only strings (a - b).
+export function diffDays(a: string, b: string): number {
+  return Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86400000);
+}
+
 // ── Coach context ────────────────────────────────────────────────────────────
 
 export type CoachContext = { userId: string; coachId: string };

@@ -150,6 +150,38 @@ export async function GET(request: Request) {
     }
   }
 
+  // ── Completeness-based routing (never by provider — by profile state) ──
+  // Complete coach profile = coaches row + coach_onboarding.is_completed.
+  // Incomplete/new users go to onboarding; completed coaches go to the
+  // dashboard. Explicit non-coach roles keep the existing access denial.
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const svc = await createServiceClient();
+      const [coachRes, onboardingRes, profileRes] = await Promise.all([
+        svc.from("coaches").select("id").eq("user_id", user.id).maybeSingle(),
+        svc.from("coach_onboarding").select("is_completed").eq("user_id", user.id).maybeSingle(),
+        svc.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+      ]);
+      const role = (profileRes.data as { role?: string } | null)?.role;
+      if (role && role !== "coach") {
+        return NextResponse.redirect(`${origin}/login?error=not_coach`);
+      }
+      const complete =
+        Boolean(coachRes.data) &&
+        (onboardingRes.data as { is_completed?: boolean } | null)?.is_completed === true;
+      if (!complete) {
+        return NextResponse.redirect(`${origin}/onboarding`);
+      }
+    }
+  } catch (e) {
+    console.error("[auth/callback] completeness check failed", e);
+    // fall through to the intended destination; the dashboard layout gate
+    // performs the same check server-side.
+  }
+
   // Ensure we redirect to an allowed path on this origin
   const safeNext = next.startsWith("/") ? next : "/dashboard";
   return NextResponse.redirect(`${origin}${safeNext}`);

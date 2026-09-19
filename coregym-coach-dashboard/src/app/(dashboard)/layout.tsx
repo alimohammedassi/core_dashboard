@@ -34,6 +34,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const role = (profile as { role?: string } | null)?.role;
   const isCoach = role === "coach" || role === undefined; // undefined = schema not applied yet (dev mode)
 
+  // ── Coach onboarding completeness gate ──────────────────────────────────────
+  // Coaches whose profile is not yet complete (no coaches row or unfinished
+  // coach_onboarding) are routed to the onboarding wizard instead of the
+  // dashboard. Existing completed coaches are unaffected (verified: all live
+  // coach rows have is_completed = true). role === undefined keeps the
+  // existing dev-mode tolerance.
+  if (isCoach && role === "coach") {
+    const [coachRes, onboardingRes] = await Promise.all([
+      supabase.from("coaches").select("id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("coach_onboarding").select("is_completed").eq("user_id", user.id).maybeSingle(),
+    ]);
+    const complete =
+      Boolean(coachRes.data) &&
+      (onboardingRes.data as { is_completed?: boolean } | null)?.is_completed === true;
+    if (!complete) {
+      redirect("/onboarding");
+    }
+  }
+
   if (role && role !== "coach") {
     return (
       <div className="flex min-h-svh items-center justify-center p-8">

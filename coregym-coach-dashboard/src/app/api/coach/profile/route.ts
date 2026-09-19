@@ -80,6 +80,17 @@ export async function PATCH(req: NextRequest) {
     if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 400 });
   }
 
+  if (body.years_experience != null && body.years_experience !== "") {
+    const years = Number(body.years_experience);
+    if (!Number.isInteger(years) || years < 0 || years > 60) {
+      return NextResponse.json({ error: "Years of experience must be a whole number between 0 and 60" }, { status: 400 });
+    }
+    const { error: obErr } = await svc
+      .from("coach_onboarding")
+      .upsert({ user_id: ctx.userId, years_experience: years }, { onConflict: "user_id" });
+    if (obErr) return NextResponse.json({ error: obErr.message }, { status: 400 });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -95,9 +106,10 @@ export async function GET() {
   if (coachId === user.id) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
 
   const svc = await createServiceClient();
-  const [coachRes, profileRes] = await Promise.all([
+  const [coachRes, profileRes, onboardingRes] = await Promise.all([
     svc.from("coaches").select("bio, price_monthly, specialization, policy").eq("id", coachId).single(),
     svc.from("profiles").select("name").eq("id", user.id).single(),
+    svc.from("coach_onboarding").select("years_experience").eq("user_id", user.id).maybeSingle(),
   ]);
   if (coachRes.error) return NextResponse.json({ error: coachRes.error.message }, { status: 400 });
 
@@ -107,5 +119,6 @@ export async function GET() {
     price_monthly: (coachRes.data as { price_monthly: number | null } | null)?.price_monthly ?? 0,
     specialization: (coachRes.data as { specialization: string[] | null } | null)?.specialization ?? [],
     policy: (coachRes.data as { policy: Record<string, unknown> | null } | null)?.policy ?? null,
+    years_experience: (onboardingRes.data as { years_experience: number | null } | null)?.years_experience ?? null,
   });
 }
