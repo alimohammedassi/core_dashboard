@@ -13,21 +13,31 @@ export async function PATCH(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
 
-  const name = String(body.name ?? "").trim();
-  const bio = String(body.bio ?? "").trim();
-  const priceMonthly = Number(body.price_monthly);
-  const specialization = Array.isArray(body.specialization)
-    ? body.specialization.slice(0, 8).map((s) => String(s).trim()).filter(Boolean)
-    : [];
+  const has = (k: string) => body[k] !== undefined;
 
-  if (name && name.length > 80) {
+  // Partial updates: only fields present in the body are validated and
+  // written (the Account name form sends { name } alone; the professional
+  // form sends everything). Absent fields are left untouched — never reset.
+  const name = has("name") ? String(body.name ?? "").trim() : null;
+  const bio = has("bio") ? String(body.bio ?? "").trim() : null;
+  const priceMonthly = has("price_monthly") ? Number(body.price_monthly) : null;
+  const specialization = has("specialization")
+    ? Array.isArray(body.specialization)
+      ? body.specialization.slice(0, 8).map((s) => String(s).trim()).filter(Boolean)
+      : null
+    : undefined;
+
+  if (name != null && name.length > 80) {
     return NextResponse.json({ error: "Name is too long (max 80 characters)" }, { status: 400 });
   }
-  if (bio.length > 1000) {
+  if (bio != null && bio.length > 1000) {
     return NextResponse.json({ error: "Bio is too long (max 1000 characters)" }, { status: 400 });
   }
-  if (!Number.isFinite(priceMonthly) || priceMonthly < 0) {
+  if (priceMonthly != null && (!Number.isFinite(priceMonthly) || priceMonthly < 0)) {
     return NextResponse.json({ error: "Monthly price must be zero or a positive number" }, { status: 400 });
+  }
+  if (specialization === null) {
+    return NextResponse.json({ error: "Specializations must be a list" }, { status: 400 });
   }
 
   // Structured policy (optional — omitted/null clears it)
@@ -59,20 +69,21 @@ export async function PATCH(req: NextRequest) {
 
   const svc = await createServiceClient();
 
-  const coachUpdate: Record<string, unknown> = {
-    bio: bio || null,
-    price_monthly: priceMonthly,
-    specialization,
-  };
+  const coachUpdate: Record<string, unknown> = {};
+  if (bio != null) coachUpdate.bio = bio || null;
+  if (priceMonthly != null) coachUpdate.price_monthly = priceMonthly;
+  if (specialization !== undefined) coachUpdate.specialization = specialization;
   if (policy) coachUpdate.policy = policy;
 
-  const { error: coachErr } = await svc.from("coaches").update(coachUpdate).eq("id", ctx.coachId);
-  if (coachErr) {
-    // Most common cause: the policy column migration has not been applied yet.
-    const hint = coachErr.message.includes("policy")
-      ? " (The policy column migration may not be applied yet — supabase/coach_profile_policy_migration.sql)"
-      : "";
-    return NextResponse.json({ error: coachErr.message + hint }, { status: 400 });
+  if (Object.keys(coachUpdate).length > 0) {
+    const { error: coachErr } = await svc.from("coaches").update(coachUpdate).eq("id", ctx.coachId);
+    if (coachErr) {
+      // Most common cause: the policy column migration has not been applied yet.
+      const hint = coachErr.message.includes("policy")
+        ? " (The policy column migration may not be applied yet — supabase/coach_profile_policy_migration.sql)"
+        : "";
+      return NextResponse.json({ error: coachErr.message + hint }, { status: 400 });
+    }
   }
 
   if (name) {

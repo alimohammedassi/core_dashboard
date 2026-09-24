@@ -31,6 +31,18 @@ export function CoachProfileForm() {
   const [noticeDays, setNoticeDays] = React.useState("");
   const [refundPolicy, setRefundPolicy] = React.useState("");
   const [lateFee, setLateFee] = React.useState("");
+  // Snapshot of the last loaded/saved values — Save stays disabled until
+  // something actually differs (dirty-state pattern for this form).
+  const [initial, setInitial] = React.useState<{
+    name: string;
+    bio: string;
+    price: string;
+    experience: string;
+    specializations: string[];
+    noticeDays: string;
+    refundPolicy: string;
+    lateFee: string;
+  } | null>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -38,15 +50,26 @@ export function CoachProfileForm() {
         const res = await fetch("/api/coach/profile");
         const body = await res.json();
         if (!res.ok) throw new Error(body?.error ?? "Could not load your profile");
-        setName(body.name ?? "");
-        setBio(body.bio ?? "");
-        setPrice(String(body.price_monthly ?? 0));
-        setExperience(body.years_experience == null ? "" : String(body.years_experience));
-        setSpecializations(body.specialization ?? []);
         const p = body.policy ?? {};
-        setNoticeDays(p.cancellationNoticeDays == null ? "" : String(p.cancellationNoticeDays));
-        setRefundPolicy(p.refundPolicy ?? "");
-        setLateFee(p.lateFeeAmount == null ? "" : String(p.lateFeeAmount));
+        const snapshot = {
+          name: body.name ?? "",
+          bio: body.bio ?? "",
+          price: String(body.price_monthly ?? 0),
+          experience: body.years_experience == null ? "" : String(body.years_experience),
+          specializations: body.specialization ?? [],
+          noticeDays: p.cancellationNoticeDays == null ? "" : String(p.cancellationNoticeDays),
+          refundPolicy: p.refundPolicy ?? "",
+          lateFee: p.lateFeeAmount == null ? "" : String(p.lateFeeAmount),
+        };
+        setName(snapshot.name);
+        setBio(snapshot.bio);
+        setPrice(snapshot.price);
+        setExperience(snapshot.experience);
+        setSpecializations(snapshot.specializations);
+        setNoticeDays(snapshot.noticeDays);
+        setRefundPolicy(snapshot.refundPolicy);
+        setLateFee(snapshot.lateFee);
+        setInitial(snapshot);
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Could not load your profile");
       } finally {
@@ -87,6 +110,16 @@ export function CoachProfileForm() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error ?? "Save failed");
+      setInitial({
+        name,
+        bio,
+        price,
+        experience,
+        specializations,
+        noticeDays,
+        refundPolicy,
+        lateFee,
+      });
       toast.success("Profile saved");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Save failed");
@@ -98,6 +131,17 @@ export function CoachProfileForm() {
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading your profile…</p>;
   }
+
+  const dirty =
+    initial == null ||
+    name !== initial.name ||
+    bio !== initial.bio ||
+    price !== initial.price ||
+    experience !== initial.experience ||
+    JSON.stringify(specializations) !== JSON.stringify(initial.specializations) ||
+    noticeDays !== initial.noticeDays ||
+    refundPolicy !== initial.refundPolicy ||
+    lateFee !== initial.lateFee;
 
   const inputCls = "bg-background";
 
@@ -191,7 +235,7 @@ export function CoachProfileForm() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button type="button" onClick={handleSave} disabled={saving}>
+        <Button type="button" onClick={handleSave} disabled={saving || !dirty}>
           <Save className="mr-1 size-3.5" />
           {saving ? "Saving…" : "Save profile"}
         </Button>

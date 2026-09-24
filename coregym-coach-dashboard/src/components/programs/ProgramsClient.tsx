@@ -382,7 +382,39 @@ function EnrollDialog({
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Enrollment failed");
+      if (!res.ok) {
+        // One active program per client: offer to replace it.
+        if (res.status === 409 && body?.existing_enrollment_id) {
+          const clientName = clients.find((c) => c.clientId === clientId)?.name ?? "This client";
+          const replace = window.confirm(
+            `${clientName} already has an active program. Replace it with “${seed.name}”? The current enrollment will be removed (logged history is kept).`
+          );
+          if (!replace) return;
+          const del = await fetch(
+            `/api/program-enrollments/${encodeURIComponent(body.existing_enrollment_id)}`,
+            { method: "DELETE" }
+          );
+          const delBody = await del.json();
+          if (!del.ok) throw new Error(delBody?.error ?? "Could not remove the current program");
+          const retry = await fetch("/api/program-enrollments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              program_id: seed.id,
+              client_id: clientId,
+              start_date: startDate,
+              duration_weeks: duration,
+            }),
+          });
+          const retryBody = await retry.json();
+          if (!retry.ok) throw new Error(retryBody?.error ?? "Enrollment failed");
+          toast.success(`${clientName} enrolled — ${retryBody.generated ?? expected} workouts generated`);
+          onOpenChange(false);
+          onEnrolled?.();
+          return;
+        }
+        throw new Error(body?.error ?? "Enrollment failed");
+      }
       const clientName = clients.find((c) => c.clientId === clientId)?.name ?? "client";
       toast.success(`${clientName} enrolled — ${body.generated ?? expected} workouts generated`);
       onOpenChange(false);

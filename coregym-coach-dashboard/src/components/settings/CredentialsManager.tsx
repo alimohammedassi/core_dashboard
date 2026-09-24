@@ -210,6 +210,7 @@ export function CredentialsManager({
       await load();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Reorder failed");
+    } finally {
       setBusyId(null);
     }
   }

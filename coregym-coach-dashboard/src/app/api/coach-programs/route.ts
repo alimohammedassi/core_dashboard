@@ -68,7 +68,7 @@ export async function DELETE(req: NextRequest) {
     .eq("coach_id", ctx.coachId);
   if ((count ?? 0) > 0) {
     return NextResponse.json(
-      { error: "This program has client enrollments, so it cannot be deleted. It stays to protect their history." },
+      { error: "This program still has client enrollments. Remove each client from it first (customer profile → Programs → Remove), then delete." },
       { status: 409 }
     );
   }

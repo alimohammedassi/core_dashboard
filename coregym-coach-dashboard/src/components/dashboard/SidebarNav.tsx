@@ -10,6 +10,7 @@ import {
   Users,
   CreditCard,
   Settings,
+  Apple,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ const ICONS: Record<string, LucideIcon> = {
   Users,
   CreditCard,
   Settings,
+  Apple,
 };
 
 export type NavItem = { href: string; label: string; icon: string };

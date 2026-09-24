@@ -57,6 +57,7 @@ export function NotificationsPrefs() {
   }, [supabase]);
 
   async function save(next: Prefs) {
+    const prev = prefs;
     setPrefs(next);
     setSaving(true);
     try {
@@ -67,6 +68,7 @@ export function NotificationsPrefs() {
       if (error) throw new Error(error.message);
       toast.success("Notification preferences saved");
     } catch (err: unknown) {
+      if (prev) setPrefs(prev); // roll back the optimistic toggle
       toast.error(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);

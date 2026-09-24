@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 // Display-name editor for the Account section (PATCHes /api/coach/profile).
 export function AccountNameForm({ initialName }: { initialName: string }) {
   const [name, setName] = React.useState(initialName);
+  const [savedName, setSavedName] = React.useState(initialName);
   const [saving, setSaving] = React.useState(false);
 
   async function handleSave() {
@@ -28,6 +29,7 @@ export function AccountNameForm({ initialName }: { initialName: string }) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error ?? "Save failed");
+      setSavedName(v);
       toast.success("Name updated");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Save failed");
@@ -41,7 +43,7 @@ export function AccountNameForm({ initialName }: { initialName: string }) {
       <Label htmlFor="acc-name">Display name</Label>
       <div className="flex gap-2">
         <Input id="acc-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Coach Ali" />
-        <Button type="button" onClick={handleSave} disabled={saving || !name.trim()}>
+        <Button type="button" onClick={handleSave} disabled={saving || !name.trim() || name.trim() === savedName}>
           {saving ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
           Save
         </Button>

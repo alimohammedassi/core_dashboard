@@ -1,11 +1,12 @@
 # CoreGym Coach Dashboard — Project Summary
 
-Last updated: 2026-09-15.
+Last updated: 2026-09-23.
 
 The Coach Dashboard is the web side of the CoreGym product: coaches manage
-their clients, revenue, chat — and, as of the two features documented here, a
+their clients, revenue, chat — and, as of the features documented here, a
 complete **Workout Management System** with a **recurring weekly Programs**
-extension. Clients train in the CoreGym Flutter mobile app against the same
+extension, plus a **Nutrition / Meal Planning System** with a per-enrollment
+detailed program view and enrollment-scoped nutrition analytics. Clients train in the CoreGym Flutter mobile app against the same
 Supabase database; the dashboard never writes mobile-side data and the mobile
 app never changes for dashboard features.
 
@@ -257,6 +258,87 @@ and has future assigned rows.
   decision) — no incremental generation, no background jobs.
 - **Explicit regeneration only** — the coach must trigger it per enrollment;
   client history is immutable.
+
+---
+
+## 3. Nutrition / Meal Planning System
+
+### What it does
+
+Coach builds a reusable weekly nutrition program from the shared `foods`
+library (flexible meals per day, quantities in each food's own serving unit,
+live kcal/macro totals), assigns it to an active subscriber for a fixed
+number of weeks, and the system materializes every prescribed meal
+(`nutrition_assignments` + `nutrition_assignment_foods`) with frozen macro
+snapshots. The mobile app reads the day's plan, marks meals completed, and
+submits quantity/substitution changes through plan-aware endpoints; every
+change preserves the original prescription and appends to
+`nutrition_change_log`. The free-logging pipeline (`nutrition_logs`,
+`daily_summary`, `user_goals`) is a separate, untouched system.
+
+### Database objects (migration: `supabase/nutrition_programs_migration.sql`)
+
+- **Template layer** — `nutrition_programs` → `nutrition_program_days`
+  (`day_of_week` ISO 1–7, missing row = rest day) →
+  `nutrition_program_meals` (flexible count, `order_index`) →
+  `nutrition_program_foods` (`food_id → foods` RESTRICT + `quantity`;
+  macros never stored here, always derived from the live library row).
+- **Assignment layer** — `client_nutrition_enrollments` (client × program ×
+  `start_date` × fixed `duration_weeks` + status) → `nutrition_assignments`
+  (one row per meal per date; frozen `meal_name`; `status
+  assigned/completed/skipped`) → `nutrition_assignment_foods` (frozen
+  `original_*` prescription + mutable `current_*` client state +
+  `change_type`).
+- **History** — `nutrition_change_log` (append-only, denormalized names so
+  rows survive regeneration; `note` only when the mobile app sends one).
+- **RPCs** — `upsert_nutrition_program_atomic` (whole tree in one
+  transaction, ownership + payload caps), `create_nutrition_enrollment_atomic`
+  (enrollment + all frozen snapshots, per-serving scaling
+  `base × quantity / serving_size`), `regenerate_remaining_nutrition_assignments`
+  (only pristine future rows), `apply_nutrition_food_change` (recomputes from
+  the library base — never rescales rounded snapshots — and logs history).
+  EXECUTE revoked from `public`/`anon`, granted to `authenticated` +
+  `service_role`; each RPC re-verifies ownership for direct callers.
+- **Scaling basis** — per (`serving_size` × `serving_unit`), never per-100g;
+  kcal → integer, grams → 1 decimal, rounded once.
+
+### Detailed program view + analytics (2026-09-23)
+
+- **Bug fix** — substituted food names previously rendered `null` in the
+  coach UI (`current_food_name` hardcoded null); loaders now resolve
+  `current_food_id → foods.name` in one batched read, and substituted foods
+  render inline with a "Swapped"/"Adjusted" badge plus the original in a
+  `<details>` block.
+- **Route** — `/dashboard/subscribers/[id]/nutrition/[enrollmentId]`
+  (loader: `loadNutritionEnrollmentDetail` in `src/lib/nutrition.ts`):
+  header (program, status, overall adherence), weeks × days grid using the
+  Coach Weekly Programs navigation idiom (cells anchor-link to day detail),
+  full day-by-day/meal-by-meal breakdown (prescribed vs current totals;
+  skipped meals visible but excluded from current totals), per-enrollment
+  nutrition trends, and the Update Remaining Days card. Entry point: "View
+  full program →" on each enrollment row of the profile's Assigned nutrition
+  plan card; the existing "Client changes" list is kept as-is.
+- **Analytics** — `src/components/nutrition/NutritionTrends.tsx` (recharts,
+  same styling as `ExerciseResults`): calories prescribed-vs-actual bars,
+  actual macro lines, adherence-% bars, per week, scoped to the enrollment.
+  Rendered on the detail page and as a sibling card next to Workout
+  performance on the customer profile (active enrollment only). Source is
+  `nutrition_assignments` + `nutrition_assignment_foods` only — never
+  `nutrition_logs`.
+- **Verified live** — substitution-then-quantity-change round-trips exactly
+  (Chicken 200 g → 344 kcal / 64 g protein from base, original Almonds 50 g
+  frozen, both history steps kept); regen preserves completed/changed rows;
+  test data cleaned (all nutrition tables back to 0).
+
+### Boundaries (locked)
+
+Template builder, enrollment/regeneration RPCs, and
+`api/client-nutrition/*` contracts are frozen (mobile is live against them).
+`nutrition_logs` and its two dashboard read sites are a separate pipeline.
+**Open item 2026-09-23:** the live DB still runs the pre-fix
+`apply_nutrition_food_change` (a 50 g → 60 g change yields 348 kcal instead of
+347) — re-run `supabase/nutrition_programs_migration.sql` (idempotent) to pick
+up the base-recompute fix.
 
 ---
 

@@ -1,0 +1,53 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { requireCoachContext } from "@/lib/workouts";
+
+// Enroll a client in a nutrition program: validates program ownership + the
+// client's ACTIVE subscription, then materializes every meal row in one
+// atomic RPC (mirrors /api/program-enrollments).
+export async function POST(req: NextRequest) {
+  const ctx = await requireCoachContext();
+  if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  const programId = String(body?.program_id ?? "");
+  const clientId = String(body?.client_id ?? "");
+  const startDate = String(body?.start_date ?? "");
+  const durationWeeks = Number(body?.duration_weeks ?? 0);
+  if (!programId) return NextResponse.json({ error: "Program is required" }, { status: 400 });
+  if (!clientId) return NextResponse.json({ error: "Client is required" }, { status: 400 });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    return NextResponse.json({ error: "Start date must be YYYY-MM-DD" }, { status: 400 });
+  }
+  if (!Number.isInteger(durationWeeks) || durationWeeks <= 0 || durationWeeks > 52) {
+    return NextResponse.json({ error: "Duration must be 1–52 weeks" }, { status: 400 });
+  }
+
+  const svc = await createServiceClient();
+  // Eligibility: active subscription with this coach (same rule as workouts).
+  const { data: sub } = await svc
+    .from("subscriptions")
+    .select("id")
+    .eq("coach_id", ctx.coachId)
+    .eq("client_id", clientId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!sub) {
+    return NextResponse.json({ error: "Client must have an active subscription" }, { status: 400 });
+  }
+
+  const { data: enrollmentId, error } = await svc.rpc("create_nutrition_enrollment_atomic", {
+    p_program_id: programId,
+    p_coach_id: ctx.coachId,
+    p_client_id: clientId,
+    p_start_date: startDate,
+    p_duration_weeks: durationWeeks,
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  const { count } = await svc
+    .from("nutrition_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("enrollment_id", enrollmentId as string);
+  return NextResponse.json({ id: enrollmentId, meals_generated: count ?? 0 });
+}

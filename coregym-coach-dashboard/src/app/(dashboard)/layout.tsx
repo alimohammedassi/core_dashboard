@@ -12,6 +12,7 @@ const nav = [
   { href: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
   { href: "/dashboard/workouts", label: "Workouts", icon: "ClipboardList" },
   { href: "/dashboard/programs", label: "Programs", icon: "CalendarDays" },
+  { href: "/dashboard/nutrition", label: "Nutrition", icon: "Apple" },
   { href: "/dashboard/chat", label: "Chat", icon: "MessageSquare" },
   { href: "/dashboard/subscribers", label: "Subscribers", icon: "Users" },
   { href: "/dashboard/plans", label: "Plans", icon: "CreditCard" },

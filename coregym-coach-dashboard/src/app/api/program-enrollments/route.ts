@@ -31,6 +31,26 @@ export async function POST(req: NextRequest) {
 
   const svc = await createServiceClient();
 
+  // One active program per client: a second active enrollment is refused so
+  // the coach explicitly ends/replaces the current one first (see DELETE).
+  const { data: existing } = await svc
+    .from("client_program_enrollments")
+    .select("id, program_id")
+    .eq("coach_id", ctx.coachId)
+    .eq("client_id", clientId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (existing) {
+    const e = existing as { id: string; program_id: string };
+    return NextResponse.json(
+      {
+        error: "This client already has an active program. Remove or pause it before enrolling a new one.",
+        existing_enrollment_id: e.id,
+      },
+      { status: 409 }
+    );
+  }
+
   // Program must belong to the resolved coach.
   const { data: program } = await svc
     .from("coach_programs")

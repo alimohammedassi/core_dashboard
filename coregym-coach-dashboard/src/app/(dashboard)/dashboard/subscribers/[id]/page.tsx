@@ -5,7 +5,16 @@ import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { daysAgoISO, diffDays, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
 import { loadClientEnrollments } from "@/lib/programs";
+import {
+  loadClientNutritionEnrollments,
+  loadNutritionEnrollmentDetail,
+  loadRecentNutritionChanges,
+  loadTodayNutrition,
+} from "@/lib/nutrition";
+import { RegenerateNutritionButton } from "@/components/subscribers/RegenerateNutritionButton";
+import { EnrollmentActions } from "@/components/subscribers/EnrollmentActions";
 import { ExerciseResults } from "@/components/subscribers/ExerciseResults";
+import { NutritionTrends } from "@/components/nutrition/NutritionTrends";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -118,11 +127,21 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   const clientId = sub.client.id;
 
   // ── Assigned workouts + progress (real records, no fabrication) ─────────────
-  const [assigned, progress, enrollments] = await Promise.all([
-    loadAssignedWorkouts(coachId, clientId),
-    loadClientProgress(coachId, clientId),
-    loadClientEnrollments(coachId, clientId),
-  ]);
+  const [assigned, progress, enrollments, nutritionEnrollments, todayNutrition, nutritionChanges] =
+    await Promise.all([
+      loadAssignedWorkouts(coachId, clientId),
+      loadClientProgress(coachId, clientId),
+      loadClientEnrollments(coachId, clientId),
+      loadClientNutritionEnrollments(coachId, clientId),
+      loadTodayNutrition(coachId, clientId, new Date().toISOString().slice(0, 10)),
+      loadRecentNutritionChanges(coachId, clientId, 10),
+    ]);
+  // Nutrition trends for the active enrollment (sibling of workout analytics,
+  // scoped to the enrollment — not the client's whole history).
+  const activeNutrition = nutritionEnrollments.find((ne) => ne.status === "active") ?? null;
+  const nutritionDetail = activeNutrition
+    ? await loadNutritionEnrollmentDetail(coachId, clientId, activeNutrition.id)
+    : null;
   const prs = progress?.prs ?? [];
   const weekly = progress?.weekly ?? [];
   const sessionsLast30 = progress?.sessionsLast30 ?? 0;
@@ -402,6 +421,110 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
+      {/* ── Assigned nutrition plan ─────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Assigned nutrition plan</CardTitle>
+          <CardDescription>
+            {nutritionEnrollments.length === 0
+              ? "No nutrition program assigned yet."
+              : `${nutritionEnrollments.length} assignment${nutritionEnrollments.length === 1 ? "" : "s"} · prescribed vs client changes preserved.`}
+          </CardDescription>
+        </CardHeader>
+        {nutritionEnrollments.length > 0 && (
+          <CardContent className="space-y-4">
+            {nutritionEnrollments.map((ne) => (
+              <div key={ne.id} className="rounded-lg border p-3 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-sm">{ne.program_name}</p>
+                  <Badge variant={ne.status === "active" ? "default" : "outline"}>{ne.status}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {ne.start_date} · {ne.duration_weeks} weeks · adherence{" "}
+                  {ne.adherence.pct == null
+                    ? "— (no elapsed meals)"
+                    : `${ne.adherence.pct}% (${ne.adherence.completed}/${ne.adherence.planned} meals${ne.adherence.skipped > 0 ? `, ${ne.adherence.skipped} skipped` : ""})`}
+                </p>
+                {ne.status === "active" && <RegenerateNutritionButton enrollmentId={ne.id} />}
+                <Link
+                  href={`/dashboard/subscribers/${id}/nutrition/${ne.id}`}
+                  className="inline-flex items-center text-xs font-medium text-primary hover:underline"
+                >
+                  View full program →
+                </Link>
+              </div>
+            ))}
+
+            {todayNutrition.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Today&apos;s prescribed meals</p>
+                {todayNutrition.map((m) => (
+                  <div key={m.assignmentId} className="rounded-lg border px-3 py-2 text-sm space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{m.meal_name}</span>
+                      <Badge variant={m.status === "completed" ? "default" : "outline"}>{m.status}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {m.totals.calories} kcal · {m.totals.protein_g}P / {m.totals.carbs_g}C / {m.totals.fat_g}F
+                    </p>
+                    <ul className="text-xs text-muted-foreground space-y-0.5">
+                      {m.foods.map((f, i) => (
+                        <li key={i}>
+                          {f.change_type && f.current_food_name ? (
+                            <>
+                              <span className="font-medium text-foreground">{f.current_food_name}</span>
+                              {" — "}
+                              {f.current_quantity} {f.serving_unit}{" "}
+                              <Badge variant="secondary" className="text-[10px]">
+                                Swapped
+                              </Badge>{" "}
+                              <span className="line-through">
+                                {f.food_name} — {f.prescribed_quantity} {f.serving_unit}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              {f.food_name} — {f.prescribed_quantity} {f.serving_unit}
+                              {f.change_type && (
+                                <span className="text-amber-600">
+                                  {" "}→ adjusted
+                                  {f.current_quantity != null ? ` to ${f.current_quantity} ${f.serving_unit}` : ""}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {nutritionChanges.length > 0 && (
+              <CollapsibleSection
+                title="Client changes"
+                description={`Substitutions and quantity changes (${nutritionChanges.length} recent).`}
+              >
+                <ul className="space-y-1.5">
+                  {nutritionChanges.map((c) => (
+                    <li key={c.id} className="rounded-lg border px-3 py-2 text-xs">
+                      <span className="font-medium">{c.meal_name ?? "Meal"}</span>
+                      <span className="text-muted-foreground"> · {c.plan_date ?? "—"} · {c.change_type}</span>
+                      <br />
+                      <span>
+                        {c.original_food_name ?? "—"} ({c.original_quantity ?? "—"}) →{" "}
+                        {c.new_food_name ?? "—"} ({c.new_quantity ?? "—"})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CollapsibleSection>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
       {/* ── PRIORITY 2: Nutrition ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
@@ -507,6 +630,26 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
           <ExerciseResults sessionVolume={exerciseVolume} exercises={topExercises} />
         </CardContent>
       </Card>
+
+      {nutritionDetail && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Nutrition trends</CardTitle>
+            <CardDescription>
+              {nutritionDetail.enrollment.program_name} · prescribed vs actual per week ·{" "}
+              <Link
+                href={`/dashboard/subscribers/${id}/nutrition/${nutritionDetail.enrollment.id}`}
+                className="text-primary hover:underline"
+              >
+                View full program →
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NutritionTrends weekly={nutritionDetail.weekly} />
+          </CardContent>
+        </Card>
+      )}
 
       <CollapsibleSection
         title="Session details"
@@ -646,6 +789,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               >
                 Open progress
               </Button>
+              <EnrollmentActions enrollmentId={en.id} status={en.status} />
             </div>
           ))}
         </div>
