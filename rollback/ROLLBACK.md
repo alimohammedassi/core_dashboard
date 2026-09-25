@@ -6,6 +6,58 @@
 
 ---
 
+# 🟢 جلسة 25 سبتمبر 2026 — Landing Page احترافية
+
+## 0) Landing Page — coregym-coach-dashboard
+
+الشغل كله في `coregym-coach-dashboard/` — الموقع متتبع في git (آخر commit `3007c6e`)، فكل الرجوع مضمون 100%.
+
+### ملف اتعدل (واحد بس)
+
+| الملف | التغيير | الرجوع |
+|---|---|---|
+| `src/app/page.tsx` | استُبدل بالكامل — كان landing بسيطة للكوتشات، بقى landing كاملة للمنتج (تطبيق + داش بورد) EN + AR toggle | `git restore src/app/page.tsx` (من داخل `coregym-coach-dashboard/`) — والنسخة الأصلية كمان محفوظة في `rollback/originals/src/app/page.tsx` |
+| `src/app/layout.tsx` | تحميل أوزان Poppins زيادة (300 و900) + خطوط جديدة للهيرو: Inter و Plus Jakarta Sans و Instrument Serif italic | `git restore src/app/layout.tsx` |
+
+### ملفات جديدة (الرجوع = امسحها كلها)
+
+| المجلد/الملف | المحتوى |
+|---|---|
+| `src/components/landing/` | كل مكونات اللاندينج (Nav + MobileMenu, HeroBackdrop فيديو HLS, GlassCard زجاج سايل, Hero, Marquee, AppSection, CoachSection, HowItWorks pinned, Stats, FinalCta, Footer, LangToggle, i18n dictionary) |
+| `public/landing/` | صور اللاندينج — لوجو CORE (مقصوص/مصغّر من سبلاش `تطبيق كور (1).png`) + 6 اسكرينات من التطبيق. **الأصول الأصلية متقربة من غير تعديل في الديسك توب/الداونلودس** — المجلد كله نسخ للويب بس |
+
+### الـ dependency الجديد
+
+| الحزمة | الرجوع |
+|---|---|
+| `motion` (Framer Motion — اتضاف في package.json + package-lock) | `npm uninstall motion` |
+| `hls.js` (فيديو الخلفية في الهيرو — اتضاف في package.json + package-lock) | `npm uninstall hls.js` |
+
+### رجوع كامل بضغطة واحدة
+
+```bash
+cd /c/Users/mabou/Core_dashboard/coregym-coach-dashboard
+git restore src/app/page.tsx src/app/layout.tsx
+rm -rf src/components/landing public/landing
+npm uninstall motion
+```
+
+ملاحظات: اللوجو اتستخدم **زي ما هو** (اتقص مساحته السودا الفاضية وبس — مفيش أي تعديل في التصميم). مفيش أي ملف تاني في المشروع اتلمس — لا dashboard ولا API ولا migrations.
+
+### 🔵 إضافة مساء 25 سبتمبر — فيديو موشن التطبيق في الهيرو
+
+| العنصر | التفاصيل | الرجوع |
+|---|---|---|
+| `public/landing/app-motion.mp4` | فيديو موشن التطبيق (رندر Raylight) — اتشال منه ووترمارك "Made in Raylight" بفلتر `delogo=x=1560:y=958:w=352:h=110` + ضغط 1280×720/30fps. المصدر الأصلي باقي زي ما هو في `C:/Users/mabou/Downloads/Airbnb 3d app-1790290017936.mp4` | امسح الملف |
+| `public/landing/app-motion-poster.jpg` | بوستر من ثانية 0.5 (نضيف من الوترمارك) | امسح الملف |
+| `src/components/landing/Hero.tsx` | `HeroPhones` (التليفونات الثلاثة المروحية) اتشالت وخانتها `HeroShowcase`: كارت سينمائي أبيض بيعرض الفديو (autoplay/loop/muted) + scroll-expand + tilt بالماوس + chip كابشن | ملف جديد أصلاً — امسحه أو رجّع النسخة اللي قبل التعديل من النسخة الاحتياطية (مش متتبعة في git) |
+| `src/components/landing/ui.tsx` | `PhoneFrame` اترقى لفريم iPhone Pro واقعي (rail تيتانيوم + أزرار جانبية + dynamic island + glare) — مستخدم في AppSection بس | ملف جديد أصلاً |
+| `src/components/landing/i18n.ts` | مفتاح جديد `hero.motion` EN/AR للكابشن | ملف جديد أصلاً |
+
+ملاحظة: ملفات `landing/` كلها **غير متتبعة في git** (untracked) — الرجوع ليها إما مسح أو نسخة يدوية.
+
+---
+
 ## 6) تعديلات المشروع التانية — coregymali (Flutter) — من برومت فصل الأدوار
 
 > النسخ الأصلية هنا **من git** (المشروع متتبع) — استرجاع مضمون 100%:
