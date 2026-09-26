@@ -4,9 +4,15 @@ The coach-facing web app for the CoreGym fitness product. Coaches manage their
 clients, subscriptions, revenue and chat — and run the complete
 **workout management loop**: build reusable workout templates, assign them to
 clients, review the client's logged performance set-by-set, send feedback, and
-schedule the adjusted next workout. Clients train in the CoreGym Flutter
-mobile app against the same Supabase database; this dashboard never writes
-mobile-side data and mobile never changes for dashboard features.
+schedule the adjusted next workout. The same loop exists for **nutrition**:
+programs assembled from the shared foods catalog, enrolled for a fixed number
+of weeks, and materialized into daily meal assignments the client completes in
+the app. Clients train in the CoreGym Flutter mobile app against the same
+Supabase database; this dashboard never writes mobile-side data and mobile
+never changes for dashboard features. The repo also serves the public
+**bilingual landing page** (EN/AR) with the Privacy Policy and Terms of Service
+pages (`/privacy`, `/terms`) required for the mobile app's Google Play
+submission.
 
 > Docs: [`docs/product-workflow.md`](docs/product-workflow.md) — the complete
 > product/user workflow (start here) ·
@@ -25,6 +31,7 @@ mobile-side data and mobile never changes for dashboard features.
 | Framework | Next.js 16 (App Router, Turbopack) + React 19 + TypeScript |
 | Styling | Tailwind CSS 4, shadcn/base-ui, "Graphite & Soft Volt" theme (dark default, Poppins/Cairo) |
 | Database | Supabase (Postgres + RLS + RPCs) — shared with the mobile app |
+| Auth | Supabase Auth — email/password + Google OAuth (PKCE via middleware), coach-gated |
 | Payments | Stripe (test-mode; Connect onboarding + webhooks) |
 | Hosting | Vercel |
 
@@ -45,6 +52,14 @@ mobile-side data and mobile never changes for dashboard features.
   (Mon/Wed/Fri style), enroll a client for a fixed duration, auto-generate all
   assignments, weeks×days progress grid, and explicit "Update Remaining Weeks"
   regeneration that never touches client history.
+- **Coach Nutrition Programs** — the same architecture for meals: foods from
+  the shared `foods` library grouped into meals → weekday rows → weekly
+  program → N-week enrollment, with every prescribed meal row generated
+  atomically; clients complete their plan in the mobile app, and coaches can
+  add/remove foods on assigned plans (change-log tracked) and duplicate
+  programs.
+- **Landing & legal** — bilingual (EN/AR, persisted toggle) marketing landing
+  page plus the `/privacy` and `/terms` pages the Play Store requires.
 - **Theme** — one token system in `globals.css` drives every page, light and
   dark.
 
@@ -74,7 +89,7 @@ npm run dev                  # http://localhost:3000
 
 ## Database migrations
 
-Applied migrations live in `supabase/` (both **already applied** to the live
+Applied migrations live in `supabase/` (all **already applied** to the live
 project, idempotent — safe to re-run):
 
 1. `supabase/workout_templates_migration.sql` — workout templates, exercises,
@@ -83,14 +98,24 @@ project, idempotent — safe to re-run):
 2. `supabase/coach_programs_migration.sql` — coach programs, program days,
    client enrollments, `enrollment_id`/`week_number` columns, generation and
    regeneration RPCs.
+3. `supabase/coach_content_type_migration.sql` — widens the `coach_content.type`
+   CHECK so Settings achievements/certificates persist.
+4. `supabase/coach_profile_policy_migration.sql` — structured training-policy
+   column on `coaches`, edited from Settings.
+5. `supabase/nutrition_programs_migration.sql` — nutrition programs, meals,
+   foods, client nutrition enrollments, assignments + change log, RLS, and the
+   atomic generation/regeneration RPCs.
 
 **Pending owner approval** (created, reviewed, not applied to the live
 project):
 
-- `supabase/rls_role_updates.sql` — fixes the live `plans_coach_all` policy
+- `supabase/rls_role_updates.sql` — repairs the plans-table coach policy
   (compares `coach_id` to `auth.uid()`, which never matches `coaches.id`) and
   adds the coach-read policies that let the subscriber profile show client
   data.
+- `supabase/nutrition_coach_edits_migration.sql` — RPC letting coaches
+  add/remove foods on an already-assigned nutrition plan (client requests are
+  change-log tracked). Additive; no table/RLS changes.
 - `supabase/personal_records_index.sql` — supporting index for the
   `personal_records` view at scale.
 
