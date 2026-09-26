@@ -216,6 +216,14 @@ export function Footer() {
           <Link href="/signup" className="text-white/60 transition-colors hover:text-volt">
             {t.footer.coachSignup}
           </Link>
+          <div className="mt-2 flex gap-4 text-xs text-white/40">
+            <Link href="/privacy" className="transition-colors hover:text-volt">
+              {t.footer.privacy}
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-volt">
+              {t.footer.terms}
+            </Link>
+          </div>
         </div>
       </div>
       <div className="border-t border-white/[0.06] py-5 text-center text-xs text-white/30">
