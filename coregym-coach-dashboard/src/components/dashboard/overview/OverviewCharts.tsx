@@ -11,6 +11,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useI18n } from "@/lib/i18n/client";
+import type { TKey } from "@/lib/i18n/dictionary";
 
 // Shared Recharts chrome — theme-token driven so both modes render correctly.
 const tooltipStyle = {
@@ -32,7 +34,17 @@ function tickProps(dense: boolean) {
   };
 }
 
-const money = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+// lib/overview sends English weekday abbreviations ("Mon".."Sun"); map them to
+// dictionary keys so the axis follows the active language, passthrough unknown.
+const WEEKDAY_KEYS: Record<string, TKey> = {
+  Mon: "overview.weekday.mon",
+  Tue: "overview.weekday.tue",
+  Wed: "overview.weekday.wed",
+  Thu: "overview.weekday.thu",
+  Fri: "overview.weekday.fri",
+  Sat: "overview.weekday.sat",
+  Sun: "overview.weekday.sun",
+};
 
 // ── Big chart: net revenue (or new subscribers fallback) per bucket ─────────
 export function OverviewAreaChart({
@@ -42,69 +54,80 @@ export function OverviewAreaChart({
   points: { label: string; value: number }[];
   mode: "revenue" | "subscribers";
 }) {
+  const { t, fmt } = useI18n();
   const dense = points.length > 16;
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="voltFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
-        <XAxis dataKey="label" {...tickProps(dense)} />
-        <YAxis
-          width={48}
-          {...tickProps(false)}
-          tickFormatter={(v: number) => (mode === "revenue" ? money(v) : String(v))}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          cursor={{ stroke: "var(--border)" }}
-          formatter={(v) => [mode === "revenue" ? money(Number(v)) : `${v} subscribers`, mode === "revenue" ? "Net revenue" : "New subscribers"]}
-        />
-        <Area
-          type="monotone"
-          dataKey="value"
-          stroke="var(--primary)"
-          strokeWidth={2.5}
-          fill="url(#voltFill)"
-          dot={false}
-          activeDot={{ r: 4, fill: "var(--primary)", stroke: "var(--background)", strokeWidth: 2 }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div dir="ltr">
+      <ResponsiveContainer width="100%" height={260}>
+        <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="voltFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="label" {...tickProps(dense)} />
+          <YAxis
+            width={48}
+            {...tickProps(false)}
+            tickFormatter={(v: number) => (mode === "revenue" ? fmt.moneyShort(v / 100) : fmt.num(v))}
+          />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            cursor={{ stroke: "var(--border)" }}
+            formatter={(v) => [
+              mode === "revenue" ? fmt.moneyShort(Number(v) / 100) : t("overview.chart.subscriberCount", { n: Number(v) }),
+              mode === "revenue" ? t("overview.chart.revenueSeries") : t("overview.chart.subscriberSeries"),
+            ]}
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="var(--primary)"
+            strokeWidth={2.5}
+            fill="url(#voltFill)"
+            dot={false}
+            activeDot={{ r: 4, fill: "var(--primary)", stroke: "var(--background)", strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
 // ── Right column: Mon→Sun workout bars, peak day highlighted in lime ────────
 export function WeekdayBarChart({ data, peakIndex }: { data: { day: string; count: number }[]; peakIndex: number }) {
+  const { t, fmt } = useI18n();
+  const localized = data.map((d) => ({ day: WEEKDAY_KEYS[d.day] ? t(WEEKDAY_KEYS[d.day]) : d.day, count: d.count }));
   return (
-    <ResponsiveContainer width="100%" height={150}>
-      <BarChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-        <XAxis dataKey="day" {...tickProps(false)} />
-        <YAxis width={24} {...tickProps(false)} allowDecimals={false} />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          cursor={{ fill: "var(--accent)" }}
-          formatter={(v) => [`${v} workouts`, "Completed"]}
-        />
-        <Bar dataKey="count" radius={[5, 5, 5, 5]} maxBarSize={26}>
-          {data.map((_, i) => (
-            <Cell
-              key={i}
-              fill={i === peakIndex ? "var(--primary)" : "var(--secondary)"}
-              fillOpacity={i === peakIndex ? 1 : 0.9}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div dir="ltr">
+      <ResponsiveContainer width="100%" height={150}>
+        <BarChart data={localized} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <XAxis dataKey="day" {...tickProps(false)} />
+          <YAxis width={24} {...tickProps(false)} allowDecimals={false} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            cursor={{ fill: "var(--accent)" }}
+            formatter={(v) => [t("overview.chart.workoutCount", { n: Number(v) }), t("overview.chart.completedSeries")]}
+          />
+          <Bar dataKey="count" radius={[5, 5, 5, 5]} maxBarSize={26}>
+            {data.map((_, i) => (
+              <Cell
+                key={i}
+                fill={i === peakIndex ? "var(--primary)" : "var(--secondary)"}
+                fillOpacity={i === peakIndex ? 1 : 0.9}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
 // ── Right column: goal-adherence gauge (semicircular arc, lime gradient) ────
 export function AdherenceGauge({ rate }: { rate: number | null }) {
+  const { fmt } = useI18n();
   const size = 170;
   const stroke = 14;
   const r = (size - stroke) / 2;
@@ -140,7 +163,7 @@ export function AdherenceGauge({ rate }: { rate: number | null }) {
       </svg>
       <div className="pointer-events-none absolute inset-x-0 top-[38%] text-center">
         <span className="text-[34px] leading-none font-extrabold tracking-tight">
-          {rate == null ? "—" : `${rate}%`}
+          {rate == null ? "—" : fmt.percent(rate)}
         </span>
       </div>
     </div>

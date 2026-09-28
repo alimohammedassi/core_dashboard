@@ -30,7 +30,7 @@ function LegalShell({ content }: { content: Record<"en" | "ar", LegalContent> })
       <Grain />
       <header className="border-b border-white/[0.06]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-5">
-          <Link href="/" className="shrink-0" aria-label="CoreGym home">
+          <Link href="/" className="shrink-0" aria-label={rtl ? "الصفحة الرئيسية لـ CoreGym" : "CoreGym home"}>
             <Image src="/landing/logo.png" alt="CoreGym" width={980} height={280} className="h-6 w-auto" />
           </Link>
           <div className="flex items-center gap-3">

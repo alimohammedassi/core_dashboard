@@ -7,6 +7,7 @@ import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "
 import { Pager } from "@/components/dashboard/Pager";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgramsClient } from "@/components/programs/ProgramsClient";
+import { getI18n } from "@/lib/i18n/server";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function ProgramsPage({
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const { t } = await getI18n();
 
   if (!user) return null;
 
@@ -53,13 +55,11 @@ export default async function ProgramsPage({
   if (!hasCoachRow) {
     return (
       <div className="max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Programs</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.programs")}</h1>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Coach profile missing</CardTitle>
-            <CardDescription>
-              Programs are owned by your coach profile, which does not exist yet. Complete coach onboarding first.
-            </CardDescription>
+            <CardTitle className="text-base">{t("programs.page.coachProfileMissing")}</CardTitle>
+            <CardDescription>{t("programs.page.coachProfileMissingBody")}</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -69,11 +69,8 @@ export default async function ProgramsPage({
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Programs</h1>
-        <p className="text-sm text-muted-foreground">
-          Group your workout templates into a weekly schedule, then enroll clients — their daily workouts are generated
-          for the whole duration automatically.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.programs")}</h1>
+        <p className="text-sm text-muted-foreground">{t("programs.page.subtitle")}</p>
       </div>
       <ProgramsClient initialPrograms={programs} clients={clients} templates={templates} />
       <Pager basePath="/dashboard/programs" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />

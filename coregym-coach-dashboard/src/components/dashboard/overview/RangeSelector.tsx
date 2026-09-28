@@ -4,6 +4,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarRange } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { RANGE_OPTIONS, type RangeKey } from "@/lib/overview";
+import { useI18n } from "@/lib/i18n/client";
+import type { TKey } from "@/lib/i18n/dictionary";
+
+// Localized labels for the range presets (RANGE_OPTIONS in lib/overview is
+// English-only data used for the ?range= param values).
+const RANGE_LABELS: Record<RangeKey, TKey> = {
+  "30d": "overview.range.30d",
+  month: "overview.range.month",
+  "90d": "overview.range.90d",
+};
 
 // Month-range selector in the page-title row; drives all period-scoped stats
 // through the ?range= query param. The trigger shows the resolved window
@@ -11,6 +21,7 @@ import { RANGE_OPTIONS, type RangeKey } from "@/lib/overview";
 export function RangeSelector({ current, rangeLabel }: { current: RangeKey; rangeLabel: string }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useI18n();
 
   return (
     <Select
@@ -23,8 +34,8 @@ export function RangeSelector({ current, rangeLabel }: { current: RangeKey; rang
       }}
     >
       <SelectTrigger
-        aria-label="Stats period"
-        className="h-9 rounded-full border-border bg-card pl-3 text-sm font-medium"
+        aria-label={t("overview.range.aria")}
+        className="h-9 rounded-full border-border bg-card ps-3 text-sm font-medium"
       >
         <span className="flex items-center gap-2">
           <CalendarRange className="size-4 text-primary" />
@@ -34,7 +45,7 @@ export function RangeSelector({ current, rangeLabel }: { current: RangeKey; rang
       <SelectContent>
         {RANGE_OPTIONS.map((o) => (
           <SelectItem key={o.value} value={o.value}>
-            {o.label}
+            {t(RANGE_LABELS[o.value])}
           </SelectItem>
         ))}
       </SelectContent>

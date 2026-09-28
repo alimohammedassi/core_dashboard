@@ -3,15 +3,17 @@
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
 
 // Decorative AI orb + honest placeholder action — the real assistant is a
 // later deep-link; clicking never fabricates an answer.
 export function AiAssistantCard() {
+  const { t } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5">
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-10 -right-10 size-36 rounded-full opacity-60 blur-2xl"
+        className="pointer-events-none absolute -top-10 -end-10 size-36 rounded-full opacity-60 blur-2xl"
         style={{
           background:
             "radial-gradient(circle at 30% 30%, var(--volt) 0%, transparent 55%), radial-gradient(circle at 70% 65%, var(--teal) 0%, transparent 50%), radial-gradient(circle at 55% 30%, var(--gold) 0%, transparent 45%)",
@@ -28,18 +30,16 @@ export function AiAssistantCard() {
       />
       <div className="relative mt-4 text-center">
         <p className="flex items-center justify-center gap-1.5 text-sm font-semibold">
-          <Sparkles className="size-4 text-primary" /> AI Assistant
+          <Sparkles className="size-4 text-primary" /> {t("overview.ai.title")}
         </p>
-        <p className="mt-1 text-xs leading-snug text-muted-foreground">
-          Ask questions about your clients&apos; activity and progress.
-        </p>
+        <p className="mt-1 text-xs leading-snug text-muted-foreground">{t("overview.ai.askHint")}</p>
         <Button
           variant="outline"
           size="sm"
           className="mt-3 rounded-full"
-          onClick={() => toast.info("AI assistant is coming soon — it will deep-link to Supabase AI.")}
+          onClick={() => toast.info(t("overview.ai.comingSoon"))}
         >
-          Ask about your clients
+          {t("overview.ai.askCta")}
         </Button>
       </div>
     </div>

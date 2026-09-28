@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { LegalPage, type LegalContent } from "@/components/landing/LegalPage";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Terms of Service — CoreGym",
-  description:
-    "The terms that govern your use of the CoreGym app and coach dashboard.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return {
+    title: t("misc.legal.termsTitle"),
+    description: t("misc.legal.termsDescription"),
+  };
+}
 
 const en: LegalContent = {
   title: "Terms of Service",

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { describeError } from "@/lib/user-error";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,17 +20,20 @@ import { toast } from "sonner";
 const RESEND_COOLDOWN_SECONDS = 60;
 
 // Same policy as the mobile app: at least 8 characters with an uppercase
-// letter, a lowercase letter and a digit.
-function passwordProblem(pw: string): string | null {
-  if (pw.length < 8) return "Password must be at least 8 characters";
+// letter, a lowercase letter and a digit. Returns the i18n key of the problem.
+function passwordProblem(
+  pw: string,
+): "auth.reset.errors.passwordShort" | "auth.reset.errors.passwordWeak" | null {
+  if (pw.length < 8) return "auth.reset.errors.passwordShort";
   if (!/[a-z]/.test(pw) || !/[A-Z]/.test(pw) || !/\d/.test(pw)) {
-    return "Password must include an uppercase letter, a lowercase letter and a digit";
+    return "auth.reset.errors.passwordWeak";
   }
   return null;
 }
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [ready, setReady] = React.useState(false);
   const [email, setEmail] = React.useState("");
@@ -63,8 +67,8 @@ export default function ResetPasswordPage() {
 
   React.useEffect(() => {
     if (resendIn <= 0) return;
-    const t = setInterval(() => setResendIn((s) => s - 1), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setResendIn((s) => s - 1), 1000);
+    return () => clearInterval(timer);
   }, [resendIn]);
 
   // Recovery sign-in complete — inspect the account's linked identities to
@@ -81,7 +85,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     const token = code.trim();
     if (!email || token.length < 6) {
-      toast.error("Enter the verification code from your email");
+      toast.error(t("auth.reset.errors.missingCode"));
       return;
     }
     setVerifying(true);
@@ -90,7 +94,7 @@ export default function ResetPasswordPage() {
       if (error) throw error;
       await completeVerification();
     } catch (err: unknown) {
-      toast.error(describeError(err, "That code is invalid or has expired. Please request a new one."));
+      toast.error(describeError(err, t("auth.reset.errors.invalidCode")));
     } finally {
       setVerifying(false);
     }
@@ -102,10 +106,10 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
-      toast.success("If an account exists for this email, a new code has been sent.");
+      toast.success(t("auth.reset.toasts.codeSent"));
       setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (err: unknown) {
-      toast.error(describeError(err, "Could not send a new code. Please try again."));
+      toast.error(describeError(err, t("auth.reset.errors.resendFailed")));
     } finally {
       setResending(false);
     }
@@ -115,11 +119,11 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     const problem = passwordProblem(pw);
     if (problem) {
-      toast.error(problem);
+      toast.error(t(problem));
       return;
     }
     if (pw !== pw2) {
-      toast.error("Passwords do not match");
+      toast.error(t("auth.reset.errors.mismatch"));
       return;
     }
     setSaving(true);
@@ -129,12 +133,10 @@ export default function ResetPasswordPage() {
       // AUTH-02 pattern: a password change must not leave other sessions alive.
       const { error: revokeErr } = await supabase.auth.signOut({ scope: "others" });
       if (revokeErr) console.error("[reset-password] session revocation failed", revokeErr);
-      toast.success("Password updated — sign in with your new password.");
+      toast.success(t("auth.reset.toasts.updated"));
       router.replace("/login");
     } catch (err: unknown) {
-      toast.error(
-        describeError(err, "Could not update the password. The reset session may have expired — please start again.")
-      );
+      toast.error(describeError(err, t("auth.reset.errors.updateFailed")));
     } finally {
       setSaving(false);
     }
@@ -148,21 +150,22 @@ export default function ResetPasswordPage() {
         {!verified ? (
           <>
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">Check your email</CardTitle>
+              <CardTitle className="text-2xl">{t("auth.reset.checkTitle")}</CardTitle>
               <CardDescription>
-                Enter the verification code we sent to{" "}
-                <span className="font-medium text-foreground">{email}</span>.
+                {t("auth.reset.checkDescBefore")}{" "}
+                <span className="font-medium text-foreground">{email}</span>
+                {t("auth.reset.checkDescAfter")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleVerify} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code">Verification code</Label>
+                  <Label htmlFor="code">{t("auth.reset.codeLabel")}</Label>
                   <Input
                     id="code"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    placeholder="8-digit code"
+                    placeholder={t("auth.reset.codePlaceholder")}
                     maxLength={10}
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, ""))}
@@ -170,26 +173,28 @@ export default function ResetPasswordPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={verifying || code.trim().length < 6}>
-                  {verifying ? "Verifying..." : "Verify code"}
+                  {verifying ? t("auth.reset.verifying") : t("auth.reset.verifyCode")}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground">
-                  Didn&apos;t get it?{" "}
+                  {t("auth.reset.didntGet")}{" "}
                   <button
                     type="button"
                     onClick={handleResend}
                     disabled={resending || resendIn > 0}
                     className="underline underline-offset-4 hover:text-foreground disabled:opacity-50"
                   >
-                    {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                    {resendIn > 0
+                      ? t("auth.reset.resendIn", { n: resendIn })
+                      : t("auth.reset.resendCode")}
                   </button>
                 </p>
                 <p className="text-center text-sm text-muted-foreground">
                   <Link href="/forgot-password" className="underline underline-offset-4 hover:text-foreground">
-                    Use a different email
+                    {t("auth.reset.differentEmail")}
                   </Link>
                   {" · "}
                   <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                    Back to login
+                    {t("auth.reset.backToLogin")}
                   </Link>
                 </p>
               </form>
@@ -198,17 +203,17 @@ export default function ResetPasswordPage() {
         ) : (
           <>
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">Choose a new password</CardTitle>
+              <CardTitle className="text-2xl">{t("auth.reset.newTitle")}</CardTitle>
               <CardDescription>
                 {googleOnly
-                  ? "This account currently signs in with Google. You can set a password to also sign in with your email and password."
-                  : "Set a new password for your coach account."}
+                  ? t("auth.reset.googleOnlyDesc")
+                  : t("auth.reset.newDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSetPassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New password</Label>
+                  <Label htmlFor="new-password">{t("auth.reset.newPasswordLabel")}</Label>
                   <Input
                     id="new-password"
                     type="password"
@@ -220,7 +225,7 @@ export default function ResetPasswordPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm password</Label>
+                  <Label htmlFor="confirm-password">{t("auth.reset.confirmLabel")}</Label>
                   <Input
                     id="confirm-password"
                     type="password"
@@ -230,15 +235,17 @@ export default function ResetPasswordPage() {
                     required
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  At least 8 characters, with an uppercase letter, a lowercase letter and a digit.
-                </p>
+                <p className="text-xs text-muted-foreground">{t("auth.reset.policyHint")}</p>
                 <Button type="submit" className="w-full" disabled={saving || !pw || !pw2}>
-                  {saving ? "Updating..." : googleOnly ? "Set password" : "Update password"}
+                  {saving
+                    ? t("auth.reset.updating")
+                    : googleOnly
+                      ? t("auth.reset.setPassword")
+                      : t("auth.reset.updatePassword")}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground">
                   <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                    Back to login
+                    {t("auth.reset.backToLogin")}
                   </Link>
                 </p>
               </form>

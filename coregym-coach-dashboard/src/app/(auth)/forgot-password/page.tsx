@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { describeError } from "@/lib/user-error";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 // redirectTo is passed and /auth/callback stays OAuth-only.
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -26,7 +28,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed) {
-      toast.error("Please enter your email");
+      toast.error(t("auth.forgot.toasts.missingEmail"));
       return;
     }
     setLoading(true);
@@ -35,10 +37,10 @@ export default function ForgotPasswordPage() {
       // generic response prevents user enumeration.
       const { error } = await supabase.auth.resetPasswordForEmail(trimmed);
       if (error) throw error;
-      toast.success("If an account exists for this email, a verification code has been sent.");
+      toast.success(t("auth.forgot.toasts.codeSent"));
       router.push(`/reset-password?email=${encodeURIComponent(trimmed)}`);
     } catch (err: unknown) {
-      toast.error(describeError(err, "Could not send the reset email. Please try again."));
+      toast.error(describeError(err, t("auth.forgot.toasts.sendFailed")));
       setLoading(false);
     }
   }
@@ -47,31 +49,29 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Forgot password?</CardTitle>
-          <CardDescription>
-            Enter your account email and we&apos;ll send you a verification code to set a new password.
-          </CardDescription>
+          <CardTitle className="text-2xl">{t("auth.forgot.title")}</CardTitle>
+          <CardDescription>{t("auth.forgot.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.forgot.emailLabel")}</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="coach@coregym.com"
+                placeholder={t("auth.forgot.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending..." : "Send verification code"}
+              {loading ? t("auth.forgot.sending") : t("auth.forgot.sendCode")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                Back to login
+                {t("auth.forgot.backToLogin")}
               </Link>
             </p>
           </form>

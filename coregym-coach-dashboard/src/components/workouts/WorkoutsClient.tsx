@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Copy, Pencil, Send, Trash2, Layers } from "lucide-react";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 import type { ActiveClient } from "@/lib/workouts";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ export function WorkoutsClient({
   clients: ActiveClient[];
   catalog: { id: string; name: string; muscleGroup: string | null }[];
 }) {
+  const { t, fmt } = useI18n();
   const [templates, setTemplates] = React.useState(initialTemplates);
   const [builderSeed, setBuilderSeed] = React.useState<BuilderSeed | null>(null);
   const [builderNonce, setBuilderNonce] = React.useState(0);
@@ -45,27 +47,28 @@ export function WorkoutsClient({
     try {
       const res = await fetch(`/api/workout-templates/${template.id}/duplicate`, { method: "POST" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Duplicate failed");
+      if (!res.ok) throw new Error(body?.error ?? t("workouts.error.duplicateFailed"));
       setTemplates((prev) => [body as WorkoutTemplate, ...prev]);
-      toast.success(`Duplicated as “${(body as WorkoutTemplate).name}”`);
+      toast.success(t("workouts.toast.duplicatedAs", { name: (body as WorkoutTemplate).name }));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Duplicate failed");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.duplicateFailed"));
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleDelete(template: WorkoutTemplate) {
-    if (!window.confirm(`Delete “${template.name}”? This cannot be undone.`)) return;
+    if (!window.confirm(`${t("workouts.confirm.deleteTemplate", { name: template.name })} ${t("common.confirm.cannotUndo")}`))
+      return;
     setBusyId(template.id);
     try {
       const res = await fetch(`/api/workout-templates/${template.id}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Delete failed");
+      if (!res.ok) throw new Error(body?.error ?? t("workouts.error.deleteFailed"));
       setTemplates((prev) => prev.filter((p) => p.id !== template.id));
-      toast.success("Template deleted");
+      toast.success(t("workouts.toast.templateDeleted"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.deleteFailed"));
     } finally {
       setBusyId(null);
     }
@@ -80,7 +83,7 @@ export function WorkoutsClient({
             setBuilderNonce((n) => n + 1);
           }}
         >
-          Create Template
+          {t("workouts.list.createTemplate")}
         </Button>
       </div>
 
@@ -89,12 +92,8 @@ export function WorkoutsClient({
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <Layers className="size-8 text-muted-foreground" />
             <div className="space-y-1">
-              <p className="font-medium">No workout templates yet.</p>
-              <p className="text-sm text-muted-foreground">
-                Create your first reusable workout template
-                <br />
-                to assign workouts to your clients.
-              </p>
+              <p className="font-medium">{t("workouts.list.emptyTitle")}</p>
+              <p className="text-sm text-muted-foreground">{t("workouts.list.emptyBody")}</p>
             </div>
             <Button
               onClick={() => {
@@ -102,19 +101,19 @@ export function WorkoutsClient({
                 setBuilderNonce((n) => n + 1);
               }}
             >
-              Create Template
+              {t("workouts.list.createTemplate")}
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {templates.map((t) => (
-            <Card key={t.id} className="flex flex-col">
+          {templates.map((tpl) => (
+            <Card key={tpl.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-base">{t.name}</CardTitle>
-                {(t.target_muscles?.length ?? 0) > 0 && (
+                <CardTitle className="text-base">{tpl.name}</CardTitle>
+                {(tpl.target_muscles?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {t.target_muscles.map((m) => (
+                    {tpl.target_muscles.map((m) => (
                       <Badge key={m} variant="secondary" className="rounded-full">
                         {m}
                       </Badge>
@@ -124,55 +123,59 @@ export function WorkoutsClient({
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-3">
                 <p className="text-sm text-muted-foreground">
-                  {(t.exercises?.length ?? 0)} exercise{(t.exercises?.length ?? 0) === 1 ? "" : "s"}
-                  {t.exercises && t.exercises.length > 0 && (
-                    <span className="truncate"> · {t.exercises.map((e) => e.exercise_name).join(", ")}</span>
+                  {(tpl.exercises?.length ?? 0) === 1
+                    ? t("workouts.list.exercisesOne")
+                    : t("workouts.list.exercisesMany", { n: tpl.exercises?.length ?? 0 })}
+                  {tpl.exercises && tpl.exercises.length > 0 && (
+                    <span className="truncate"> · {tpl.exercises.map((e) => e.exercise_name).join(", ")}</span>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground">Updated {new Date(t.updated_at).toLocaleDateString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("workouts.list.updated", { date: fmt.date(tpl.updated_at) })}
+                </p>
                 <div className="mt-auto grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={busyId === t.id}
+                    disabled={busyId === tpl.id}
                     onClick={() => {
-                      setBuilderSeed(seedForEdit(t));
+                      setBuilderSeed(seedForEdit(tpl));
                       setBuilderNonce((n) => n + 1);
                     }}
                   >
-                    <Pencil className="mr-1 size-3.5" /> Edit
+                    <Pencil className="me-1 size-3.5" /> {t("common.actions.edit")}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={busyId === t.id}
-                    onClick={() => handleDuplicate(t)}
+                    disabled={busyId === tpl.id}
+                    onClick={() => handleDuplicate(tpl)}
                   >
-                    <Copy className="mr-1 size-3.5" /> Duplicate
+                    <Copy className="me-1 size-3.5" /> {t("common.actions.duplicate")}
                   </Button>
                   <Button
                     size="sm"
-                    disabled={busyId === t.id}
-                    onClick={() => setAssign({ template: t, mode: "assign", defaultDate: tomorrowLocal() })}
+                    disabled={busyId === tpl.id}
+                    onClick={() => setAssign({ template: tpl, mode: "assign", defaultDate: tomorrowLocal() })}
                   >
-                    <Send className="mr-1 size-3.5" /> Assign
+                    <Send className="me-1 size-3.5" /> {t("workouts.list.assign")}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={busyId === t.id}
-                    onClick={() => setAssign({ template: t, mode: "program", defaultDate: tomorrowLocal() })}
+                    disabled={busyId === tpl.id}
+                    onClick={() => setAssign({ template: tpl, mode: "program", defaultDate: tomorrowLocal() })}
                   >
-                    <Layers className="mr-1 size-3.5" /> Program
+                    <Layers className="me-1 size-3.5" /> {t("workouts.list.program")}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-destructive col-span-2"
-                    disabled={busyId === t.id}
-                    onClick={() => handleDelete(t)}
+                    disabled={busyId === tpl.id}
+                    onClick={() => handleDelete(tpl)}
                   >
-                    <Trash2 className="mr-1 size-3.5" /> Delete
+                    <Trash2 className="me-1 size-3.5" /> {t("common.actions.delete")}
                   </Button>
                 </div>
               </CardContent>

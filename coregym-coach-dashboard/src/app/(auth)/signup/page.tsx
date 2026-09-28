@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+// Canonical DB values (subscription_plans / coaches.specialization) — the
+// mobile app's "Find a Coach" screen reads these, so they stay English.
 const SPECIALIZATIONS = [
   "Weight Loss",
   "Muscle Gain",
@@ -28,6 +31,7 @@ const SPECIALIZATIONS = [
 // app's "Find a Coach" screen immediately.
 export default function SignupPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [displayName, setDisplayName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -45,11 +49,11 @@ export default function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (!displayName || !email || !password) {
-      toast.error("Please fill name, email and password");
+      toast.error(t("auth.signup.toasts.missingFields"));
       return;
     }
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(t("auth.signup.toasts.passwordShort"));
       return;
     }
     setLoading(true);
@@ -62,7 +66,7 @@ export default function SignupPage() {
       if (error) throw error;
       if (!data.user) throw new Error("No user returned");
       if (!data.session) {
-        toast.info("Account created — please confirm your email, then sign in.");
+        toast.info(t("auth.signup.toasts.checkEmail"));
         router.push("/login");
         return;
       }
@@ -79,13 +83,13 @@ export default function SignupPage() {
         }),
       });
       const saved = await res.json();
-      if (!res.ok) throw new Error(saved?.error ?? "Coach onboarding failed");
+      if (!res.ok) throw new Error(saved?.error ?? t("auth.signup.toasts.onboardingFailed"));
 
-      toast.success("Welcome to CoreGym! Your coach profile is live.");
+      toast.success(t("auth.signup.toasts.welcome"));
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Sign up failed");
+      toast.error(err instanceof Error ? err.message : t("auth.signup.toasts.signupFailed"));
     } finally {
       setLoading(false);
     }
@@ -95,30 +99,28 @@ export default function SignupPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Join CoreGym as a Coach</CardTitle>
-          <CardDescription>
-            Create your coach account. Your profile becomes visible in the app&apos;s Find a Coach screen immediately.
-          </CardDescription>
+          <CardTitle className="text-2xl">{t("auth.signup.title")}</CardTitle>
+          <CardDescription>{t("auth.signup.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="displayName">Display name</Label>
+              <Label htmlFor="displayName">{t("auth.signup.displayName")}</Label>
               <Input
                 id="displayName"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
-                placeholder="Coach Ali"
+                placeholder={t("auth.signup.namePlaceholder")}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("auth.signup.emailLabel")}</Label>
                 <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("auth.signup.passwordLabel")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -131,7 +133,7 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Specializations</Label>
+              <Label>{t("auth.signup.specializations")}</Label>
               <div className="flex flex-wrap gap-2">
                 {SPECIALIZATIONS.map((s) => (
                   <button
@@ -151,7 +153,7 @@ export default function SignupPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="price">Monthly price (USD)</Label>
+                <Label htmlFor="price">{t("auth.signup.priceLabel")}</Label>
                 <Input
                   id="price"
                   name="price"
@@ -163,34 +165,34 @@ export default function SignupPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="years">Years of experience</Label>
+                <Label htmlFor="years">{t("auth.signup.yearsLabel")}</Label>
                 <Input
                   id="years"
                   type="number"
                   min="0"
                   value={yearsExperience}
                   onChange={(e) => setYearsExperience(e.target.value)}
-                  placeholder="e.g. 2"
+                  placeholder={t("auth.signup.yearsPlaceholder")}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bio">Short bio</Label>
+              <Label htmlFor="bio">{t("auth.signup.bioLabel")}</Label>
               <Textarea
                 id="bio"
                 rows={3}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell clients about your coaching style…"
+                placeholder={t("auth.signup.bioPlaceholder")}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account…" : "Create coach account"}
+              {loading ? t("auth.signup.creating") : t("auth.signup.createCta")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              Already a coach?{" "}
+              {t("auth.signup.alreadyCoach")}{" "}
               <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                Sign in
+                {t("auth.signup.signInLink")}
               </Link>
             </p>
           </form>

@@ -1,6 +1,361 @@
-/* Domain dictionary: "auth". Fill en/ar with mirrored keys — every en key
-   MUST have the identical ar key path. */
+/* Domain dictionary: "auth" — coach login, signup, forgot/reset password and
+   the onboarding wizard. Register: Egyptian colloquial; "CoreGym", "Google",
+   "Stripe", schema/profile technical nouns stay as-is. Specialization labels
+   are DB values (subscription data) and are NOT translated here. */
+
 export const auth = {
-  en: {},
-  ar: {},
+  en: {
+    login: {
+      title: "CoreGym Coach Login",
+      subtitle: "Sign in with your coach account. Non-coach accounts are blocked.",
+      emailLabel: "Email",
+      emailPlaceholder: "coach@coregym.com",
+      passwordLabel: "Password",
+      forgotPassword: "Forgot password?",
+      signIn: "Sign in",
+      signingIn: "Signing in...",
+      or: "or",
+      redirectingToGoogle: "Redirecting to Google…",
+      continueWithGoogle: "Continue with Google",
+      backToHome: "Back to home",
+      newCoachCta: "New coach? Create account",
+
+      toasts: {
+        googleCancelled: "Google sign-in was cancelled.",
+        googleNotCoach: "This account is not a coach account.",
+        googleFailed: "Google sign-in failed. Please try again.",
+        missingFields: "Please enter email and password",
+        profileCheckFailed: "Logged in, but profile check failed — verify schema.sql is applied.",
+        accessDenied: "Access denied: this account is not a coach.",
+        accessDeniedDesc: "Current role: {role}. Contact admin.",
+        welcome: "Welcome back!",
+        loginFailed: "Login failed",
+      },
+    },
+
+    signup: {
+      title: "Join CoreGym as a Coach",
+      subtitle:
+        "Create your coach account. Your profile becomes visible in the app's Find a Coach screen immediately.",
+      displayName: "Display name",
+      namePlaceholder: "Coach Ali",
+      emailLabel: "Email",
+      passwordLabel: "Password",
+      specializations: "Specializations",
+      priceLabel: "Monthly price (USD)",
+      yearsLabel: "Years of experience",
+      yearsPlaceholder: "e.g. 2",
+      bioLabel: "Short bio",
+      bioPlaceholder: "Tell clients about your coaching style…",
+      createCta: "Create coach account",
+      creating: "Creating account…",
+      alreadyCoach: "Already a coach?",
+      signInLink: "Sign in",
+
+      toasts: {
+        missingFields: "Please fill name, email and password",
+        passwordShort: "Password must be at least 6 characters",
+        checkEmail: "Account created — please confirm your email, then sign in.",
+        welcome: "Welcome to CoreGym! Your coach profile is live.",
+        onboardingFailed: "Coach onboarding failed",
+        signupFailed: "Sign up failed",
+      },
+    },
+
+    forgot: {
+      title: "Forgot password?",
+      subtitle:
+        "Enter your account email and we'll send you a verification code to set a new password.",
+      emailLabel: "Email",
+      emailPlaceholder: "coach@coregym.com",
+      sendCode: "Send verification code",
+      sending: "Sending...",
+      backToLogin: "Back to login",
+
+      toasts: {
+        missingEmail: "Please enter your email",
+        codeSent: "If an account exists for this email, a verification code has been sent.",
+        sendFailed: "Could not send the reset email. Please try again.",
+      },
+    },
+
+    reset: {
+      checkTitle: "Check your email",
+      checkDescBefore: "Enter the verification code we sent to",
+      checkDescAfter: ".",
+      codeLabel: "Verification code",
+      codePlaceholder: "8-digit code",
+      verifyCode: "Verify code",
+      verifying: "Verifying...",
+      didntGet: "Didn't get it?",
+      resendIn: "Resend in {n}s",
+      resendCode: "Resend code",
+      differentEmail: "Use a different email",
+      backToLogin: "Back to login",
+      newTitle: "Choose a new password",
+      googleOnlyDesc:
+        "This account currently signs in with Google. You can set a password to also sign in with your email and password.",
+      newDesc: "Set a new password for your coach account.",
+      newPasswordLabel: "New password",
+      confirmLabel: "Confirm password",
+      policyHint: "At least 8 characters, with an uppercase letter, a lowercase letter and a digit.",
+      updating: "Updating...",
+      setPassword: "Set password",
+      updatePassword: "Update password",
+
+      errors: {
+        passwordShort: "Password must be at least 8 characters",
+        passwordWeak: "Password must include an uppercase letter, a lowercase letter and a digit",
+        missingCode: "Enter the verification code from your email",
+        invalidCode: "That code is invalid or has expired. Please request a new one.",
+        resendFailed: "Could not send a new code. Please try again.",
+        mismatch: "Passwords do not match",
+        updateFailed:
+          "Could not update the password. The reset session may have expired — please start again.",
+      },
+
+      toasts: {
+        codeSent: "If an account exists for this email, a new code has been sent.",
+        updated: "Password updated — sign in with your new password.",
+      },
+    },
+
+    onboarding: {
+      kicker: "Complete your profile",
+      title: "Set up your coach profile",
+      stepOf: "Step {n} of {total} — {label}",
+      fullName: "Full name *",
+      nameHint: "Required — shown to clients in the app.",
+      namePlaceholder: "Coach Ali",
+      profilePhoto: "Profile photo",
+      photoLater: "Available after saving.",
+      emailLabel: "Email",
+      emailHint: "From your sign-in account.",
+      bioLabel: "Short bio",
+      bioPlaceholder: "Tell clients about your coaching style…",
+      phoneNote:
+        "Phone numbers are not supported by the current profile schema — you can add contact details to your bio.",
+      professionalNote: "All fields optional — you can complete these later in Settings.",
+      specialties: "Specialties",
+      customSpecPlaceholder: "Add custom specialty…",
+      yearsLabel: "Years of experience",
+      yearsPlaceholder: "e.g. 5",
+      schemaNote:
+        "Professional title, coaching focus text and certifications are stored with your profile uploads in the next steps; a dedicated title field is not part of the current profile schema.",
+      emptyAchievements: "No achievements uploaded — optional, you can add these later in Settings.",
+      emptyCertificates: "No certificates uploaded — optional, you can add these later in Settings.",
+      saveContinue: "Save & continue",
+      completing: "Completing…",
+      complete: "Complete profile",
+
+      steps: {
+        basics: "Basics",
+        professional: "Professional",
+        achievements: "Achievements",
+        certificates: "Certificates",
+        review: "Review",
+      },
+
+      review: {
+        name: "Name:",
+        email: "Email:",
+        bio: "Bio:",
+        photo: "Photo:",
+        uploaded: "uploaded ✓",
+        notSet: "not set",
+        specialties: "Specialties:",
+        experience: "Experience:",
+        yearsValue: "{n} years",
+        uploads: "Uploads",
+        uploadsNote:
+          "Achievements and certificates were saved as you uploaded them (steps 3–4) and are already visible on your profile.",
+        finalNote: "Review everything above, then confirm to make your profile live.",
+      },
+
+      toasts: {
+        verifyFailed: "Could not verify your account. Please sign in again.",
+        nameRequired: "Your full name is required",
+        saveBasicFailed: "Could not save your details",
+        saveProfessionalFailed: "Could not save professional info",
+        completeFailed: "Could not complete your profile",
+        live: "Your coach profile is live!",
+      },
+    },
+  },
+
+  ar: {
+    login: {
+      title: "CoreGym — دخول الكوتش",
+      subtitle: "سجّل دخولك بحساب الكوتش بتاعك. الحسابات غير الكوتش مش مسموح بيها.",
+      emailLabel: "الإيميل",
+      emailPlaceholder: "coach@coregym.com",
+      passwordLabel: "كلمة السر",
+      forgotPassword: "نسيت كلمة السر؟",
+      signIn: "تسجيل الدخول",
+      signingIn: "بيسجّل الدخول...",
+      or: "أو",
+      redirectingToGoogle: "بيحوّلك على Google…",
+      continueWithGoogle: "المتابعة بحساب Google",
+      backToHome: "رجوع للرئيسية",
+      newCoachCta: "كوتش جديد؟ اعمل حساب",
+
+      toasts: {
+        googleCancelled: "تم إلغاء تسجيل الدخول بـ Google.",
+        googleNotCoach: "الحساب ده مش حساب كوتش.",
+        googleFailed: "تسجيل الدخول بـ Google فشل. جرّب تاني.",
+        missingFields: "اكتب الإيميل وكلمة السر",
+        profileCheckFailed: "دخلت، بس فحص الـ profile فشل — اتأكد إن schema.sql متطبق.",
+        accessDenied: "مش مسموح: الحساب ده مش حساب كوتش.",
+        accessDeniedDesc: "النوع الحالي: {role}. كلّم الأدمن.",
+        welcome: "أهلاً بيك تاني!",
+        loginFailed: "تسجيل الدخول فشل",
+      },
+    },
+
+    signup: {
+      title: "اشتغل كوتش على CoreGym",
+      subtitle: "اعمل حساب الكوتش بتاعك. الـ profile بتاعك هيظهر في شاشة Find a Coach في التطبيق على طول.",
+      displayName: "الاسم اللي هيظهر",
+      namePlaceholder: "الكوتش علي",
+      emailLabel: "الإيميل",
+      passwordLabel: "كلمة السر",
+      specializations: "التخصصات",
+      priceLabel: "السعر الشهري (بالدولار)",
+      yearsLabel: "سنين الخبرة",
+      yearsPlaceholder: "مثلاً 2",
+      bioLabel: "نبذة قصيرة",
+      bioPlaceholder: "احكي للعملاء عن أسلوبك في التدريب…",
+      createCta: "اعمل حساب كوتش",
+      creating: "بيعمل الحساب…",
+      alreadyCoach: "كوتش من قبل؟",
+      signInLink: "سجّل دخول",
+
+      toasts: {
+        missingFields: "املأ الاسم والإيميل وكلمة السر",
+        passwordShort: "كلمة السر لازم تكون 6 حروف على الأقل",
+        checkEmail: "الحساب اتعمل — أكّد إيميلك وبعدين سجّل دخول.",
+        welcome: "أهلاً بيك في CoreGym! الـ profile بتاعك كوتش بقى شغال.",
+        onboardingFailed: "تجهيز حساب الكوتش فشل",
+        signupFailed: "إنشاء الحساب فشل",
+      },
+    },
+
+    forgot: {
+      title: "نسيت كلمة السر؟",
+      subtitle: "اكتب إيميل حسابك وهنبعتلك كود تحقق عشان تحدد كلمة سر جديدة.",
+      emailLabel: "الإيميل",
+      emailPlaceholder: "coach@coregym.com",
+      sendCode: "ابعت كود التحقق",
+      sending: "بيبعت...",
+      backToLogin: "رجوع لتسجيل الدخول",
+
+      toasts: {
+        missingEmail: "اكتب إيميلك",
+        codeSent: "لو فيه حساب بالإيميل ده، كود التحقق اتبعت.",
+        sendFailed: "مش قادرين نبعت إيميل الاستعادة. جرّب تاني.",
+      },
+    },
+
+    reset: {
+      checkTitle: "بص على إيميلك",
+      checkDescBefore: "اكتب كود التحقق اللي بعتناه على",
+      checkDescAfter: ".",
+      codeLabel: "كود التحقق",
+      codePlaceholder: "كود من 8 أرقام",
+      verifyCode: "أكّد الكود",
+      verifying: "بيأكد...",
+      didntGet: "الكود موصلك؟",
+      resendIn: "إعادة الإرسال بعد {n} ثانية",
+      resendCode: "ابعت الكود تاني",
+      differentEmail: "استخدم إيميل تاني",
+      backToLogin: "رجوع لتسجيل الدخول",
+      newTitle: "اختار كلمة سر جديدة",
+      googleOnlyDesc:
+        "الحساب ده حاليًا بيدخل بـ Google. تقدر تحدد كلمة سر عشان تدخل كمان بالإيميل وكلمة السر.",
+      newDesc: "حدد كلمة سر جديدة لحساب الكوتش بتاعك.",
+      newPasswordLabel: "كلمة السر الجديدة",
+      confirmLabel: "أكّد كلمة السر",
+      policyHint: "8 حروف على الأقل، فيها حرف كبير وحرف صغير ورقم.",
+      updating: "بيحدّث...",
+      setPassword: "حدد كلمة السر",
+      updatePassword: "حدّث كلمة السر",
+
+      errors: {
+        passwordShort: "كلمة السر لازم تكون 8 حروف على الأقل",
+        passwordWeak: "كلمة السر لازم فيها حرف كبير وحرف صغير ورقم",
+        missingCode: "اكتب كود التحقق اللي وصلك على إيميلك",
+        invalidCode: "الكود ده غلط أو صلاحيته خلصت. اطلب كود جديد.",
+        resendFailed: "مش قادرين نبعت كود جديد. جرّب تاني.",
+        mismatch: "كلمتا السر مش متطابقين",
+        updateFailed: "مش قادرين نحدّث كلمة السر. ممكن جلسة الاستعادة تكون خلصت — ابدأ من الأول.",
+      },
+
+      toasts: {
+        codeSent: "لو فيه حساب بالإيميل ده، كود جديد اتبعت.",
+        updated: "كلمة السر اتحدّثت — سجّل دخول بكلمة السر الجديدة.",
+      },
+    },
+
+    onboarding: {
+      kicker: "كمّل الـ profile بتاعك",
+      title: "جهّز profile الكوتش بتاعك",
+      stepOf: "خطوة {n} من {total} — {label}",
+      fullName: "الاسم بالكامل *",
+      nameHint: "مطلوب — ده الاسم اللي العملاء هيشوفوه في التطبيق.",
+      namePlaceholder: "الكوتش علي",
+      profilePhoto: "صورة الـ profile",
+      photoLater: "هتتاح بعد الحفظ.",
+      emailLabel: "الإيميل",
+      emailHint: "من الحساب اللي دخلت بيه.",
+      bioLabel: "نبذة قصيرة",
+      bioPlaceholder: "احكي للعملاء عن أسلوبك في التدريب…",
+      phoneNote:
+        "أرقام التليفون مش مدعومة في الـ schema الحالي للـ profile — تقدر تضيف بيانات التواصل جوه النبذة.",
+      professionalNote: "كل الحقول اختيارية — تقدر تكملها بعدين من الإعدادات.",
+      specialties: "التخصصات",
+      customSpecPlaceholder: "ضيف تخصص مخصوص…",
+      yearsLabel: "سنين الخبرة",
+      yearsPlaceholder: "مثلاً 5",
+      schemaNote:
+        "اللقب المهني ونص توجهك في التدريب والشهادات بيتحفظوا مع الملفات اللي هترفعها في الخطوات الجاية؛ ومفيش حقل مخصوص للقب المهني في الـ schema الحالي.",
+      emptyAchievements: "مفيش إنجازات مترفعة — اختياري، تقدر تضيفها بعدين من الإعدادات.",
+      emptyCertificates: "مفيش شهادات مترفعة — اختياري، تقدر تضيفها بعدين من الإعدادات.",
+      saveContinue: "احفظ وكمّل",
+      completing: "بيكمّل…",
+      complete: "كمّل الـ profile",
+
+      steps: {
+        basics: "البيانات الأساسية",
+        professional: "البيانات المهنية",
+        achievements: "الإنجازات",
+        certificates: "الشهادات",
+        review: "المراجعة",
+      },
+
+      review: {
+        name: "الاسم:",
+        email: "الإيميل:",
+        bio: "النبذة:",
+        photo: "الصورة:",
+        uploaded: "اترفعت ✓",
+        notSet: "مش متحددة",
+        specialties: "التخصصات:",
+        experience: "الخبرة:",
+        yearsValue: "{n} سنين",
+        uploads: "الملفات المرفوعة",
+        uploadsNote:
+          "الإنجازات والشهادات اتحفظت أول ما رفعتها (الخطوات 3–4) وظاهرة على الـ profile بتاعك بالفعل.",
+        finalNote: "راجع كل حاجة فوق، وبعدين أكّد عشان الـ profile يبقى شغال.",
+      },
+
+      toasts: {
+        verifyFailed: "مش قادرين نتأكد من حسابك. سجّل دخول تاني.",
+        nameRequired: "لازم تكتب اسمك بالكامل",
+        saveBasicFailed: "مش قادرين نحفظ بياناتك",
+        saveProfessionalFailed: "مش قادرين نحفظ البيانات المهنية",
+        completeFailed: "مش قادرين نكمّل الـ profile بتاعك",
+        live: "الـ profile بتاعك بقى شغال!",
+      },
+    },
+  },
 } as const;

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +17,10 @@ import { CredentialsManager } from "@/components/settings/CredentialsManager";
 // Coach onboarding wizard (Google-first + incomplete accounts). Completion
 // state lives server-side in coach_onboarding.is_completed — this wizard only
 // collects data and calls the existing service-role onboarding APIs.
-const STEPS = ["Basics", "Professional", "Achievements", "Certificates", "Review"];
+const STEP_KEYS = ["basics", "professional", "achievements", "certificates", "review"] as const;
 
+// Canonical DB values (coaches.specialization, also read back on prefill) —
+// the mobile app's "Find a Coach" screen shows these, so they stay English.
 const SPECIALIZATIONS = [
   "Weight Loss",
   "Muscle Gain",
@@ -31,6 +34,7 @@ const SPECIALIZATIONS = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
 
   const [authState, setAuthState] = React.useState<"checking" | "ready" | "unauthed" | "complete">("checking");
@@ -49,6 +53,8 @@ export default function OnboardingPage() {
   const [specializations, setSpecializations] = React.useState<string[]>([]);
   const [customSpec, setCustomSpec] = React.useState("");
   const [experience, setExperience] = React.useState("");
+
+  const stepLabel = (i: number) => t(`auth.onboarding.steps.${STEP_KEYS[i]}`);
 
   // ── Guard + prefill on mount ────────────────────────────────────────────────
   React.useEffect(() => {
@@ -89,7 +95,7 @@ export default function OnboardingPage() {
         setName((prev) => prev || meta.full_name || meta.name || "");
         if (meta.picture && !status.hasCoachRow) setAvatarUrl(meta.picture);
       } catch {
-        toast.error("Could not verify your account. Please sign in again.");
+        toast.error(t("auth.onboarding.toasts.verifyFailed"));
         setAuthState("unauthed");
         router.replace("/login");
       }
@@ -100,7 +106,7 @@ export default function OnboardingPage() {
   // ── Save helpers ────────────────────────────────────────────────────────────
   async function saveBasic() {
     if (!name.trim()) {
-      toast.error("Your full name is required");
+      toast.error(t("auth.onboarding.toasts.nameRequired"));
       return false;
     }
     setSavingStep(true);
@@ -115,11 +121,11 @@ export default function OnboardingPage() {
         }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? "Could not save your details");
+      if (!res.ok) throw new Error(body?.error ?? t("auth.onboarding.toasts.saveBasicFailed"));
       if (body.coach_id) setCoachId(body.coach_id);
       return true;
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Could not save your details");
+      toast.error(err instanceof Error ? err.message : t("auth.onboarding.toasts.saveBasicFailed"));
       return false;
     } finally {
       setSavingStep(false);
@@ -140,10 +146,10 @@ export default function OnboardingPage() {
         }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? "Could not save professional info");
+      if (!res.ok) throw new Error(body?.error ?? t("auth.onboarding.toasts.saveProfessionalFailed"));
       return true;
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Could not save professional info");
+      toast.error(err instanceof Error ? err.message : t("auth.onboarding.toasts.saveProfessionalFailed"));
       return false;
     } finally {
       setSavingStep(false);
@@ -166,11 +172,11 @@ export default function OnboardingPage() {
         }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? "Could not complete your profile");
-      toast.success("Your coach profile is live!");
+      if (!res.ok) throw new Error(body?.error ?? t("auth.onboarding.toasts.completeFailed"));
+      toast.success(t("auth.onboarding.toasts.live"));
       router.replace("/dashboard");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Could not complete your profile");
+      toast.error(err instanceof Error ? err.message : t("auth.onboarding.toasts.completeFailed"));
       setFinishing(false);
     }
   }
@@ -211,15 +217,19 @@ export default function OnboardingPage() {
     <div className="min-h-svh bg-background">
       <div className="mx-auto max-w-2xl px-6 py-10">
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Complete your profile</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">Set up your coach profile</h1>
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">{t("auth.onboarding.kicker")}</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">{t("auth.onboarding.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Step {step} of {STEPS.length} — {STEPS[step - 1]}
+            {t("auth.onboarding.stepOf", {
+              n: step,
+              total: STEP_KEYS.length,
+              label: stepLabel(step - 1),
+            })}
           </p>
           <div className="mt-4 flex gap-1.5">
-            {STEPS.map((label, i) => (
+            {STEP_KEYS.map((key, i) => (
               <div
-                key={label}
+                key={key}
                 className={`h-1.5 flex-1 rounded-full ${i + 1 <= step ? "bg-primary" : "bg-muted"}`}
                 aria-hidden
               />
@@ -229,58 +239,56 @@ export default function OnboardingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{STEPS[step - 1]}</CardTitle>
+            <CardTitle className="text-lg">{stepLabel(step - 1)}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {step === 1 && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="ob-name">Full name *</Label>
+                  <Label htmlFor="ob-name">{t("auth.onboarding.fullName")}</Label>
                   <Input
                     id="ob-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     maxLength={80}
-                    placeholder="Coach Ali"
+                    placeholder={t("auth.onboarding.namePlaceholder")}
                     autoFocus
                   />
-                  <p className="text-xs text-muted-foreground">Required — shown to clients in the app.</p>
+                  <p className="text-xs text-muted-foreground">{t("auth.onboarding.nameHint")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Profile photo</Label>
+                  <Label>{t("auth.onboarding.profilePhoto")}</Label>
                   {userId ? (
                     <AvatarUpload initialUrl={avatarUrl} userId={userId} onSaved={setAvatarUrl} />
                   ) : (
-                    <p className="text-sm text-muted-foreground">Available after saving.</p>
+                    <p className="text-sm text-muted-foreground">{t("auth.onboarding.photoLater")}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ob-email">Email</Label>
+                  <Label htmlFor="ob-email">{t("auth.onboarding.emailLabel")}</Label>
                   <Input id="ob-email" value={email} readOnly disabled className="bg-muted/40" />
-                  <p className="text-xs text-muted-foreground">From your sign-in account.</p>
+                  <p className="text-xs text-muted-foreground">{t("auth.onboarding.emailHint")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ob-bio">Short bio</Label>
+                  <Label htmlFor="ob-bio">{t("auth.onboarding.bioLabel")}</Label>
                   <Textarea
                     id="ob-bio"
                     rows={3}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     maxLength={1000}
-                    placeholder="Tell clients about your coaching style…"
+                    placeholder={t("auth.onboarding.bioPlaceholder")}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Phone numbers are not supported by the current profile schema — you can add contact details to your bio.
-                </p>
+                <p className="text-xs text-muted-foreground">{t("auth.onboarding.phoneNote")}</p>
               </>
             )}
 
             {step === 2 && (
               <>
-                <p className="text-xs text-muted-foreground">All fields optional — you can complete these later in Settings.</p>
+                <p className="text-xs text-muted-foreground">{t("auth.onboarding.professionalNote")}</p>
                 <div className="space-y-2">
-                  <Label>Specialties</Label>
+                  <Label>{t("auth.onboarding.specialties")}</Label>
                   <div className="flex flex-wrap gap-2">
                     {[...new Set([...SPECIALIZATIONS, ...specializations])].map((sp) => (
                       <button
@@ -313,13 +321,13 @@ export default function OnboardingPage() {
                           setCustomSpec("");
                         }
                       }}
-                      placeholder="Add custom specialty…"
+                      placeholder={t("auth.onboarding.customSpecPlaceholder")}
                       className="h-8 text-sm"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ob-years">Years of experience</Label>
+                  <Label htmlFor="ob-years">{t("auth.onboarding.yearsLabel")}</Label>
                   <Input
                     id="ob-years"
                     type="number"
@@ -327,12 +335,11 @@ export default function OnboardingPage() {
                     max="60"
                     value={experience}
                     onChange={(e) => setExperience(e.target.value)}
-                    placeholder="e.g. 5"
+                    placeholder={t("auth.onboarding.yearsPlaceholder")}
                   />
                 </div>
                 <p className="rounded-lg border p-3 text-xs text-muted-foreground">
-                  Professional title, coaching focus text and certifications are stored with your profile uploads in the
-                  next steps; a dedicated title field is not part of the current profile schema.
+                  {t("auth.onboarding.schemaNote")}
                 </p>
               </>
             )}
@@ -343,7 +350,7 @@ export default function OnboardingPage() {
                 userId={userId ?? ""}
                 type="achievement"
                 accept="image/jpeg,image/png,image/webp"
-                emptyText="No achievements uploaded — optional, you can add these later in Settings."
+                emptyText={t("auth.onboarding.emptyAchievements")}
               />
             )}
 
@@ -353,29 +360,44 @@ export default function OnboardingPage() {
                 userId={userId ?? ""}
                 type="certificate"
                 accept="image/jpeg,image/png,image/webp,application/pdf"
-                emptyText="No certificates uploaded — optional, you can add these later in Settings."
+                emptyText={t("auth.onboarding.emptyCertificates")}
               />
             )}
 
             {step === 5 && (
               <div className="space-y-4 text-sm">
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Basics</p>
-                  <p className="mt-1">Name: {name.trim() || "—"}</p>
-                  <p>Email: {email || "—"}</p>
-                  <p className="whitespace-pre-wrap">Bio: {bio.trim() || "—"}</p>
-                  <p>Photo: {avatarUrl ? "uploaded ✓" : "not set"}</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    {t("auth.onboarding.steps.basics")}
+                  </p>
+                  <p className="mt-1">{t("auth.onboarding.review.name")} {name.trim() || "—"}</p>
+                  <p>{t("auth.onboarding.review.email")} {email || "—"}</p>
+                  <p className="whitespace-pre-wrap">{t("auth.onboarding.review.bio")} {bio.trim() || "—"}</p>
+                  <p>
+                    {t("auth.onboarding.review.photo")}{" "}
+                    {avatarUrl ? t("auth.onboarding.review.uploaded") : t("auth.onboarding.review.notSet")}
+                  </p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Professional</p>
-                  <p>Specialties: {specializations.length ? specializations.join(", ") : "—"}</p>
-                  <p>Experience: {experience === "" ? "—" : `${experience} years`}</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    {t("auth.onboarding.steps.professional")}
+                  </p>
+                  <p>
+                    {t("auth.onboarding.review.specialties")}{" "}
+                    {specializations.length ? specializations.join(", ") : "—"}
+                  </p>
+                  <p>
+                    {t("auth.onboarding.review.experience")}{" "}
+                    {experience === "" ? "—" : t("auth.onboarding.review.yearsValue", { n: experience })}
+                  </p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Uploads</p>
-                  <p>Achievements and certificates were saved as you uploaded them (steps 3–4) and are already visible on your profile.</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    {t("auth.onboarding.review.uploads")}
+                  </p>
+                  <p>{t("auth.onboarding.review.uploadsNote")}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Review everything above, then confirm to make your profile live.</p>
+                <p className="text-xs text-muted-foreground">{t("auth.onboarding.review.finalNote")}</p>
               </div>
             )}
           </CardContent>
@@ -383,17 +405,18 @@ export default function OnboardingPage() {
 
         <div className="mt-6 flex items-center justify-between">
           <Button type="button" variant="outline" onClick={back} disabled={step === 1 || savingStep || finishing}>
-            <ArrowLeft className="mr-1 size-4" /> Back
+            <ArrowLeft className="me-1 size-4 rtl:rotate-180" /> {t("common.actions.back")}
           </Button>
           {step < 5 ? (
             <Button type="button" onClick={next} disabled={savingStep || finishing}>
-              {savingStep ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
-              {step === 1 ? "Save & continue" : "Continue"} <ArrowRight className="ml-1 size-4" />
+              {savingStep ? <Loader2 className="me-1 size-4 animate-spin" /> : null}
+              {step === 1 ? t("auth.onboarding.saveContinue") : t("common.actions.continue")}{" "}
+              <ArrowRight className="ms-1 size-4 rtl:rotate-180" />
             </Button>
           ) : (
             <Button type="button" onClick={handleComplete} disabled={finishing}>
-              {finishing ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Check className="mr-1 size-4" />}
-              {finishing ? "Completing…" : "Complete profile"}
+              {finishing ? <Loader2 className="me-1 size-4 animate-spin" /> : <Check className="me-1 size-4" />}
+              {finishing ? t("auth.onboarding.completing") : t("auth.onboarding.complete")}
             </Button>
           )}
         </div>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -23,9 +25,10 @@ export default function LoginPage() {
   // non-coach account) that come back through /auth/callback.
   React.useEffect(() => {
     const err = new URLSearchParams(window.location.search).get("error");
-    if (err === "oauth_cancelled") toast.error("Google sign-in was cancelled.");
-    else if (err === "not_coach") toast.error("This account is not a coach account.");
-    else if (err) toast.error("Google sign-in failed. Please try again.");
+    if (err === "oauth_cancelled") toast.error(t("auth.login.toasts.googleCancelled"));
+    else if (err === "not_coach") toast.error(t("auth.login.toasts.googleNotCoach"));
+    else if (err) toast.error(t("auth.login.toasts.googleFailed"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Only offer Google sign-in when the provider is enabled in Supabase Auth
@@ -49,7 +52,7 @@ export default function LoginPage() {
       if (oauthErr) throw oauthErr;
       // Browser redirects to Google; the callback completes sign-in.
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
+      toast.error(err instanceof Error ? err.message : t("auth.login.toasts.googleFailed"));
       setGoogleLoading(false);
     }
   }
@@ -57,7 +60,7 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) {
-      toast.error("Please enter email and password");
+      toast.error(t("auth.login.toasts.missingFields"));
       return;
     }
     setLoading(true);
@@ -76,7 +79,7 @@ export default function LoginPage() {
       if (profileErr) {
         // If profiles table missing or RLS blocks, allow but warn
         console.warn("Profile fetch failed", profileErr.message);
-        toast.warning("Logged in, but profile check failed — verify schema.sql is applied.");
+        toast.warning(t("auth.login.toasts.profileCheckFailed"));
         router.push("/dashboard");
         router.refresh();
         return;
@@ -84,17 +87,19 @@ export default function LoginPage() {
 
       if (profile?.role !== "coach") {
         await supabase.auth.signOut();
-        toast.error("Access denied: this account is not a coach.", {
-          description: `Current role: ${profile?.role ?? "unknown"}. Contact admin.`,
+        toast.error(t("auth.login.toasts.accessDenied"), {
+          description: t("auth.login.toasts.accessDeniedDesc", {
+            role: profile?.role ?? t("common.state.unknown"),
+          }),
         });
         return;
       }
 
-      toast.success("Welcome back!");
+      toast.success(t("auth.login.toasts.welcome"));
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Login failed";
+      const msg = err instanceof Error ? err.message : t("auth.login.toasts.loginFailed");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -105,18 +110,18 @@ export default function LoginPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">CoreGym Coach Login</CardTitle>
-          <CardDescription>Sign in with your coach account. Non-coach accounts are blocked.</CardDescription>
+          <CardTitle className="text-2xl">{t("auth.login.title")}</CardTitle>
+          <CardDescription>{t("auth.login.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.login.emailLabel")}</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="coach@coregym.com"
+                placeholder={t("auth.login.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -124,12 +129,12 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("auth.login.passwordLabel")}</Label>
                 <Link
                   href="/forgot-password"
                   className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
                 >
-                  Forgot password?
+                  {t("auth.login.forgotPassword")}
                 </Link>
               </div>
               <Input
@@ -142,7 +147,7 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("auth.login.signingIn") : t("auth.login.signIn")}
             </Button>
 
             {googleAvailable !== false && (
@@ -152,7 +157,9 @@ export default function LoginPage() {
                     <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="bg-card px-2 text-xs uppercase tracking-wide text-muted-foreground">or</span>
+                    <span className="bg-card px-2 text-xs uppercase tracking-wide text-muted-foreground">
+                      {t("auth.login.or")}
+                    </span>
                   </div>
                 </div>
                 <Button
@@ -163,10 +170,10 @@ export default function LoginPage() {
                   onClick={handleGoogle}
                 >
                   {googleLoading ? (
-                    "Redirecting to Google…"
+                    t("auth.login.redirectingToGoogle")
                   ) : (
                     <>
-                      <svg className="mr-2 size-4" viewBox="0 0 24 24" aria-hidden>
+                      <svg className="me-2 size-4" viewBox="0 0 24 24" aria-hidden>
                         <path
                           fill="#4285F4"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"
@@ -184,7 +191,7 @@ export default function LoginPage() {
                           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"
                         />
                       </svg>
-                      Continue with Google
+                      {t("auth.login.continueWithGoogle")}
                     </>
                   )}
                 </Button>
@@ -193,11 +200,11 @@ export default function LoginPage() {
 
             <p className="text-center text-sm text-muted-foreground">
               <Link href="/" className="underline underline-offset-4 hover:text-foreground">
-                Back to home
+                {t("auth.login.backToHome")}
               </Link>
               {" · "}
               <Link href="/signup" className="underline underline-offset-4 hover:text-foreground">
-                New coach? Create account
+                {t("auth.login.newCoachCta")}
               </Link>
             </p>
           </form>

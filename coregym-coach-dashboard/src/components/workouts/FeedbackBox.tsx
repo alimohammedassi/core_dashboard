@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Send } from "lucide-react";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -11,13 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 // chat conversation so the client receives it in the mobile app.
 export function FeedbackBox({ clientId }: { clientId: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [content, setContent] = React.useState("");
   const [sending, setSending] = React.useState(false);
 
   async function handleSend() {
     const text = content.trim();
     if (!text) {
-      toast.error("Message cannot be empty");
+      toast.error(t("workouts.feedback.empty"));
       return;
     }
     setSending(true);
@@ -28,12 +30,12 @@ export function FeedbackBox({ clientId }: { clientId: string }) {
         body: JSON.stringify({ client_id: clientId, content: text }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? "Send failed");
-      toast.success("Message sent");
+      if (!res.ok) throw new Error(body?.error ?? t("workouts.error.sendFailed"));
+      toast.success(t("workouts.feedback.sent"));
       setContent("");
       router.refresh();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Send failed");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.sendFailed"));
     } finally {
       setSending(false);
     }
@@ -45,11 +47,11 @@ export function FeedbackBox({ clientId }: { clientId: string }) {
         rows={3}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Great progress on bench press. Let's increase the weight next session."
+        placeholder={t("workouts.feedback.placeholder")}
       />
       <Button type="button" onClick={handleSend} disabled={sending || !content.trim()}>
-        <Send className="mr-1 size-3.5" />
-        {sending ? "Sending…" : "Send message"}
+        <Send className="me-1 size-3.5" />
+        {sending ? t("workouts.feedback.sending") : t("workouts.feedback.send")}
       </Button>
     </div>
   );

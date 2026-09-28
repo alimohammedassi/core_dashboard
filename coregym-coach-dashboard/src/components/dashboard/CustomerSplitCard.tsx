@@ -2,6 +2,8 @@
 
 import { Card } from "@/components/ui/card";
 import { Users, Clock, XCircle, MoreHorizontal } from "lucide-react";
+import { useI18n } from "@/lib/i18n/client";
+import type { TKey } from "@/lib/i18n/dictionary";
 
 export type SplitItem = { label: string; value: number; color: string; icon?: React.ComponentType<{ className?: string }> };
 
@@ -11,19 +13,31 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Cancelled: XCircle,
 };
 
-export function CustomerSplitCard({ title = "Clients breakdown", items }: { title?: string; items?: SplitItem[] }) {
+// Items arrive with English status labels (see ICON_MAP); render them through
+// the dictionary when known so the split follows the active language.
+const LABEL_KEYS: Record<string, TKey> = {
+  Active: "overview.status.active",
+  Trial: "overview.status.trial",
+  "Past due": "overview.status.pastDue",
+  Cancelled: "overview.status.cancelled",
+};
+
+export function CustomerSplitCard({ title, items }: { title?: string; items?: SplitItem[] }) {
+  const { t, fmt } = useI18n();
+  const heading = title ?? t("overview.split.title");
+  const labelFor = (label: string) => (LABEL_KEYS[label] ? t(LABEL_KEYS[label]) : label);
   const hasData = items && items.length > 0 && items.some((i) => i.value > 0);
   if (!hasData) {
     return (
       <Card className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[var(--surface-2)] p-5 gap-4 shadow-none">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-[var(--text-secondary)]">{title}</h3>
+          <h3 className="text-sm font-medium text-[var(--text-secondary)]">{heading}</h3>
           <MoreHorizontal className="size-3.5 text-[var(--text-muted)]" />
         </div>
         <div className="flex h-[84px] items-center justify-center rounded-xl border border-dashed border-[rgba(255,255,255,0.08)] bg-[var(--surface-3)]/30">
-          <p className="text-sm text-[var(--text-muted)]">No client breakdown yet</p>
+          <p className="text-sm text-[var(--text-muted)]">{t("overview.split.empty")}</p>
         </div>
-        <p className="text-xs text-[var(--text-muted)] text-center">Stats appear once you have subscriptions.</p>
+        <p className="text-xs text-[var(--text-muted)] text-center">{t("overview.split.emptyHint")}</p>
       </Card>
     );
   }
@@ -34,7 +48,7 @@ export function CustomerSplitCard({ title = "Clients breakdown", items }: { titl
   return (
     <Card className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[var(--surface-2)] p-5 gap-4 shadow-none">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)]">{title}</h3>
+        <h3 className="text-sm font-medium text-[var(--text-secondary)]">{heading}</h3>
         <MoreHorizontal className="size-3.5 text-[var(--text-muted)]" />
       </div>
 
@@ -47,7 +61,7 @@ export function CustomerSplitCard({ title = "Clients breakdown", items }: { titl
                 <Icon className="size-3.5" />
               </span>
               <div className="text-xl font-bold text-white">{it.value}</div>
-              <div className="text-xs text-[var(--text-muted)]">{it.label}</div>
+              <div className="text-xs text-[var(--text-muted)]">{labelFor(it.label)}</div>
             </div>
           );
         })}
@@ -61,7 +75,7 @@ export function CustomerSplitCard({ title = "Clients breakdown", items }: { titl
       <div className="flex justify-between text-[11px] text-[var(--text-muted)]">
         {data.map((it) => (
           <span key={it.label}>
-            {((it.value / total) * 100).toFixed(0)}% {it.label}
+            {fmt.percent(Math.round((it.value / total) * 100))} {labelFor(it.label)}
           </span>
         ))}
       </div>

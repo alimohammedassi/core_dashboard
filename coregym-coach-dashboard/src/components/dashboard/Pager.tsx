@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getI18n } from "@/lib/i18n/server";
 
 // P3: server-rendered pager for library pages (?page=). Renders nothing for
 // single-page results so small libraries are visually unchanged.
-export function Pager({
+export async function Pager({
   basePath,
   page,
   totalPages,
@@ -11,27 +12,30 @@ export function Pager({
   page: number;
   totalPages: number;
 }) {
+  const { t } = await getI18n();
   if (totalPages <= 1) return null;
   const prev = page > 1 ? `${basePath}?page=${page - 1}` : null;
   const next = page < totalPages ? `${basePath}?page=${page + 1}` : null;
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-center gap-3 pt-2 text-sm">
+    <nav aria-label={t("overview.pager.aria")} className="flex items-center justify-center gap-3 pt-2 text-sm">
       {prev ? (
         <Link href={prev} className="inline-flex h-8 items-center rounded-md border px-3">
-          Previous
+          {t("common.actions.previous")}
         </Link>
       ) : (
-        <span className="inline-flex h-8 items-center rounded-md border px-3 opacity-40">Previous</span>
+        <span className="inline-flex h-8 items-center rounded-md border px-3 opacity-40">
+          {t("common.actions.previous")}
+        </span>
       )}
-      <span className="text-muted-foreground">
-        Page {page} of {totalPages}
-      </span>
+      <span className="text-muted-foreground">{t("overview.pager.pageOf", { page, total: totalPages })}</span>
       {next ? (
         <Link href={next} className="inline-flex h-8 items-center rounded-md border px-3">
-          Next
+          {t("common.actions.next")}
         </Link>
       ) : (
-        <span className="inline-flex h-8 items-center rounded-md border px-3 opacity-40">Next</span>
+        <span className="inline-flex h-8 items-center rounded-md border px-3 opacity-40">
+          {t("common.actions.next")}
+        </span>
       )}
     </nav>
   );

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Copy, Plus, Trash2 } from "lucide-react";
 import type { ExercisePerformance } from "@/lib/workouts";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ export function NextWorkoutEditor({
   exercises: ExercisePerformance[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [date, setDate] = React.useState("");
@@ -56,7 +58,7 @@ export function NextWorkoutEditor({
   // Seeding happens in the click handler (event context), keeping impure
   // values out of render entirely.
   function openEditor() {
-    setName(`${templateName} — next`);
+    setName(t("workouts.next.defaultName", { name: templateName }));
     setDate(tomorrowLocal());
     setRows(
       exercises.map((ex) => ({
@@ -89,23 +91,23 @@ export function NextWorkoutEditor({
     const actual =
       ex.bestWeightKg != null
         ? `${ex.bestWeightKg}kg${ex.bestReps != null ? ` × ${ex.bestReps}` : ""}`
-        : "no sets logged";
-    return `Current: ${target} · Actual: ${actual}`;
+        : t("workouts.next.noSets");
+    return t("workouts.next.reference", { target, actual });
   }
 
   async function handleSaveAndAssign() {
     const valid = rows.filter((r) => r.exercise_name.trim());
     if (valid.length === 0) {
-      toast.error("Add at least one exercise");
+      toast.error(t("workouts.validate.addExercise"));
       return;
     }
     if (!date) {
-      toast.error("Select the next scheduled date");
+      toast.error(t("workouts.validate.selectNextDate"));
       return;
     }
     for (const [i, r] of valid.entries()) {
       const sets = Number(r.target_sets);
-      if (!Number.isFinite(sets) || sets <= 0) return void toast.error(`Exercise ${i + 1}: sets must be greater than 0`);
+      if (!Number.isFinite(sets) || sets <= 0) return void toast.error(t("workouts.validate.setsPositive", { n: i + 1 }));
     }
     setSaving(true);
     try {
@@ -116,7 +118,7 @@ export function NextWorkoutEditor({
           source_assignment_id: sourceAssignmentId,
           scheduled_date: date,
           template: {
-            name: name.trim() || `${templateName} — next`,
+            name: name.trim() || t("workouts.next.defaultName", { name: templateName }),
             target_muscles: templateMuscles,
             notes: templateNotes,
             exercises: valid.map((r, i) => ({
@@ -132,12 +134,12 @@ export function NextWorkoutEditor({
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Assignment failed");
-      toast.success(`Next workout assigned for ${date}`);
+      if (!res.ok) throw new Error(body?.error ?? t("workouts.error.assignFailed"));
+      toast.success(t("workouts.toast.nextAssigned", { date }));
       setOpen(false);
       router.refresh();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Assignment failed");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.assignFailed"));
     } finally {
       setSaving(false);
     }
@@ -146,27 +148,24 @@ export function NextWorkoutEditor({
   return (
     <>
       <Button type="button" onClick={openEditor} disabled={exercises.length === 0}>
-        <Copy className="mr-1 size-3.5" /> Duplicate as Next Workout
+        <Copy className="me-1 size-3.5" /> {t("workouts.next.duplicateButton")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Next workout</DialogTitle>
-            <DialogDescription>
-              Creates a new independent template and assignment — the original template and this completed workout stay
-              unchanged.
-            </DialogDescription>
+            <DialogTitle>{t("workouts.next.title")}</DialogTitle>
+            <DialogDescription>{t("workouts.next.desc")}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="next-name">Name</Label>
+                <Label htmlFor="next-name">{t("common.table.name")}</Label>
                 <Input id="next-name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="next-date">Next scheduled date</Label>
+                <Label htmlFor="next-date">{t("workouts.next.dateLabel")}</Label>
                 <Input id="next-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
             </div>
@@ -178,7 +177,7 @@ export function NextWorkoutEditor({
                     <Input
                       value={row.exercise_name}
                       onChange={(e) => updateRow(row.key, { exercise_name: e.target.value })}
-                      placeholder="Exercise"
+                      placeholder={t("workouts.next.exercisePlaceholder")}
                       className="flex-1"
                     />
                     <Button
@@ -186,7 +185,7 @@ export function NextWorkoutEditor({
                       variant="ghost"
                       size="icon"
                       className="size-7 text-destructive"
-                      aria-label="Remove exercise"
+                      aria-label={t("workouts.builder.removeExercise")}
                       onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
                     >
                       <Trash2 className="size-3.5" />
@@ -195,7 +194,7 @@ export function NextWorkoutEditor({
                   <p className="text-xs text-muted-foreground">{referenceFor(index)}</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Sets</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.sets")}</Label>
                       <Input
                         type="number"
                         min="1"
@@ -204,7 +203,7 @@ export function NextWorkoutEditor({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Reps</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.reps")}</Label>
                       <Input
                         type="number"
                         min="1"
@@ -213,7 +212,7 @@ export function NextWorkoutEditor({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.weight")}</Label>
                       <Input
                         type="number"
                         min="0"
@@ -223,7 +222,7 @@ export function NextWorkoutEditor({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Rest (sec)</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.rest")}</Label>
                       <Input
                         type="number"
                         min="0"
@@ -235,7 +234,7 @@ export function NextWorkoutEditor({
                   <Input
                     value={row.notes}
                     onChange={(e) => updateRow(row.key, { notes: e.target.value })}
-                    placeholder="Notes (optional)"
+                    placeholder={t("workouts.next.notesPlaceholder")}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -259,17 +258,17 @@ export function NextWorkoutEditor({
                   ])
                 }
               >
-                <Plus className="mr-1 size-3.5" /> Add exercise
+                <Plus className="me-1 size-3.5" /> {t("workouts.builder.addExercise")}
               </Button>
             </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={saving}>
-              Cancel
+              {t("common.actions.cancel")}
             </Button>
             <Button type="button" onClick={handleSaveAndAssign} disabled={saving}>
-              {saving ? "Saving…" : "Save & Assign"}
+              {saving ? t("common.actions.saving") : t("workouts.next.saveAndAssign")}
             </Button>
           </DialogFooter>
         </DialogContent>

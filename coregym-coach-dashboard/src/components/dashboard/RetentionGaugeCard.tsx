@@ -2,19 +2,21 @@
 
 import { Card } from "@/components/ui/card";
 import { MoreHorizontal } from "lucide-react";
+import { useI18n } from "@/lib/i18n/client";
 
 export function RetentionGaugeCard({ value, target = 80, total }: { value?: number | null; target?: number; total?: number }) {
+  const { t, fmt } = useI18n();
   const hasData = typeof value === "number" && total !== undefined && total > 0;
   if (!hasData) {
     return (
       <Card className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[var(--surface-2)] p-5 gap-2 shadow-none">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-[var(--text-secondary)]">Client Retention Rate</h3>
+          <h3 className="text-sm font-medium text-[var(--text-secondary)]">{t("overview.retention.title")}</h3>
           <MoreHorizontal className="size-3.5 text-[var(--text-muted)]" />
         </div>
         <div className="flex h-[160px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[rgba(255,255,255,0.08)] bg-[var(--surface-3)]/30">
-          <p className="text-sm text-[var(--text-muted)]">No retention data</p>
-          <p className="text-xs text-[var(--text-muted)]">Requires at least one subscription.</p>
+          <p className="text-sm text-[var(--text-muted)]">{t("overview.retention.empty")}</p>
+          <p className="text-xs text-[var(--text-muted)]">{t("overview.retention.emptyHint")}</p>
         </div>
       </Card>
     );
@@ -35,7 +37,7 @@ export function RetentionGaugeCard({ value, target = 80, total }: { value?: numb
   return (
     <Card className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[var(--surface-2)] p-5 gap-2 shadow-none">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)]">Client Retention Rate</h3>
+        <h3 className="text-sm font-medium text-[var(--text-secondary)]">{t("overview.retention.title")}</h3>
         <MoreHorizontal className="size-3.5 text-[var(--text-muted)]" />
       </div>
 
@@ -57,14 +59,14 @@ export function RetentionGaugeCard({ value, target = 80, total }: { value?: numb
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center pt-6">
-          <span className="text-3xl font-bold text-white leading-none">{value}%</span>
-          <span className="mt-1 text-xs text-[var(--text-muted)]">On track for {target}% target</span>
+          <span className="text-3xl font-bold text-white leading-none">{fmt.percent(value)}</span>
+          <span className="mt-1 text-xs text-[var(--text-muted)]">{t("overview.retention.onTrack", { target })}</span>
         </div>
       </div>
 
       <div className="flex justify-center">
         <button className="rounded-full border border-[rgba(255,255,255,0.08)] bg-[var(--surface-3)] px-3 py-1 text-xs text-[var(--text-secondary)] hover:bg-white/10 transition-colors">
-          Show details
+          {t("overview.retention.showDetails")}
         </button>
       </div>
     </Card>

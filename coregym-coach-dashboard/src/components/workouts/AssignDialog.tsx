@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CalendarDays } from "lucide-react";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 import type { ActiveClient } from "@/lib/workouts";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ export function AssignDialog({
 }) {
   const mode = seed?.mode ?? "assign";
   const template = seed?.template ?? null;
+  const { t } = useI18n();
 
   const [clientId, setClientId] = React.useState("");
   const [date, setDate] = React.useState(seed?.defaultDate ?? "");
@@ -50,10 +52,10 @@ export function AssignDialog({
     try {
       const res = await fetch(`/api/client-active-program?client_id=${encodeURIComponent(cid)}`);
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? "Could not look up the program");
+      if (!res.ok) throw new Error(body?.error ?? t("workouts.error.programLookup"));
       setProgram(body.program ?? null);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Could not look up the program");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.programLookup"));
     } finally {
       setProgramLoading(false);
     }
@@ -62,15 +64,15 @@ export function AssignDialog({
   async function handleSubmit() {
     if (!template) return;
     if (!clientId) {
-      toast.error("Select a client");
+      toast.error(t("workouts.validate.selectClient"));
       return;
     }
     if (!date) {
-      toast.error("Select a scheduled date");
+      toast.error(t("workouts.validate.selectDate"));
       return;
     }
     if (mode === "program" && !program) {
-      toast.error("This client has no active program to add the workout to");
+      toast.error(t("workouts.validate.noProgramForAdd"));
       return;
     }
     setSubmitting(true);
@@ -86,17 +88,21 @@ export function AssignDialog({
         }),
       });
       const body2 = await res.json();
-      if (!res.ok) throw new Error(body2?.error ?? "Assignment failed");
-      const clientName = clients.find((c) => c.clientId === clientId)?.name ?? "client";
+      if (!res.ok) throw new Error(body2?.error ?? t("workouts.error.assignFailed"));
+      const clientName = clients.find((c) => c.clientId === clientId)?.name ?? t("workouts.assign.clientFallback");
       toast.success(
         mode === "program"
-          ? `Added to ${program?.name ?? "program"} — ${clientName}, ${date}`
-          : `Workout assigned to ${clientName} for ${date}`
+          ? t("workouts.toast.addedToProgram", {
+              program: program?.name ?? t("workouts.assign.programFallback"),
+              client: clientName,
+              date,
+            })
+          : t("workouts.toast.assigned", { client: clientName, date })
       );
       onOpenChange(false);
       onAssigned?.();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Assignment failed");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.assignFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -106,22 +112,18 @@ export function AssignDialog({
     <Dialog open={seed !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{mode === "program" ? "Add to program" : "Assign to client"}</DialogTitle>
+          <DialogTitle>{mode === "program" ? t("workouts.assign.addToProgram") : t("workouts.assign.title")}</DialogTitle>
           <DialogDescription>
             {template?.name ?? ""} —{" "}
-            {mode === "program"
-              ? "the client sees this workout inside their active program."
-              : "the client sees this workout on the scheduled date in the mobile app."}
+            {mode === "program" ? t("workouts.assign.programDesc") : t("workouts.assign.assignDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="assign-client">Client (active subscribers)</Label>
+            <Label htmlFor="assign-client">{t("workouts.assign.clientLabel")}</Label>
             {clients.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No active subscribers yet. Assignments need a client with an active subscription.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("workouts.assign.noClients")}</p>
             ) : (
               <select
                 id="assign-client"
@@ -132,7 +134,7 @@ export function AssignDialog({
                 }}
                 className="h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
-                <option value="">Select a client…</option>
+                <option value="">{t("workouts.assign.selectClient")}</option>
                 {clients.map((c) => (
                   <option key={c.clientId} value={c.clientId}>
                     {c.name}
@@ -145,39 +147,42 @@ export function AssignDialog({
           {mode === "program" && clientId && (
             <div className="space-y-1 text-sm">
               {programLoading ? (
-                <p className="text-muted-foreground">Checking active program…</p>
+                <p className="text-muted-foreground">{t("workouts.assign.checkingProgram")}</p>
               ) : program ? (
                 <p>
-                  Active program: <span className="font-medium">{program.name}</span>
+                  {t("workouts.assign.activeProgramLabel")}{" "}
+                  <span className="font-medium">{program.name}</span>
                 </p>
               ) : (
-                <p className="text-sm text-destructive">This client has no active program in the app.</p>
+                <p className="text-sm text-destructive">{t("workouts.assign.noActiveProgram")}</p>
               )}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="assign-date">Scheduled date</Label>
+            <Label htmlFor="assign-date">{t("workouts.assign.dateLabel")}</Label>
             <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input id="assign-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="pl-8" />
+              <CalendarDays className="pointer-events-none absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input id="assign-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="ps-8" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Date-only — stored exactly as picked, no timezone shifting. Tomorrow works.
-            </p>
+            <p className="text-xs text-muted-foreground">{t("workouts.assign.dateHint")}</p>
           </div>
         </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
+            {t("common.actions.cancel")}
           </Button>
           <Button
             type="button"
             onClick={handleSubmit}
             disabled={submitting || clients.length === 0 || (mode === "program" && !program)}
           >
-            {submitting ? "Assigning…" : mode === "program" ? "Add to program" : "Assign workout"}
+            {submitting
+              ? t("workouts.assign.submitting")
+              : mode === "program"
+                ? t("workouts.assign.addToProgram")
+                : t("workouts.assign.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

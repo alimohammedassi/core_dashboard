@@ -163,3 +163,14 @@
     @apply font-sans;
   }
 }
+
+/* ── Arabic (RTL) ──────────────────────────────────────────────────────────── */
+/* Cairo covers Arabic + Latin glyphs; Poppins fallback for symbols Cairo lacks.
+   font-heading (card/dialog titles) must follow — Poppins has no Arabic glyphs.
+   The landing manages its own wrapper font classes and is unaffected. */
+html[lang="ar"] {
+  font-family: var(--font-cairo), var(--font-poppins), system-ui, sans-serif;
+}
+html[lang="ar"] .font-heading {
+  font-family: var(--font-cairo), var(--font-poppins), system-ui, sans-serif;
+}

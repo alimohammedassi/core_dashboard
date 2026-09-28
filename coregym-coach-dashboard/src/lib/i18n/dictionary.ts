@@ -19,6 +19,7 @@ import { makeT } from "./translate";
 import type { DeepKeys, Vars } from "./translate";
 import type { Lang } from "./config";
 
+/** Raw per-domain pairs, kept so tests can diff en vs ar keys per domain. */
 export const dictionary = {
   common,
   auth,
@@ -39,10 +40,40 @@ export type Dict = {
   [K in keyof typeof dictionary]: (typeof dictionary)[K]["en"];
 };
 
+const en: Dict = {
+  common: common.en,
+  auth: auth.en,
+  overview: overview.en,
+  subscribers: subscribers.en,
+  workouts: workouts.en,
+  programs: programs.en,
+  nutrition: nutrition.en,
+  plans: plans.en,
+  revenue: revenue.en,
+  settings: settings.en,
+  chat: chat.en,
+  misc: misc.en,
+};
+
+const ar = {
+  common: common.ar,
+  auth: auth.ar,
+  overview: overview.ar,
+  subscribers: subscribers.ar,
+  workouts: workouts.ar,
+  programs: programs.ar,
+  nutrition: nutrition.ar,
+  plans: plans.ar,
+  revenue: revenue.ar,
+  settings: settings.ar,
+  chat: chat.ar,
+  misc: misc.ar,
+};
+
 export type TKey = DeepKeys<Dict>;
 
 export type TFn = (key: TKey, vars?: Vars) => string;
 
 export function tFor(lang: Lang): TFn {
-  return makeT(dictionary, lang);
+  return makeT({ en, ar }, lang);
 }

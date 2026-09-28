@@ -7,6 +7,8 @@ import { Apple, Copy, Pencil, Trash2, UserPlus, Plus, ArrowUp, ArrowDown, X, Sea
 import type { NutritionProgram } from "@/lib/nutrition";
 import type { ActiveClient } from "@/lib/workouts";
 import { scaleFood, roundMacros, sumMacros, type MacroSet } from "@/lib/nutrition-math";
+import { useI18n } from "@/lib/i18n/client";
+import type { TFn } from "@/lib/i18n/dictionary";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +24,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+/** Localized weekday labels: `short` for badges/tabs, `full` for day headers. */
+function useWeekdays(): { short: string; full: string }[] {
+  const { t } = useI18n();
+  return WEEKDAY_KEYS.map((k) => ({
+    short: t(`nutrition.weekdays.${k}.short`),
+    full: t(`nutrition.weekdays.${k}.full`),
+  }));
+}
 
 // ── Builder state ───────────────────────────────────────────────────────────
 
@@ -65,7 +76,7 @@ function foodToBuilder(f: {
   return {
     key: uid(),
     food_id: f.food_id,
-    foodName: f.foodName ?? "Food",
+    foodName: f.foodName ?? "",
     serving_unit: f.serving_unit,
     serving_size: f.serving_size,
     calories: f.calories,
@@ -76,12 +87,12 @@ function foodToBuilder(f: {
   };
 }
 
-function seedForCreate(): BuilderSeed {
+function seedForCreate(defaultMealName: string): BuilderSeed {
   return {
     editing: null,
     name: "",
     description: "",
-    days: [{ day_of_week: 1, notes: "", meals: [{ key: uid(), name: "Breakfast", foods: [] }] }],
+    days: [{ day_of_week: 1, notes: "", meals: [{ key: uid(), name: defaultMealName, foods: [] }] }],
   };
 }
 
@@ -127,8 +138,10 @@ function dayTotals(d: BuilderDay): MacroSet {
   return roundMacros(sumMacros(d.meals.map(mealTotals)));
 }
 
-function fmtMacros(m: MacroSet): string {
-  return `${m.calories} kcal · ${m.protein_g}P / ${m.carbs_g}C / ${m.fat_g}F`;
+/** Compact macro summary: "1240 kcal · 120P / 150C / 45F" (technical shorthand
+    kept in both languages). */
+function macrosCompact(t: TFn, m: MacroSet): string {
+  return t("nutrition.macros.compact", { kcal: m.calories, p: m.protein_g, c: m.carbs_g, f: m.fat_g });
 }
 
 // ── Food search ─────────────────────────────────────────────────────────────
@@ -153,52 +166,53 @@ function FoodPicker({
   onPick: (f: SearchHit) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [q, setQ] = React.useState("");
   const [hits, setHits] = React.useState<SearchHit[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       setLoading(true);
       setError(null);
       try {
         const res = await fetch(`/api/foods/search?q=${encodeURIComponent(q)}`);
         const body = await res.json();
-        if (!res.ok) throw new Error(body?.error ?? "Search failed");
+        if (!res.ok) throw new Error(body?.error ?? t("nutrition.picker.searchFailed"));
         setHits(body.foods ?? []);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Search failed");
+        setError(err instanceof Error ? err.message : t("nutrition.picker.searchFailed"));
         setHits([]);
       } finally {
         setLoading(false);
       }
     }, 300);
-    return () => clearTimeout(t);
-  }, [q]);
+    return () => clearTimeout(timer);
+  }, [q, t]);
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add food</DialogTitle>
-          <DialogDescription>Search the food library. Values shown per serving basis.</DialogDescription>
+          <DialogTitle>{t("nutrition.picker.title")}</DialogTitle>
+          <DialogDescription>{t("nutrition.picker.description")}</DialogDescription>
         </DialogHeader>
         <div className="relative">
-          <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
+          <Search className="absolute start-2 top-2.5 size-4 text-muted-foreground" />
           <Input
             autoFocus
-            placeholder="Search foods… (e.g. chicken)"
+            placeholder={t("nutrition.picker.placeholder")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="pl-8"
+            className="ps-8"
           />
         </div>
         <div className="max-h-72 overflow-y-auto space-y-1">
-          {loading && <p className="text-sm text-muted-foreground px-1 py-4">Searching…</p>}
+          {loading && <p className="text-sm text-muted-foreground px-1 py-4">{t("nutrition.picker.searching")}</p>}
           {!loading && error && <p className="text-sm text-destructive px-1 py-4">{error}</p>}
           {!loading && !error && hits.length === 0 && (
-            <p className="text-sm text-muted-foreground px-1 py-4">No foods found — try another search.</p>
+            <p className="text-sm text-muted-foreground px-1 py-4">{t("nutrition.picker.noResults")}</p>
           )}
           {hits.map((h) => (
             <button
@@ -208,7 +222,7 @@ function FoodPicker({
                 onPick(h);
                 onClose();
               }}
-              className="w-full text-left rounded-lg border px-3 py-2 hover:bg-muted transition-colors"
+              className="w-full text-start rounded-lg border px-3 py-2 hover:bg-muted transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-sm">{h.name}</span>
@@ -217,7 +231,12 @@ function FoodPicker({
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">
-                {h.calories ?? 0} kcal · {h.protein_g ?? 0}P / {h.carbs_g ?? 0}C / {h.fat_g ?? 0}F
+                {macrosCompact(t, {
+                  calories: h.calories ?? 0,
+                  protein_g: h.protein_g ?? 0,
+                  carbs_g: h.carbs_g ?? 0,
+                  fat_g: h.fat_g ?? 0,
+                })}
                 {h.category ? ` · ${h.category}` : ""}
               </div>
             </button>
@@ -238,6 +257,8 @@ export function NutritionClient({
   clients: ActiveClient[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const weekdays = useWeekdays();
   const [programs, setPrograms] = React.useState(initialPrograms);
   const [builderSeed, setBuilderSeed] = React.useState<BuilderSeed | null>(null);
   const [builderNonce, setBuilderNonce] = React.useState(0);
@@ -252,16 +273,16 @@ export function NutritionClient({
   }
 
   async function handleDelete(program: NutritionProgram) {
-    if (!window.confirm(`Delete program “${program.name}”? This cannot be undone.`)) return;
+    if (!window.confirm(t("nutrition.confirmDelete", { name: program.name }))) return;
     setBusyId(program.id);
     try {
       const res = await fetch(`/api/nutrition-programs?id=${encodeURIComponent(program.id)}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Delete failed");
+      if (!res.ok) throw new Error(body?.error ?? t("nutrition.toasts.deleteFailed"));
       setPrograms((prev) => prev.filter((p) => p.id !== program.id));
-      toast.success("Program deleted");
+      toast.success(t("nutrition.toasts.programDeleted"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("nutrition.toasts.deleteFailed"));
     } finally {
       setBusyId(null);
     }
@@ -274,11 +295,11 @@ export function NutritionClient({
         method: "POST",
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Duplicate failed");
-      toast.success("Program duplicated — reopen it to edit");
+      if (!res.ok) throw new Error(body?.error ?? t("nutrition.toasts.duplicateFailed"));
+      toast.success(t("nutrition.toasts.programDuplicated"));
       router.refresh();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Duplicate failed");
+      toast.error(err instanceof Error ? err.message : t("nutrition.toasts.duplicateFailed"));
     } finally {
       setBusyId(null);
     }
@@ -289,11 +310,11 @@ export function NutritionClient({
       <div className="flex justify-end">
         <Button
           onClick={() => {
-            setBuilderSeed(seedForCreate());
+            setBuilderSeed(seedForCreate(t("nutrition.builder.defaultMeal")));
             setBuilderNonce((n) => n + 1);
           }}
         >
-          Create Program
+          {t("nutrition.createProgram")}
         </Button>
       </div>
 
@@ -302,20 +323,18 @@ export function NutritionClient({
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <Apple className="size-8 text-muted-foreground" />
             <div className="space-y-1">
-              <p className="font-medium">No nutrition programs yet.</p>
+              <p className="font-medium">{t("nutrition.empty.title")}</p>
               <p className="text-sm text-muted-foreground">
-                Build a weekly meal plan from the food library,
-                <br />
-                then assign it to clients.
+                {t("nutrition.empty.hint")}
               </p>
             </div>
             <Button
               onClick={() => {
-                setBuilderSeed(seedForCreate());
+                setBuilderSeed(seedForCreate(t("nutrition.builder.defaultMeal")));
                 setBuilderNonce((n) => n + 1);
               }}
             >
-              Create Program
+              {t("nutrition.createProgram")}
             </Button>
           </CardContent>
         </Card>
@@ -334,7 +353,7 @@ export function NutritionClient({
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Edit"
+                    aria-label={t("common.actions.edit")}
                     disabled={busyId === p.id}
                     onClick={() => {
                       setBuilderSeed(seedForEdit(p));
@@ -343,22 +362,22 @@ export function NutritionClient({
                   >
                     <Pencil className="size-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" aria-label="Duplicate" disabled={busyId === p.id} onClick={() => handleDuplicate(p)}>
+                  <Button variant="ghost" size="icon" aria-label={t("common.actions.duplicate")} disabled={busyId === p.id} onClick={() => handleDuplicate(p)}>
                     <Copy className="size-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" aria-label="Delete" disabled={busyId === p.id} onClick={() => handleDelete(p)}>
+                  <Button variant="ghost" size="icon" aria-label={t("common.actions.delete")} disabled={busyId === p.id} onClick={() => handleDelete(p)}>
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-1">
-                  {WEEKDAYS.map((label, i) => {
+                  {weekdays.map((w, i) => {
                     const day = p.days.find((d) => d.day_of_week === i + 1);
                     const meals = day ? day.meals.length : 0;
                     return (
-                      <Badge key={label} variant={day ? "default" : "outline"} title={day ? `${meals} meal(s)` : "Rest"}>
-                        {label.slice(0, 3)}{day ? ` ·${meals}` : ""}
+                      <Badge key={w.short} variant={day ? "default" : "outline"} title={day ? t("nutrition.card.mealsTitle", { n: meals }) : t("nutrition.card.rest")}>
+                        {w.short}{day ? ` ·${meals}` : ""}
                       </Badge>
                     );
                   })}
@@ -369,8 +388,8 @@ export function NutritionClient({
                   disabled={clients.length === 0}
                   onClick={() => setEnrollSeed(p)}
                 >
-                  <UserPlus className="size-4 mr-2" />
-                  {clients.length === 0 ? "No active subscribers" : "Assign to client"}
+                  <UserPlus className="size-4 ms-2" />
+                  {clients.length === 0 ? t("nutrition.card.noSubscribers") : t("nutrition.card.assign")}
                 </Button>
               </CardContent>
             </Card>
@@ -414,15 +433,18 @@ function BuilderDialog({
   const [activeDay, setActiveDay] = React.useState<number>(seed.days[0]?.day_of_week ?? 1);
   const [pickFor, setPickFor] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const { t } = useI18n();
+  const weekdays = useWeekdays();
 
   const day = days.find((d) => d.day_of_week === activeDay);
 
   function ensureDay(dow: number) {
     setDays((prev) => {
       if (prev.some((d) => d.day_of_week === dow)) return prev;
-      return [...prev, { day_of_week: dow, notes: "", meals: [{ key: uid(), name: "Breakfast", foods: [] }] }].sort(
-        (a, b) => a.day_of_week - b.day_of_week
-      );
+      return [
+        ...prev,
+        { day_of_week: dow, notes: "", meals: [{ key: uid(), name: t("nutrition.builder.defaultMeal"), foods: [] }] },
+      ].sort((a, b) => a.day_of_week - b.day_of_week);
     });
     setActiveDay(dow);
   }
@@ -439,7 +461,7 @@ function BuilderDialog({
     if (!day) return;
     updateDay(day.day_of_week, (d) => ({
       ...d,
-      meals: [...d.meals, { key: uid(), name: `Meal ${d.meals.length + 1}`, foods: [] }],
+      meals: [...d.meals, { key: uid(), name: t("nutrition.builder.numberedMeal", { n: d.meals.length + 1 }), foods: [] }],
     }));
   }
 
@@ -477,7 +499,7 @@ function BuilderDialog({
 
   async function handleSave() {
     if (!name.trim()) {
-      toast.error("Program name is required");
+      toast.error(t("nutrition.toasts.nameRequired"));
       return;
     }
     setSaving(true);
@@ -501,8 +523,8 @@ function BuilderDialog({
         body: JSON.stringify(payload),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Save failed");
-      toast.success(seed.editing ? "Program updated" : "Program created");
+      if (!res.ok) throw new Error(body?.error ?? t("nutrition.toasts.saveFailed"));
+      toast.success(seed.editing ? t("nutrition.toasts.programUpdated") : t("nutrition.toasts.programCreated"));
       // N3: render the card from the just-saved builder state (real names,
       // macros, day badges) instead of a {days:[]} stub. Row ids are
       // temporary until the refresh below reconciles them from the server —
@@ -538,7 +560,7 @@ function BuilderDialog({
         })),
       });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("nutrition.toasts.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -550,35 +572,35 @@ function BuilderDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{seed.editing ? "Edit nutrition program" : "Create nutrition program"}</DialogTitle>
+          <DialogTitle>{seed.editing ? t("nutrition.builder.titleEdit") : t("nutrition.builder.titleCreate")}</DialogTitle>
           <DialogDescription>
-            Different meals per day, flexible meal count. Quantities use each food&apos;s own serving unit.
+            {t("nutrition.builder.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3">
           <div>
-            <Label htmlFor="np-name">Name</Label>
-            <Input id="np-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lean Mass — Week Plan" />
+            <Label htmlFor="np-name">{t("common.table.name")}</Label>
+            <Input id="np-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("nutrition.builder.namePlaceholder")} />
           </div>
           <div>
-            <Label htmlFor="np-desc">Notes</Label>
-            <Textarea id="np-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Coach notes…" rows={2} />
+            <Label htmlFor="np-desc">{t("nutrition.builder.notes")}</Label>
+            <Textarea id="np-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("nutrition.builder.notesPlaceholder")} rows={2} />
           </div>
         </div>
 
         <div className="flex flex-wrap gap-1 mt-2">
-          {WEEKDAYS.map((label, i) => {
+          {weekdays.map((w, i) => {
             const dow = i + 1;
             const has = days.some((d) => d.day_of_week === dow);
             return (
               <Button
-                key={label}
+                key={w.short}
                 size="sm"
                 variant={activeDay === dow ? "default" : has ? "secondary" : "outline"}
                 onClick={() => (has ? setActiveDay(dow) : ensureDay(dow))}
               >
-                {label.slice(0, 3)}
+                {w.short}
               </Button>
             );
           })}
@@ -587,46 +609,48 @@ function BuilderDialog({
         {day ? (
           <div className="space-y-3 border rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium">{WEEKDAYS[day.day_of_week - 1]} — {fmtMacros(dayTotals(day))}</h3>
+              <h3 className="font-medium">
+                {weekdays[day.day_of_week - 1].full} — {macrosCompact(t, dayTotals(day))}
+              </h3>
               <div className="flex gap-1">
                 <Button size="sm" variant="outline" onClick={addMeal}>
-                  <Plus className="size-3 mr-1" /> Meal
+                  <Plus className="size-3 ms-1" /> {t("nutrition.builder.newMeal")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => removeDay(day.day_of_week)}>
-                  Rest day
+                  {t("nutrition.builder.restDay")}
                 </Button>
               </div>
             </div>
             {day.meals.map((m) => (
               <div key={m.key} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Input value={m.name} onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))} className="font-medium" aria-label="Meal name" />
-                  <Button size="icon" variant="ghost" aria-label="Move up" onClick={() => moveMeal(m.key, -1)}>
+                  <Input value={m.name} onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))} className="font-medium" aria-label={t("nutrition.builder.mealNameAria")} />
+                  <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveUp")} onClick={() => moveMeal(m.key, -1)}>
                     <ArrowUp className="size-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" aria-label="Move down" onClick={() => moveMeal(m.key, 1)}>
+                  <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveDown")} onClick={() => moveMeal(m.key, 1)}>
                     <ArrowDown className="size-4" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    aria-label="Remove meal"
+                    aria-label={t("nutrition.builder.removeMeal")}
                     onClick={() => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.filter((x) => x.key !== m.key) }))}
                   >
                     <X className="size-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Meal total: {fmtMacros(mealTotals(m))}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("nutrition.builder.mealTotal", { macros: macrosCompact(t, mealTotals(m)) })}
+                </p>
                 <div className="space-y-1">
                   {m.foods.map((f) => {
                     const scaled = roundMacros(foodMacros(f));
                     return (
                       <div key={f.key} className="flex items-center gap-2 rounded border px-2 py-1.5 text-sm">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{f.foodName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {scaled.calories} kcal · {scaled.protein_g}P / {scaled.carbs_g}C / {scaled.fat_g}F
-                          </p>
+                          <p className="font-medium truncate">{f.foodName || t("nutrition.builder.foodFallback")}</p>
+                          <p className="text-xs text-muted-foreground">{macrosCompact(t, scaled)}</p>
                         </div>
                         <Input
                           type="number"
@@ -644,13 +668,13 @@ function BuilderDialog({
                             }))
                           }
                           className="w-24"
-                          aria-label={`Quantity in ${f.serving_unit ?? "units"}`}
+                          aria-label={t("nutrition.builder.quantityAria", { unit: f.serving_unit ?? t("nutrition.builder.units") })}
                         />
                         <span className="text-xs text-muted-foreground w-14 shrink-0">{f.serving_unit ?? ""}</span>
                         <Button
                           size="icon"
                           variant="ghost"
-                          aria-label="Remove food"
+                          aria-label={t("nutrition.builder.removeFood")}
                           onClick={() =>
                             updateDay(day.day_of_week, (d) => ({
                               ...d,
@@ -667,7 +691,7 @@ function BuilderDialog({
                   })}
                 </div>
                 <Button size="sm" variant="outline" onClick={() => setPickFor(m.key)}>
-                  <Plus className="size-3 mr-1" /> Add food
+                  <Plus className="size-3 ms-1" /> {t("nutrition.builder.addFood")}
                 </Button>
                 {pickFor === m.key && (
                   <FoodPicker
@@ -679,19 +703,19 @@ function BuilderDialog({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Select a weekday above to add meals.</p>
+          <p className="text-sm text-muted-foreground">{t("nutrition.builder.selectDay")}</p>
         )}
 
         <div className="rounded-lg bg-muted px-3 py-2 text-sm">
-          Weekly overview (planned days): <span className="font-medium">{fmtMacros(weekTotals)}</span>
+          {t("nutrition.builder.weeklyOverview")} <span className="font-medium">{macrosCompact(t, weekTotals)}</span>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {t("common.actions.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : seed.editing ? "Save changes" : "Create program"}
+            {saving ? t("common.actions.saving") : seed.editing ? t("nutrition.builder.saveChanges") : t("nutrition.builder.create")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -711,6 +735,7 @@ function EnrollDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [clientId, setClientId] = React.useState(clients[0]?.clientId ?? "");
   const [startDate, setStartDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [weeks, setWeeks] = React.useState("4");
@@ -722,7 +747,7 @@ function EnrollDialog({
 
   async function handleEnroll() {
     if (!clientId) {
-      toast.error("Select a client");
+      toast.error(t("nutrition.enroll.selectClient"));
       return;
     }
     setSaving(true);
@@ -738,12 +763,12 @@ function EnrollDialog({
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Assignment failed");
-      toast.success(`Assigned — ${body.meals_generated ?? expected} meals generated`);
+      if (!res.ok) throw new Error(body?.error ?? t("nutrition.toasts.assignmentFailed"));
+      toast.success(t("nutrition.enroll.assignedToast", { n: body.meals_generated ?? expected }));
       onClose();
       router.refresh();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Assignment failed");
+      toast.error(err instanceof Error ? err.message : t("nutrition.toasts.assignmentFailed"));
     } finally {
       setSaving(false);
     }
@@ -753,12 +778,12 @@ function EnrollDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Assign “{program.name}”</DialogTitle>
-          <DialogDescription>Client must have an active subscription. ~{expected} meals will be generated.</DialogDescription>
+          <DialogTitle>{t("nutrition.enroll.title", { name: program.name })}</DialogTitle>
+          <DialogDescription>{t("nutrition.enroll.description", { n: expected })}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <div>
-            <Label htmlFor="ne-client">Client</Label>
+            <Label htmlFor="ne-client">{t("nutrition.enroll.client")}</Label>
             <select
               id="ne-client"
               value={clientId}
@@ -774,21 +799,21 @@ function EnrollDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="ne-date">Start date</Label>
+              <Label htmlFor="ne-date">{t("nutrition.enroll.startDate")}</Label>
               <Input id="ne-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="ne-weeks">Duration (weeks)</Label>
+              <Label htmlFor="ne-weeks">{t("nutrition.enroll.durationWeeks")}</Label>
               <Input id="ne-weeks" type="number" min={1} max={52} value={weeks} onChange={(e) => setWeeks(e.target.value)} />
             </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {t("common.actions.cancel")}
           </Button>
           <Button onClick={handleEnroll} disabled={saving}>
-            {saving ? "Assigning…" : "Assign program"}
+            {saving ? t("nutrition.enroll.assigning") : t("nutrition.enroll.assignAction")}
           </Button>
         </DialogFooter>
       </DialogContent>

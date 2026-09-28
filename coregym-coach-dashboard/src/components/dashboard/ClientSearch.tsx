@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "cn";
+import { useI18n } from "@/lib/i18n/client";
 
 type Hit = {
   id: string; // subscription id — profile pages are keyed by subscription
@@ -18,6 +19,7 @@ type Hit = {
 // /api/coach/clients/search and navigates to their profile page.
 export function ClientSearch({ className }: { className?: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,24 +78,24 @@ export function ClientSearch({ className }: { className?: string }) {
 
   return (
     <div ref={boxRef} className={cn("relative min-w-0 flex-1 md:max-w-sm", className)}>
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Search className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <input
         value={q}
         onChange={(e) => onQueryChange(e.target.value)}
         onFocus={() => q.trim().length >= 2 && setOpen(true)}
         onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-        placeholder="Search clients…"
-        aria-label="Search clients"
-        className="h-9 w-full rounded-full border border-border bg-muted/60 pr-9 pl-9 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-ring/30"
+        placeholder={t("overview.search.placeholder")}
+        aria-label={t("overview.search.aria")}
+        className="h-9 w-full rounded-full border border-border bg-muted/60 ps-9 pe-9 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-ring/30"
       />
       {loading && (
-        <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        <Loader2 className="absolute top-1/2 end-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
       )}
       {open && (
-        <div className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-lg shadow-black/10">
+        <div className="absolute top-full start-0 end-0 z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-lg shadow-black/10">
           {hits.length === 0 ? (
             <p className="px-4 py-3 text-sm text-muted-foreground">
-              {q.trim().length < 2 ? "Type at least 2 characters" : "No subscribers match your search"}
+              {q.trim().length < 2 ? t("overview.search.tooShort") : t("overview.search.noMatches")}
             </p>
           ) : (
             <ul className="max-h-80 overflow-y-auto py-1">
@@ -102,7 +104,7 @@ export function ClientSearch({ className }: { className?: string }) {
                   <button
                     type="button"
                     onClick={() => go(hit)}
-                    className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted"
+                    className="flex w-full items-center gap-3 px-3 py-2 text-start transition-colors hover:bg-muted"
                   >
                     <Avatar className="size-8">
                       <AvatarFallback>{hit.name.slice(0, 2).toUpperCase()}</AvatarFallback>

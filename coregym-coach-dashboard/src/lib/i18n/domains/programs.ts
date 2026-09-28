@@ -1,6 +1,197 @@
-/* Domain dictionary: "programs". Fill en/ar with mirrored keys — every en key
-   MUST have the identical ar key path. */
+/* Domain dictionary: "programs" — weekly program library, program builder,
+   enrollment dialog and the regenerate button. Every en key MUST have the
+   identical ar key path. Reuses common.* for actions/empty states. */
 export const programs = {
-  en: {},
-  ar: {},
+  en: {
+    page: {
+      coachProfileMissing: "Coach profile missing",
+      coachProfileMissingBody:
+        "Programs are owned by your coach profile, which does not exist yet. Complete coach onboarding first.",
+      subtitle:
+        "Group your workout templates into a weekly schedule, then enroll clients — their daily workouts are generated for the whole duration automatically.",
+    },
+    list: {
+      createProgram: "Create Program",
+      emptyTitle: "No programs yet.",
+      emptyBody: "Build a weekly schedule from your workout templates, then enroll clients to generate their daily workouts.",
+      noDays: "No training days",
+      updated: "Updated {date}",
+      enroll: "Enroll",
+    },
+    weekdays: {
+      mon: "Monday",
+      tue: "Tuesday",
+      wed: "Wednesday",
+      thu: "Thursday",
+      fri: "Friday",
+      sat: "Saturday",
+      sun: "Sunday",
+      fallback: "Day {n}",
+    },
+    builder: {
+      editTitle: "Edit program",
+      createTitle: "Create program",
+      desc: "Pick one of your workout templates for each training day. Days left on “Rest” generate no workouts.",
+      namePlaceholder: "PPL Weekly",
+      descLabel: "Description (optional)",
+      descPlaceholder: "Push / Pull / Legs, three sessions per week.",
+      schedule: "Weekly schedule",
+      rest: "Rest",
+      noTemplates: "You have no workout templates yet — create one in Workouts first.",
+      saveChanges: "Save changes",
+      createSubmit: "Create program",
+    },
+    enroll: {
+      title: "Enroll client — {name}",
+      descOne:
+        "The workout for the full duration is generated immediately. The client sees it in the app like any other assigned workout.",
+      descMany:
+        "All {n} workouts for the full duration are generated immediately. The client sees them in the app like any other assigned workout.",
+      clientLabel: "Client (active subscribers)",
+      noClients: "No active subscribers yet.",
+      selectClient: "Select a client…",
+      clientFallback: "client",
+      thisClient: "This client",
+      startLabel: "Start date",
+      startHint: "Next Monday is pre-filled.",
+      durationLabel: "Duration (weeks)",
+      durationHint: "Fixed duration — {n} workouts.",
+      submitting: "Enrolling…",
+      submit: "Enroll client",
+    },
+    regenerate: {
+      button: "Update Remaining Weeks",
+      updating: "Updating…",
+      confirmOne:
+        "Replace {n} future “Assigned” workout with the program's current schedule?\n\nCompleted, started, skipped and past workouts are not touched.",
+      confirmMany:
+        "Replace {n} future “Assigned” workouts with the program's current schedule?\n\nCompleted, started, skipped and past workouts are not touched.",
+      hintOne: "{n} future assigned workout will be replaced.",
+      hintMany: "{n} future assigned workouts will be replaced.",
+      hintDisabled: "Available while the enrollment is active and has future assigned workouts.",
+    },
+    validate: {
+      nameRequired: "Program name is required",
+      needDay: "At least one weekday must have a template",
+      selectClient: "Select a client",
+      selectStartDate: "Select a start date",
+      durationPositive: "Duration must be a positive whole number of weeks",
+    },
+    confirm: {
+      deleteProgram: "Delete program “{name}”?",
+      replace:
+        "{client} already has an active program. Replace it with “{program}”? The current enrollment will be removed (logged history is kept).",
+    },
+    toast: {
+      programDeleted: "Program deleted",
+      programUpdated: "Program updated",
+      programCreated: "Program created",
+      enrolledOne: "{client} enrolled — 1 workout generated",
+      enrolledMany: "{client} enrolled — {n} workouts generated",
+      regeneratedOne: "1 workout updated",
+      regeneratedMany: "{n} workouts updated",
+    },
+    error: {
+      saveFailed: "Save failed",
+      deleteFailed: "Delete failed",
+      enrollFailed: "Enrollment failed",
+      removeCurrent: "Could not remove the current program",
+      regenerateFailed: "Regeneration failed",
+    },
+  },
+
+  ar: {
+    page: {
+      coachProfileMissing: "مفيش ملف كوتش",
+      coachProfileMissingBody: "البرامج مرتبطة بملف الكوتش بتاعك، وده لسه مش موجود. كمّل تسجيل الكوتش الأول.",
+      subtitle:
+        "اجمع قوالب التمارين في جدول أسبوعي، وبعدين سجّل عملاءك — تمارينهم اليومية هتتولد لوحدها للفترة كلها.",
+    },
+    list: {
+      createProgram: "إنشاء برنامج",
+      emptyTitle: "مفيش برامج لسه.",
+      emptyBody: "اعمل جدول أسبوعي من قوالب التمارين بتاعتك، وبعدين سجّل عملاءك علشان تمارينهم اليومية تتولد.",
+      noDays: "مفيش أيام تمرين",
+      updated: "آخر تحديث {date}",
+      enroll: "تسجيل عميل",
+    },
+    weekdays: {
+      mon: "الاتنين",
+      tue: "التلات",
+      wed: "الأربع",
+      thu: "الخميس",
+      fri: "الجمعة",
+      sat: "السبت",
+      sun: "الحد",
+      fallback: "يوم {n}",
+    },
+    builder: {
+      editTitle: "تعديل البرنامج",
+      createTitle: "إنشاء برنامج",
+      desc: "اختار قالب من قوالب التمارين لكل يوم تمرين. الأيام اللي هتفضل على «راحة» مش هتتولد ليها تمارين.",
+      namePlaceholder: "PPL أسبوعي",
+      descLabel: "الوصف (اختياري)",
+      descPlaceholder: "دفع / سحب / رجل، ثلاث حصص في الأسبوع.",
+      schedule: "الجدول الأسبوعي",
+      rest: "راحة",
+      noTemplates: "مفيش عندك قوالب تمارين لسه — اعمل واحد في صفحة التمارين الأول.",
+      saveChanges: "حفظ التعديلات",
+      createSubmit: "إنشاء البرنامج",
+    },
+    enroll: {
+      title: "تسجيل عميل — {name}",
+      descOne: "التمرين بتاع الفترة كلها هيتولد فورًا. العميل هيشوفه في التطبيق زي أي تمرين متحدد.",
+      descMany: "كل الـ {n} تمارين بتوع الفترة كلها هتتولد فورًا. العميل هيشوفهم في التطبيق زي أي تمرين متحدد.",
+      clientLabel: "العميل (المشتركين النشطين)",
+      noClients: "مفيش مشتركين نشطين لسه.",
+      selectClient: "اختار عميل…",
+      clientFallback: "العميل",
+      thisClient: "العميل ده",
+      startLabel: "تاريخ البداية",
+      startHint: "الاتنين الجاي متعبى تلقائيًا.",
+      durationLabel: "المدة (بالأسابيع)",
+      durationHint: "مدة ثابتة — {n} تمرين.",
+      submitting: "بيتم التسجيل…",
+      submit: "سجّل العميل",
+    },
+    regenerate: {
+      button: "تحديث الأسابيع المتبقية",
+      updating: "بيحدث…",
+      confirmOne:
+        "تستبدل التمرين «المحدد» الجاي بجدول البرنامج الحالي؟\n\nالتمارين المكتملة واللي بدأت والمتخطاة واللي فاتت مش هتتلمس.",
+      confirmMany:
+        "تستبدل {n} من التمارين «المحددة» الجاية بجدول البرنامج الحالي؟\n\nالتمارين المكتملة واللي بدأت والمتخطاة واللي فاتت مش هتتلمس.",
+      hintOne: "هيتم استبدال تمرين «محدد» جاي واحد.",
+      hintMany: "هيتم استبدال {n} تمرين «محدد» جاي.",
+      hintDisabled: "متاح ما دام الاشتراك نشط وعليه تمارين محددة جاية.",
+    },
+    validate: {
+      nameRequired: "اسم البرنامج مطلوب",
+      needDay: "لازم يوم واحد على الأقل يكون عليه قالب",
+      selectClient: "اختار عميل",
+      selectStartDate: "اختار تاريخ البداية",
+      durationPositive: "المدة لازم تكون عدد أسابيع صحيح أكبر من صفر",
+    },
+    confirm: {
+      deleteProgram: "تحذف برنامج “{name}”؟",
+      replace:
+        "{client} عنده بالفعل برنامج نشط. تستبدله بـ “{program}”؟ الاشتراك الحالي هيتشال (السجل المسجل هيفضل محفوظ).",
+    },
+    toast: {
+      programDeleted: "البرنامج اتحذف",
+      programUpdated: "البرنامج اتحدث",
+      programCreated: "البرنامج اتعمل",
+      enrolledOne: "{client} اتسجل — اتولد تمرين واحد",
+      enrolledMany: "{client} اتسجل — اتولد {n} تمرين",
+      regeneratedOne: "اتحدث تمرين واحد",
+      regeneratedMany: "اتحدث {n} تمرين",
+    },
+    error: {
+      saveFailed: "فشل الحفظ",
+      deleteFailed: "فشل الحذف",
+      enrollFailed: "فشل التسجيل",
+      removeCurrent: "مش قادرين نشيل البرنامج الحالي",
+      regenerateFailed: "فشل إعادة التوليد",
+    },
+  },
 } as const;

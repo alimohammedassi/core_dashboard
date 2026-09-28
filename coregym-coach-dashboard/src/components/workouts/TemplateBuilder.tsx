@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import type { WorkoutTemplate, WorkoutTemplateExercise } from "@/lib/supabase/types";
 import type { ExerciseCatalogItem } from "@/lib/workouts";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,7 +143,7 @@ function ExerciseNameInput({
             <li key={s.id}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                className="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onChange(s.name);
@@ -175,6 +176,7 @@ export function TemplateBuilder({
   onSaved: (t: WorkoutTemplate) => void;
 }) {
   const editing = seed?.editing ?? null;
+  const { t } = useI18n();
   const [name, setName] = React.useState(seed?.name ?? "");
   const [muscles, setMuscles] = React.useState<string[]>(seed?.muscles ?? []);
   const [customMuscle, setCustomMuscle] = React.useState("");
@@ -208,16 +210,16 @@ export function TemplateBuilder({
   }
 
   function validate(): string | null {
-    if (!name.trim()) return "Template name is required";
+    if (!name.trim()) return t("workouts.validate.nameRequired");
     const valid = rows.filter((r) => r.exercise_name.trim());
-    if (valid.length === 0) return "Add at least one exercise";
+    if (valid.length === 0) return t("workouts.validate.addExercise");
     for (const [i, r] of rows.filter((r) => r.exercise_name.trim() || r.target_sets).entries()) {
-      if (!r.exercise_name.trim()) return `Exercise ${i + 1}: name is required`;
+      if (!r.exercise_name.trim()) return t("workouts.validate.exerciseNameRequired", { n: i + 1 });
       const sets = Number(r.target_sets);
-      if (!Number.isFinite(sets) || sets <= 0) return `Exercise ${i + 1}: target sets must be greater than 0`;
-      if (r.target_reps && Number(r.target_reps) <= 0) return `Exercise ${i + 1}: target reps must be positive`;
-      if (r.target_weight_kg && Number(r.target_weight_kg) < 0) return `Exercise ${i + 1}: weight cannot be negative`;
-      if (r.rest_sec && Number(r.rest_sec) < 0) return `Exercise ${i + 1}: rest cannot be negative`;
+      if (!Number.isFinite(sets) || sets <= 0) return t("workouts.validate.setsPositive", { n: i + 1 });
+      if (r.target_reps && Number(r.target_reps) <= 0) return t("workouts.validate.repsPositive", { n: i + 1 });
+      if (r.target_weight_kg && Number(r.target_weight_kg) < 0) return t("workouts.validate.weightNegative", { n: i + 1 });
+      if (r.rest_sec && Number(r.rest_sec) < 0) return t("workouts.validate.restNegative", { n: i + 1 });
     }
     return null;
   }
@@ -255,12 +257,12 @@ export function TemplateBuilder({
         }
       );
       const saved = await res.json();
-      if (!res.ok) throw new Error(saved?.error ?? "Save failed");
+      if (!res.ok) throw new Error(saved?.error ?? t("workouts.error.saveFailed"));
       onSaved(saved as WorkoutTemplate);
-      toast.success(editing ? "Template updated" : "Template created");
+      toast.success(editing ? t("workouts.toast.templateUpdated") : t("workouts.toast.templateCreated"));
       onOpenChange(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("workouts.error.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -272,28 +274,26 @@ export function TemplateBuilder({
     <Dialog open={seed !== null} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit template" : "Create template"}</DialogTitle>
+          <DialogTitle>{editing ? t("workouts.builder.editTitle") : t("workouts.builder.createTitle")}</DialogTitle>
           <DialogDescription>
-            {editing
-              ? "Changes update the reusable template. Client performance history is never modified."
-              : "Define the prescription once, then assign it to any active client."}
+            {editing ? t("workouts.builder.editDesc") : t("workouts.builder.createDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="tpl-name">Name</Label>
+            <Label htmlFor="tpl-name">{t("common.table.name")}</Label>
             <Input
               id="tpl-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Push Day — Hypertrophy"
+              placeholder={t("workouts.builder.namePlaceholder")}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Target muscles</Label>
+            <Label>{t("workouts.builder.muscles")}</Label>
             <div className="flex flex-wrap gap-2">
               {allMuscleChips.map((m) => (
                 <button
@@ -320,36 +320,36 @@ export function TemplateBuilder({
                     addCustomMuscle();
                   }
                 }}
-                placeholder="Add custom muscle group…"
+                placeholder={t("workouts.builder.customMusclePlaceholder")}
                 className="h-8 text-sm"
               />
               <Button type="button" variant="outline" size="sm" className="h-8" onClick={addCustomMuscle}>
-                Add
+                {t("common.actions.add")}
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tpl-notes">General notes (optional)</Label>
+            <Label htmlFor="tpl-notes">{t("workouts.builder.notesLabel")}</Label>
             <Textarea
               id="tpl-notes"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Focus on controlled eccentric movement. Keep 1–2 reps in reserve."
+              placeholder={t("workouts.builder.notesPlaceholder")}
             />
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Exercises</Label>
+              <Label>{t("workouts.builder.exercises")}</Label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setRows((prev) => [...prev, blankRow()])}
               >
-                <Plus className="mr-1 size-3.5" /> Add exercise
+                <Plus className="me-1 size-3.5" /> {t("workouts.builder.addExercise")}
               </Button>
             </div>
 
@@ -365,7 +365,7 @@ export function TemplateBuilder({
                         value={row.exercise_name}
                         onChange={(v) => updateRow(row.key, { exercise_name: v })}
                         catalog={catalog}
-                        placeholder="Bench Press"
+                        placeholder={t("workouts.fields.exercisePlaceholder")}
                       />
                     </div>
                     <div className="flex items-center gap-1">
@@ -374,7 +374,7 @@ export function TemplateBuilder({
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        aria-label="Move up"
+                        aria-label={t("workouts.builder.moveUp")}
                         disabled={index === 0}
                         onClick={() => moveRow(index, -1)}
                       >
@@ -385,7 +385,7 @@ export function TemplateBuilder({
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        aria-label="Move down"
+                        aria-label={t("workouts.builder.moveDown")}
                         disabled={index === rows.length - 1}
                         onClick={() => moveRow(index, 1)}
                       >
@@ -396,7 +396,7 @@ export function TemplateBuilder({
                         variant="ghost"
                         size="icon"
                         className="size-7 text-destructive"
-                        aria-label="Remove exercise"
+                        aria-label={t("workouts.builder.removeExercise")}
                         onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
                       >
                         <Trash2 className="size-3.5" />
@@ -405,7 +405,7 @@ export function TemplateBuilder({
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Sets *</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.setsRequired")}</Label>
                       <Input
                         type="number"
                         min="1"
@@ -415,7 +415,7 @@ export function TemplateBuilder({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Reps</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.reps")}</Label>
                       <Input
                         type="number"
                         min="1"
@@ -425,7 +425,7 @@ export function TemplateBuilder({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.weight")}</Label>
                       <Input
                         type="number"
                         min="0"
@@ -436,7 +436,7 @@ export function TemplateBuilder({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Rest (sec)</Label>
+                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.rest")}</Label>
                       <Input
                         type="number"
                         min="0"
@@ -449,13 +449,13 @@ export function TemplateBuilder({
                   <Input
                     value={row.notes}
                     onChange={(e) => updateRow(row.key, { notes: e.target.value })}
-                    placeholder="Exercise notes (optional) — e.g. keep elbows slightly tucked"
+                    placeholder={t("workouts.fields.notesPlaceholder")}
                     className="h-8 text-sm"
                   />
                 </div>
               ))}
               {rows.length === 0 && (
-                <p className="text-sm text-muted-foreground">No exercises yet — add the first one.</p>
+                <p className="text-sm text-muted-foreground">{t("workouts.builder.emptyRows")}</p>
               )}
             </div>
           </div>
@@ -463,10 +463,14 @@ export function TemplateBuilder({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {t("common.actions.cancel")}
           </Button>
           <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : editing ? "Save changes" : "Create template"}
+            {saving
+              ? t("common.actions.saving")
+              : editing
+                ? t("workouts.builder.saveChanges")
+                : t("workouts.builder.createSubmit")}
           </Button>
         </DialogFooter>
       </DialogContent>

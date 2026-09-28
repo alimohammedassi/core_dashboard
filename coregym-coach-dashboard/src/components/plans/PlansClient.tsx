@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n/client";
 
 export function PlansClient({
   initialPlans,
@@ -16,6 +17,7 @@ export function PlansClient({
   initialPlans: SubscriptionPlan[];
   coachId: string;
 }) {
+  const { t, fmt } = useI18n();
   const [plans, setPlans] = React.useState(initialPlans);
   const [editing, setEditing] = React.useState<SubscriptionPlan | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -42,7 +44,7 @@ export function PlansClient({
     };
 
     if (!payload.name || payload.price_usd < 0) {
-      toast.error("Name and valid price required");
+      toast.error(t("plans.toasts.invalid"));
       return;
     }
 
@@ -55,18 +57,18 @@ export function PlansClient({
         body: JSON.stringify(editing ? { ...payload, id: editing.id } : payload),
       });
       const saved = await res.json();
-      if (!res.ok) throw new Error(saved?.error ?? "Save failed");
+      if (!res.ok) throw new Error(saved?.error ?? t("plans.toasts.saveFailed"));
       if (editing) {
         setPlans((prev) => prev.map((p) => (p.id === editing.id ? (saved as SubscriptionPlan) : p)));
-        toast.success("Plan updated");
+        toast.success(t("plans.toasts.updated"));
       } else {
         setPlans((prev) => [saved as SubscriptionPlan, ...prev]);
-        toast.success("Plan created");
+        toast.success(t("plans.toasts.created"));
       }
       setOpen(false);
       setEditing(null);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("plans.toasts.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -92,18 +94,18 @@ export function PlansClient({
             if (!v) setEditing(null);
           }}
         >
-          <DialogTrigger render={<Button onClick={startCreate}>Create plan</Button>} />
+          <DialogTrigger render={<Button onClick={startCreate}>{t("plans.createAction")}</Button>} />
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editing ? "Edit plan" : "Create plan"}</DialogTitle>
+              <DialogTitle>{editing ? t("plans.form.editTitle") : t("plans.form.createTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" defaultValue={editing?.name ?? ""} required placeholder="Starter — 1 Month" />
+                <Label htmlFor="name">{t("common.table.name")}</Label>
+                <Input id="name" name="name" defaultValue={editing?.name ?? ""} required placeholder={t("plans.form.namePlaceholder")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="price">Price (USD)</Label>
+                <Label htmlFor="price">{t("plans.form.price")}</Label>
                 <Input
                   id="price"
                   name="price"
@@ -116,22 +118,22 @@ export function PlansClient({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="duration_days">Duration (days)</Label>
+                <Label htmlFor="duration_days">{t("plans.form.durationDays")}</Label>
                 <Input id="duration_days" name="duration_days" type="number" min="1" defaultValue={editing?.duration_days ?? 30} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="max_clients">Max clients (optional)</Label>
+                <Label htmlFor="max_clients">{t("plans.form.maxClients")}</Label>
                 <Input
                   id="max_clients"
                   name="max_clients"
                   type="number"
                   min="1"
                   defaultValue={editing?.max_clients ?? ""}
-                  placeholder="Leave empty for unlimited"
+                  placeholder={t("plans.form.maxClientsPlaceholder")}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={saving}>
-                {saving ? "Saving…" : editing ? "Save changes" : "Create plan"}
+                {saving ? t("common.actions.saving") : editing ? t("plans.form.saveChanges") : t("plans.createAction")}
               </Button>
             </form>
           </DialogContent>
@@ -146,20 +148,20 @@ export function PlansClient({
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <span className="text-2xl font-bold">${Number(p.price_usd).toFixed(2)}</span>
-                <span className="text-sm text-muted-foreground"> / {p.duration_days} days</span>
+                <span className="text-2xl font-bold">{fmt.money(Number(p.price_usd) * 100)}</span>
+                <span className="text-sm text-muted-foreground"> {t("plans.card.perDays", { n: p.duration_days })}</span>
               </div>
               {p.max_clients != null && (
-                <p className="text-xs text-muted-foreground">Up to {p.max_clients} clients</p>
+                <p className="text-xs text-muted-foreground">{t("plans.card.upToClients", { n: p.max_clients })}</p>
               )}
               <Button variant="outline" size="sm" className="w-full" onClick={() => startEdit(p)}>
-                Edit
+                {t("common.actions.edit")}
               </Button>
               <p className="text-xs text-muted-foreground font-mono truncate">{p.id}</p>
             </CardContent>
           </Card>
         ))}
-        {plans.length === 0 && <p className="text-sm text-muted-foreground">No plans yet. Create your first plan.</p>}
+        {plans.length === 0 && <p className="text-sm text-muted-foreground">{t("plans.empty")}</p>}
       </div>
     </>
   );

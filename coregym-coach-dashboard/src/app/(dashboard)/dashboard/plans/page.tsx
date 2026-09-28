@@ -5,6 +5,7 @@ import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "
 import { Pager } from "@/components/dashboard/Pager";
 import { PlansClient } from "@/components/plans/PlansClient";
 import { Badge } from "@/components/ui/badge";
+import { getI18n } from "@/lib/i18n/server";
 import type { SubscriptionPlan } from "@/lib/supabase/types";
 
 export default async function PlansPage({
@@ -12,6 +13,7 @@ export default async function PlansPage({
 }: {
   searchParams?: Promise<{ page?: string }>;
 }) {
+  const { t } = await getI18n();
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -49,8 +51,11 @@ export default async function PlansPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Subscription plans</h1>
-          <p className="text-sm text-muted-foreground">Create and edit your coaching plans. Writes go to <code className="font-mono">subscription_plans</code>.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("plans.page.title")}</h1>
+          <p className="text-sm text-muted-foreground">
+            {t("plans.page.subtitle")}{" "}
+            <code className="font-mono">subscription_plans</code>
+          </p>
         </div>
         {error && (
           <Badge variant="outline" className="text-red-700 border-red-200 bg-red-50">

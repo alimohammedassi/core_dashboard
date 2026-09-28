@@ -7,6 +7,8 @@ import { CalendarPlus, Pencil, Trash2, Users } from "lucide-react";
 import type { CoachProgram } from "@/lib/programs";
 import type { ActiveClient } from "@/lib/workouts";
 import { generateEnrollmentDates, nextMonday } from "@/lib/program-dates";
+import { useI18n } from "@/lib/i18n/client";
+import type { TFn } from "@/lib/i18n/dictionary";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +24,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Weekday dictionary keys, indexed by day_of_week - 1 (1 = Monday … 7 = Sunday).
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 type TemplateOption = { id: string; name: string };
 
@@ -54,6 +57,7 @@ export function ProgramsClient({
   templates: TemplateOption[];
 }) {
   const router = useRouter();
+  const { t, fmt } = useI18n();
   const [programs, setPrograms] = React.useState(initialPrograms);
   const [builderSeed, setBuilderSeed] = React.useState<BuilderSeed | null>(null);
   const [builderNonce, setBuilderNonce] = React.useState(0);
@@ -68,16 +72,17 @@ export function ProgramsClient({
   }
 
   async function handleDelete(program: CoachProgram) {
-    if (!window.confirm(`Delete program “${program.name}”? This cannot be undone.`)) return;
+    if (!window.confirm(`${t("programs.confirm.deleteProgram", { name: program.name })} ${t("common.confirm.cannotUndo")}`))
+      return;
     setBusyId(program.id);
     try {
       const res = await fetch(`/api/coach-programs?id=${encodeURIComponent(program.id)}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Delete failed");
+      if (!res.ok) throw new Error(body?.error ?? t("programs.error.deleteFailed"));
       setPrograms((prev) => prev.filter((p) => p.id !== program.id));
-      toast.success("Program deleted");
+      toast.success(t("programs.toast.programDeleted"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("programs.error.deleteFailed"));
     } finally {
       setBusyId(null);
     }
@@ -92,7 +97,7 @@ export function ProgramsClient({
             setBuilderNonce((n) => n + 1);
           }}
         >
-          Create Program
+          {t("programs.list.createProgram")}
         </Button>
       </div>
 
@@ -101,12 +106,8 @@ export function ProgramsClient({
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <Users className="size-8 text-muted-foreground" />
             <div className="space-y-1">
-              <p className="font-medium">No programs yet.</p>
-              <p className="text-sm text-muted-foreground">
-                Build a weekly schedule from your workout templates,
-                <br />
-                then enroll clients to generate their daily workouts.
-              </p>
+              <p className="font-medium">{t("programs.list.emptyTitle")}</p>
+              <p className="text-sm text-muted-foreground">{t("programs.list.emptyBody")}</p>
             </div>
             <Button
               onClick={() => {
@@ -114,7 +115,7 @@ export function ProgramsClient({
                 setBuilderNonce((n) => n + 1);
               }}
             >
-              Create Program
+              {t("programs.list.createProgram")}
             </Button>
           </CardContent>
         </Card>
@@ -129,16 +130,18 @@ export function ProgramsClient({
               <CardContent className="flex flex-1 flex-col gap-3">
                 <div className="flex flex-wrap gap-1.5">
                   {p.days.length === 0 ? (
-                    <Badge variant="secondary">No training days</Badge>
+                    <Badge variant="secondary">{t("programs.list.noDays")}</Badge>
                   ) : (
                     p.days.map((d) => (
                       <Badge key={d.id} variant="secondary" className="rounded-full">
-                        {weekdayShort(d.day_of_week)} · {d.templateName ?? "—"}
+                        {weekdayShort(d.day_of_week, t)} · {d.templateName ?? "—"}
                       </Badge>
                     ))
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">Updated {new Date(p.updated_at).toLocaleDateString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("programs.list.updated", { date: fmt.date(p.updated_at) })}
+                </p>
                 <div className="mt-auto grid grid-cols-3 gap-2">
                   <Button
                     variant="outline"
@@ -149,10 +152,10 @@ export function ProgramsClient({
                       setBuilderNonce((n) => n + 1);
                     }}
                   >
-                    <Pencil className="mr-1 size-3.5" /> Edit
+                    <Pencil className="me-1 size-3.5" /> {t("common.actions.edit")}
                   </Button>
                   <Button size="sm" disabled={busyId === p.id} onClick={() => setEnrollSeed(p)}>
-                    <CalendarPlus className="mr-1 size-3.5" /> Enroll
+                    <CalendarPlus className="me-1 size-3.5" /> {t("programs.list.enroll")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -161,7 +164,7 @@ export function ProgramsClient({
                     disabled={busyId === p.id}
                     onClick={() => handleDelete(p)}
                   >
-                    <Trash2 className="mr-1 size-3.5" /> Delete
+                    <Trash2 className="me-1 size-3.5" /> {t("common.actions.delete")}
                   </Button>
                 </div>
               </CardContent>
@@ -195,8 +198,11 @@ export function ProgramsClient({
   );
 }
 
-function weekdayShort(dayOfWeek: number): string {
-  return WEEKDAYS[dayOfWeek - 1] ?? `Day ${dayOfWeek}`;
+function weekdayShort(dayOfWeek: number, t: TFn): string {
+  const key = WEEKDAY_KEYS[dayOfWeek - 1];
+  return key
+    ? t(`programs.weekdays.${key}`)
+    : t("programs.weekdays.fallback", { n: dayOfWeek });
 }
 
 // ── Program builder ──────────────────────────────────────────────────────────
@@ -212,6 +218,7 @@ function ProgramBuilder({
   onOpenChange: (v: boolean) => void;
   onSaved: (p: CoachProgram) => void;
 }) {
+  const { t } = useI18n();
   const [name, setName] = React.useState(seed.name);
   const [description, setDescription] = React.useState(seed.description);
   const [days, setDays] = React.useState<Record<number, string>>(seed.days);
@@ -221,11 +228,11 @@ function ProgramBuilder({
 
   async function handleSave() {
     if (!name.trim()) {
-      toast.error("Program name is required");
+      toast.error(t("programs.validate.nameRequired"));
       return;
     }
     if (usedCount === 0) {
-      toast.error("At least one weekday must have a template");
+      toast.error(t("programs.validate.needDay"));
       return;
     }
     setSaving(true);
@@ -239,12 +246,12 @@ function ProgramBuilder({
         body: JSON.stringify({ ...(seed.editing ? { id: seed.editing.id } : {}), name: name.trim(), description: description.trim() || null, days: daysPayload }),
       });
       const saved = await res.json();
-      if (!res.ok) throw new Error(saved?.error ?? "Save failed");
+      if (!res.ok) throw new Error(saved?.error ?? t("programs.error.saveFailed"));
       onSaved(saved as CoachProgram);
-      toast.success(seed.editing ? "Program updated" : "Program created");
+      toast.success(seed.editing ? t("programs.toast.programUpdated") : t("programs.toast.programCreated"));
       onOpenChange(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("programs.error.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -254,36 +261,34 @@ function ProgramBuilder({
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{seed.editing ? "Edit program" : "Create program"}</DialogTitle>
-          <DialogDescription>
-            Pick one of your workout templates for each training day. Days left on “Rest” generate no workouts.
-          </DialogDescription>
+          <DialogTitle>{seed.editing ? t("programs.builder.editTitle") : t("programs.builder.createTitle")}</DialogTitle>
+          <DialogDescription>{t("programs.builder.desc")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="prog-name">Name</Label>
-            <Input id="prog-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="PPL Weekly" />
+            <Label htmlFor="prog-name">{t("common.table.name")}</Label>
+            <Input id="prog-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("programs.builder.namePlaceholder")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="prog-desc">Description (optional)</Label>
+            <Label htmlFor="prog-desc">{t("programs.builder.descLabel")}</Label>
             <Textarea
               id="prog-desc"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Push / Pull / Legs, three sessions per week."
+              placeholder={t("programs.builder.descPlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Weekly schedule</Label>
+            <Label>{t("programs.builder.schedule")}</Label>
             <div className="space-y-2">
-              {WEEKDAYS.map((label, idx) => {
+              {WEEKDAY_KEYS.map((key, idx) => {
                 const dow = idx + 1;
                 return (
                   <div key={dow} className="flex items-center gap-3">
-                    <span className="w-20 text-sm font-medium">{label}</span>
+                    <span className="w-20 text-sm font-medium">{t(`programs.weekdays.${key}`)}</span>
                     <select
                       value={days[dow] ?? ""}
                       onChange={(e) =>
@@ -296,10 +301,10 @@ function ProgramBuilder({
                       }
                       className="h-8 flex-1 rounded-md border bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
-                      <option value="">Rest</option>
-                      {templates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
+                      <option value="">{t("programs.builder.rest")}</option>
+                      {templates.map((tpl) => (
+                        <option key={tpl.id} value={tpl.id}>
+                          {tpl.name}
                         </option>
                       ))}
                     </select>
@@ -308,19 +313,21 @@ function ProgramBuilder({
               })}
             </div>
             {templates.length === 0 && (
-              <p className="text-xs text-destructive">
-                You have no workout templates yet — create one in Workouts first.
-              </p>
+              <p className="text-xs text-destructive">{t("programs.builder.noTemplates")}</p>
             )}
           </div>
         </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {t("common.actions.cancel")}
           </Button>
           <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : seed.editing ? "Save changes" : "Create program"}
+            {saving
+              ? t("common.actions.saving")
+              : seed.editing
+                ? t("programs.builder.saveChanges")
+                : t("programs.builder.createSubmit")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -346,6 +353,7 @@ function EnrollDialog({
   onOpenChange: (v: boolean) => void;
   onEnrolled?: () => void;
 }) {
+  const { t } = useI18n();
   const [clientId, setClientId] = React.useState("");
   const [startDate, setStartDate] = React.useState(() => nextMonday(todayLocal()));
   const [durationWeeks, setDurationWeeks] = React.useState("8");
@@ -356,17 +364,26 @@ function EnrollDialog({
   const expected =
     Number.isInteger(duration) && duration > 0 ? generateEnrollmentDates(startDate, duration, trainingDays).length : 0;
 
+  // Reusable enrolled-toast: picks the singular/plural copy on the generated count.
+  function enrolledToast(generated: number, clientName: string) {
+    toast.success(
+      generated === 1
+        ? t("programs.toast.enrolledOne", { client: clientName })
+        : t("programs.toast.enrolledMany", { client: clientName, n: generated })
+    );
+  }
+
   async function handleSubmit() {
     if (!clientId) {
-      toast.error("Select a client");
+      toast.error(t("programs.validate.selectClient"));
       return;
     }
     if (!startDate) {
-      toast.error("Select a start date");
+      toast.error(t("programs.validate.selectStartDate"));
       return;
     }
     if (!Number.isInteger(duration) || duration <= 0) {
-      toast.error("Duration must be a positive whole number of weeks");
+      toast.error(t("programs.validate.durationPositive"));
       return;
     }
     setSubmitting(true);
@@ -385,9 +402,9 @@ function EnrollDialog({
       if (!res.ok) {
         // One active program per client: offer to replace it.
         if (res.status === 409 && body?.existing_enrollment_id) {
-          const clientName = clients.find((c) => c.clientId === clientId)?.name ?? "This client";
+          const clientName = clients.find((c) => c.clientId === clientId)?.name ?? t("programs.enroll.thisClient");
           const replace = window.confirm(
-            `${clientName} already has an active program. Replace it with “${seed.name}”? The current enrollment will be removed (logged history is kept).`
+            t("programs.confirm.replace", { client: clientName, program: seed.name })
           );
           if (!replace) return;
           const del = await fetch(
@@ -395,7 +412,7 @@ function EnrollDialog({
             { method: "DELETE" }
           );
           const delBody = await del.json();
-          if (!del.ok) throw new Error(delBody?.error ?? "Could not remove the current program");
+          if (!del.ok) throw new Error(delBody?.error ?? t("programs.error.removeCurrent"));
           const retry = await fetch("/api/program-enrollments", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -407,20 +424,20 @@ function EnrollDialog({
             }),
           });
           const retryBody = await retry.json();
-          if (!retry.ok) throw new Error(retryBody?.error ?? "Enrollment failed");
-          toast.success(`${clientName} enrolled — ${retryBody.generated ?? expected} workouts generated`);
+          if (!retry.ok) throw new Error(retryBody?.error ?? t("programs.error.enrollFailed"));
+          enrolledToast(Number(retryBody.generated ?? expected), clientName);
           onOpenChange(false);
           onEnrolled?.();
           return;
         }
-        throw new Error(body?.error ?? "Enrollment failed");
+        throw new Error(body?.error ?? t("programs.error.enrollFailed"));
       }
-      const clientName = clients.find((c) => c.clientId === clientId)?.name ?? "client";
-      toast.success(`${clientName} enrolled — ${body.generated ?? expected} workouts generated`);
+      const clientName = clients.find((c) => c.clientId === clientId)?.name ?? t("programs.enroll.clientFallback");
+      enrolledToast(Number(body.generated ?? expected), clientName);
       onOpenChange(false);
       onEnrolled?.();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Enrollment failed");
+      toast.error(err instanceof Error ? err.message : t("programs.error.enrollFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -430,18 +447,19 @@ function EnrollDialog({
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Enroll client — {seed.name}</DialogTitle>
+          <DialogTitle>{t("programs.enroll.title", { name: seed.name })}</DialogTitle>
           <DialogDescription>
-            All {expected} workout{expected === 1 ? "" : "s"} for the full duration are generated immediately. The
-            client sees them in the app like any other assigned workout.
+            {expected === 1
+              ? t("programs.enroll.descOne")
+              : t("programs.enroll.descMany", { n: expected })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="enroll-client">Client (active subscribers)</Label>
+            <Label htmlFor="enroll-client">{t("programs.enroll.clientLabel")}</Label>
             {clients.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No active subscribers yet.</p>
+              <p className="text-sm text-muted-foreground">{t("programs.enroll.noClients")}</p>
             ) : (
               <select
                 id="enroll-client"
@@ -449,7 +467,7 @@ function EnrollDialog({
                 onChange={(e) => setClientId(e.target.value)}
                 className="h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
-                <option value="">Select a client…</option>
+                <option value="">{t("programs.enroll.selectClient")}</option>
                 {clients.map((c) => (
                   <option key={c.clientId} value={c.clientId}>
                     {c.name}
@@ -461,17 +479,17 @@ function EnrollDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="enroll-start">Start date</Label>
+              <Label htmlFor="enroll-start">{t("programs.enroll.startLabel")}</Label>
               <Input
                 id="enroll-start"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Next Monday is pre-filled.</p>
+              <p className="text-xs text-muted-foreground">{t("programs.enroll.startHint")}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="enroll-weeks">Duration (weeks)</Label>
+              <Label htmlFor="enroll-weeks">{t("programs.enroll.durationLabel")}</Label>
               <Input
                 id="enroll-weeks"
                 type="number"
@@ -479,17 +497,19 @@ function EnrollDialog({
                 value={durationWeeks}
                 onChange={(e) => setDurationWeeks(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Fixed duration — {expected} workouts.</p>
+              <p className="text-xs text-muted-foreground">
+                {t("programs.enroll.durationHint", { n: expected })}
+              </p>
             </div>
           </div>
         </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
+            {t("common.actions.cancel")}
           </Button>
           <Button type="button" onClick={handleSubmit} disabled={submitting || clients.length === 0}>
-            {submitting ? "Enrolling…" : "Enroll client"}
+            {submitting ? t("programs.enroll.submitting") : t("programs.enroll.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -41,7 +41,7 @@ export function SidebarNav({ items, layout = "sidebar" }: { items: NavItem[]; la
 
   if (layout === "topbar") {
     return (
-      <nav className="ml-auto flex gap-1 overflow-x-auto">
+      <nav className="ms-auto flex gap-1 overflow-x-auto">
         {items.map((item) => {
           const active = isActive(item.href);
           return (
@@ -78,7 +78,7 @@ export function SidebarNav({ items, layout = "sidebar" }: { items: NavItem[]; la
             }`}
           >
             {active && (
-              <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
+              <span className="absolute start-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
             )}
             <Icon className={`size-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
             {item.label}

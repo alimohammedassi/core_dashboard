@@ -4,7 +4,9 @@ import { resolveCoachId } from "@/lib/coach";
 import { loadActiveClients, loadExerciseCatalog } from "@/lib/workouts";
 import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "@/lib/pagination";
 import { Pager } from "@/components/dashboard/Pager";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";import { WorkoutsClient } from "@/components/workouts/WorkoutsClient";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WorkoutsClient } from "@/components/workouts/WorkoutsClient";
+import { getI18n } from "@/lib/i18n/server";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +18,7 @@ export default async function WorkoutsPage({
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const { t } = await getI18n();
 
   if (!user) return null;
 
@@ -55,14 +58,11 @@ export default async function WorkoutsPage({
   if (!hasCoachRow) {
     return (
       <div className="max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Workouts</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.workouts")}</h1>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Coach profile missing</CardTitle>
-            <CardDescription>
-              Workout templates are owned by your coach profile, which does not exist yet. Complete coach onboarding
-              first, then come back to build your template library.
-            </CardDescription>
+            <CardTitle className="text-base">{t("workouts.page.coachProfileMissing")}</CardTitle>
+            <CardDescription>{t("workouts.page.coachProfileMissingBody")}</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -72,10 +72,8 @@ export default async function WorkoutsPage({
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Workouts</h1>
-        <p className="text-sm text-muted-foreground">
-          Your reusable workout templates. Build once, assign to any active client, then review their performance.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.workouts")}</h1>
+        <p className="text-sm text-muted-foreground">{t("workouts.page.subtitle")}</p>
       </div>
       <WorkoutsClient initialTemplates={templates} clients={clients} catalog={catalog} />
       <Pager basePath="/dashboard/workouts" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />

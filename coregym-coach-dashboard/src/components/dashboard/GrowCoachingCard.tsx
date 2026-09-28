@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sparkles, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n/client";
 
 // Sidebar bottom card (reference layout's "Upgrade to Premium!" slot).
 // Stripe configured → lime CTA starts Connect onboarding; already connected →
@@ -16,6 +17,7 @@ export function GrowCoachingCard({
   connected: boolean;
 }) {
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
 
   async function connect() {
     setLoading(true);
@@ -26,9 +28,9 @@ export function GrowCoachingCard({
         window.location.href = data.url;
         return;
       }
-      toast.error(data.error ?? "Could not start Stripe onboarding");
+      toast.error(data.error ?? t("overview.grow.errorStripe"));
     } catch {
-      toast.error("Could not reach the server");
+      toast.error(t("overview.grow.errorServer"));
     } finally {
       setLoading(false);
     }
@@ -39,18 +41,18 @@ export function GrowCoachingCard({
       <div className="flex size-8 items-center justify-center rounded-xl bg-primary/15 text-primary">
         <Sparkles className="size-4" />
       </div>
-      <p className="mt-3 text-sm leading-snug font-semibold">Grow your coaching!</p>
+      <p className="mt-3 text-sm leading-snug font-semibold">{t("overview.grow.title")}</p>
       <p className="mt-1 text-xs leading-snug text-muted-foreground">
         {connected
-          ? "Payouts are connected — manage plans and take on more clients."
-          : "Connect payouts to get paid directly for your plans."}
+          ? t("overview.grow.connectedBody")
+          : t("overview.grow.connectBody")}
       </p>
       {connected ? (
         <Link
           href="/dashboard/revenue"
           className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-cta text-xs font-bold text-primary-foreground transition-opacity hover:opacity-90"
         >
-          <CheckCircle2 className="size-3.5" /> View payouts
+          <CheckCircle2 className="size-3.5" /> {t("overview.grow.viewPayouts")}
         </Link>
       ) : stripeReady ? (
         <button
@@ -60,14 +62,14 @@ export function GrowCoachingCard({
           className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-cta text-xs font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {loading ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
-          Connect payouts
+          {t("overview.grow.connectCta")}
         </button>
       ) : (
         <Link
           href="/dashboard/settings"
           className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-cta text-xs font-bold text-primary-foreground transition-opacity hover:opacity-90"
         >
-          <ArrowRight className="size-3.5" /> Go to Settings
+          <ArrowRight className="size-3.5" /> {t("overview.grow.goSettings")}
         </Link>
       )}
     </div>

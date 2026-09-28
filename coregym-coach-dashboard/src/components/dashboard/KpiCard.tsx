@@ -3,6 +3,7 @@
 import { cn } from "cn";
 import { TrendingUp, TrendingDown, Users, CalendarCheck, DollarSign, UserPlus, type LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useI18n } from "@/lib/i18n/client";
 
 const ICONS: Record<string, LucideIcon> = { Users, CalendarCheck, DollarSign, UserPlus };
 
@@ -17,6 +18,7 @@ export type KpiCardProps = {
 };
 
 export function KpiCard({ label, value, trend, trendLabel, icon, iconBg, className }: KpiCardProps) {
+  const { fmt } = useI18n();
   const Icon = ICONS[icon] ?? Users;
   const isUp = trend !== undefined && trend >= 0;
 
@@ -56,7 +58,7 @@ export function KpiCard({ label, value, trend, trendLabel, icon, iconBg, classNa
           >
             {isUp ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
             {isUp ? "+" : ""}
-            {trend.toFixed(1)}%
+            {fmt.percent(Math.abs(trend))}
           </span>
         )}
       </div>

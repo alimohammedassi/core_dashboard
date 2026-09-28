@@ -7,23 +7,26 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarNav } from "@/components/dashboard/SidebarNav";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
+import { LangToggle } from "@/components/dashboard/LangToggle";
 import { Dumbbell, LogOut } from "lucide-react";
+import { getI18n } from "@/lib/i18n/server";
 
 const nav = [
-  { href: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
-  { href: "/dashboard/workouts", label: "Workouts", icon: "ClipboardList" },
-  { href: "/dashboard/programs", label: "Programs", icon: "CalendarDays" },
-  { href: "/dashboard/nutrition", label: "Nutrition", icon: "Apple" },
-  { href: "/dashboard/chat", label: "Chat", icon: "MessageSquare" },
-  { href: "/dashboard/subscribers", label: "Subscribers", icon: "Users" },
-  { href: "/dashboard/plans", label: "Plans", icon: "CreditCard" },
-  { href: "/dashboard/revenue", label: "Revenue", icon: "CreditCard" },
-  { href: "/dashboard/settings", label: "Settings", icon: "Settings" },
-];
+  { href: "/dashboard", labelKey: "overview", icon: "LayoutDashboard" },
+  { href: "/dashboard/workouts", labelKey: "workouts", icon: "ClipboardList" },
+  { href: "/dashboard/programs", labelKey: "programs", icon: "CalendarDays" },
+  { href: "/dashboard/nutrition", labelKey: "nutrition", icon: "Apple" },
+  { href: "/dashboard/chat", labelKey: "chat", icon: "MessageSquare" },
+  { href: "/dashboard/subscribers", labelKey: "subscribers", icon: "Users" },
+  { href: "/dashboard/plans", labelKey: "plans", icon: "CreditCard" },
+  { href: "/dashboard/revenue", labelKey: "revenue", icon: "CreditCard" },
+  { href: "/dashboard/settings", labelKey: "settings", icon: "Settings" },
+] as const;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const { t } = await getI18n();
 
   if (!user) {
     redirect("/login");
@@ -69,14 +72,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return (
       <div className="flex min-h-svh items-center justify-center p-8">
         <div className="max-w-md text-center space-y-4 border rounded-xl p-8">
-          <h1 className="text-xl font-semibold">Access denied</h1>
+          <h1 className="text-xl font-semibold">{t("common.shell.accessDenied")}</h1>
           <p className="text-sm text-muted-foreground">
-            Your account role is <span className="font-mono font-medium">{role}</span>. Only coaches can access this
-            dashboard.
+            {t("common.shell.notCoach", { role: role })}
           </p>
           <form action="/api/auth/signout" method="post">
             <Button type="submit" variant="outline">
-              Sign out
+              {t("common.shell.signOut")}
             </Button>
           </form>
         </div>
@@ -89,14 +91,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return (
       <div className="flex min-h-svh items-center justify-center p-8">
         <div className="max-w-md text-center space-y-4 border rounded-xl p-8">
-          <h1 className="text-xl font-semibold">Access denied</h1>
-          <p className="text-sm text-muted-foreground">
-            Your account could not be verified as a coach. Please sign out and try again,
-            or contact support.
-          </p>
+          <h1 className="text-xl font-semibold">{t("common.shell.accessDenied")}</h1>
+          <p className="text-sm text-muted-foreground">{t("common.shell.notVerified")}</p>
           <form action="/api/auth/signout" method="post">
             <Button type="submit" variant="outline">
-              Sign out
+              {t("common.shell.signOut")}
             </Button>
           </form>
         </div>
@@ -130,9 +129,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Dumbbell className="size-4" />
           </div>
           <span className="font-semibold tracking-tight">CoreGym</span>
-          <span className="text-xs text-muted-foreground ml-1">Coach</span>
+          <span className="text-xs text-muted-foreground ms-1">{t("common.shell.coach")}</span>
         </div>
-        <SidebarNav items={nav} />
+        <SidebarNav items={nav.map((item) => ({ href: item.href, label: t(`common.nav.${item.labelKey}`), icon: item.icon }))} />
         <Separator />
         <div className="p-3 flex items-center gap-3">
           <Avatar className="size-8">
@@ -142,15 +141,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <p className="text-sm font-medium truncate">{displayName}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
+          <LangToggle />
           <ThemeToggle />
           <form action="/api/auth/signout" method="post">
-            <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
+            <Button type="submit" variant="ghost" size="icon" aria-label={t("common.shell.signOut")}>
               <LogOut className="size-4" />
             </Button>
           </form>
         </div>
         {!isCoach && (
-          <p className="px-3 pb-3 text-xs text-amber-600">Dev: coach check bypassed (schema not applied).</p>
+          <p className="px-3 pb-3 text-xs text-amber-600">{t("common.shell.devBypass")}</p>
         )}
       </aside>
 
@@ -158,8 +158,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex flex-1 flex-col min-w-0">
         <header className="flex h-14 items-center gap-2 border-b px-4 md:hidden">
           <Dumbbell className="size-5" />
-          <span className="font-semibold">CoreGym Coach</span>
-          <SidebarNav items={nav} layout="topbar" />
+          <span className="font-semibold">CoreGym {t("common.shell.coach")}</span>
+          <SidebarNav items={nav.map((item) => ({ href: item.href, label: t(`common.nav.${item.labelKey}`), icon: item.icon }))} layout="topbar" />
         </header>
         <main className="flex-1 bg-muted/20 p-4 md:p-6">{children}</main>
       </div>
