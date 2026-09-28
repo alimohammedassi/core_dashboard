@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
+// PostgREST error codes that mean "dedupe infrastructure is not in place".
+// STR-02: these now fail VISIBLY (503) instead of silently degrading — a
+// missing stripe_webhook_events table after this deploy is a misconfiguration
+// that must page someone, not quietly disable replay protection.
+const DEDUPE_MISSING_CODES = new Set(["42P01", "PGRST205", "PGRST204"]);
+
+function isMissingTableError(err: unknown): boolean {
+  const code = (err as { code?: string }).code;
+  return !!code && DEDUPE_MISSING_CODES.has(code);
+}
+
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -33,20 +44,25 @@ export async function POST(req: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // S3 replay protection: skip events already processed (Stripe retries
-  // deliveries; out-of-order subscription events must not regress status).
-  // If the stripe_webhook_events table is not migrated yet, log and continue
-  // (dedupe degrades, signature verification does not).
-  try {
-    const { data: seen } = await supabase
-      .from("stripe_webhook_events")
-      .select("event_id")
-      .eq("event_id", event.id)
-      .maybeSingle();
-    if (seen) return NextResponse.json({ received: true, duplicate: true });
-  } catch (e: unknown) {
-    console.error("[stripe-webhook] dedupe check failed (table may be unmigrated)", e);
+  // STR-02: event timestamp, used as the ordering watermark below.
+  const eventTs = new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString();
+
+  // Replay protection pre-check: skip events already recorded as processed.
+  // A missing table is now a hard 503 (fail-visible) instead of "log and
+  // continue"; other infra errors are 500 so Stripe retries.
+  const { data: seen, error: seenErr } = await supabase
+    .from("stripe_webhook_events")
+    .select("event_id")
+    .eq("event_id", event.id)
+    .maybeSingle();
+  if (seenErr) {
+    console.error("[stripe-webhook] dedupe check failed", seenErr);
+    if (isMissingTableError(seenErr)) {
+      return NextResponse.json({ error: "Webhook dedupe table missing — apply str02 migration" }, { status: 503 });
+    }
+    return NextResponse.json({ error: "Webhook dedupe check failed" }, { status: 500 });
   }
+  if (seen) return NextResponse.json({ received: true, duplicate: true });
 
   try {
     switch (event.type) {
@@ -56,7 +72,28 @@ export async function POST(req: Request) {
           await supabase.from("payment_intents").update({ status: "succeeded" }).eq("stripe_payment_id", pi.id);
           const subId = (pi.metadata as Record<string, string> | undefined)?.subscription_id;
           if (subId) {
-            await supabase.from("subscriptions").update({ status: "active" }).eq("id", subId);
+            // STR-03 ordering guard, part 1: a (retried) payment event must
+            // never resurrect a subscription that a newer lifecycle event
+            // already canceled/paused, and never regress the watermark.
+            const { data: sub } = await supabase
+              .from("subscriptions")
+              .select("id, status, last_stripe_event_at")
+              .eq("id", subId)
+              .maybeSingle();
+            const row = sub as { id: string; status: string; last_stripe_event_at: string | null } | null;
+            if (row && row.last_stripe_event_at && row.last_stripe_event_at > eventTs) {
+              break; // stale event; the newer state already won
+            }
+            if (row && (row.status === "canceled" || row.status === "paused" || row.status === "expired")) {
+              break; // do not resurrect terminal/paused states from a payment
+            }
+            if (row) {
+              await supabase
+                .from("subscriptions")
+                .update({ status: "active", last_stripe_event_at: eventTs })
+                .eq("id", subId)
+                .or(`last_stripe_event_at.is.null,last_stripe_event_at.lte.${eventTs}`);
+            }
           }
         }
         break;
@@ -77,9 +114,22 @@ export async function POST(req: Request) {
           incomplete: "incomplete",
           paused: "paused",
         };
-        const mapped = statusMap[sub.status] ?? sub.status;
+        const mapped = statusMap[sub.status];
+        // STR-02: unknown Stripe statuses are acknowledged WITHOUT writing —
+        // pushing a value the live enum rejects would 500 and burn the whole
+        // 3-day retry schedule on a permanently unmappable event.
+        if (!mapped) {
+          console.error(`[stripe-webhook] unmapped subscription status "${sub.status}" — acknowledged, not applied`);
+          break;
+        }
         if (sub.id) {
-          await supabase.from("subscriptions").update({ status: mapped }).eq("stripe_sub_id", sub.id);
+          // STR-03 ordering guard, part 2: only apply when newer than the
+          // stored watermark (NULL = never seen an event).
+          await supabase
+            .from("subscriptions")
+            .update({ status: mapped, last_stripe_event_at: eventTs })
+            .eq("stripe_sub_id", sub.id)
+            .or(`last_stripe_event_at.is.null,last_stripe_event_at.lte.${eventTs}`);
         }
         break;
       }
@@ -92,14 +142,19 @@ export async function POST(req: Request) {
   }
 
   // Record after successful processing so a crash mid-handler is retried.
-  try {
-    await supabase
-      .from("stripe_webhook_events")
-      .insert({ event_id: event.id, event_type: event.type });
-  } catch (e: unknown) {
-    // Unique-violation race (concurrent redelivery) or unmigrated table:
-    // the event was already processed, so this is safe to swallow.
-    console.error("[stripe-webhook] dedupe record failed", e);
+  // A unique violation means a concurrent delivery processed the same event
+  // first — success, not an error. Any OTHER failure is 500 (Stripe retries)
+  // so a broken dedupe table is visible instead of silently skipped.
+  const { error: recErr } = await supabase
+    .from("stripe_webhook_events")
+    .insert({ event_id: event.id, event_type: event.type, event_created_at: eventTs });
+  if (recErr) {
+    const code = (recErr as { code?: string }).code;
+    if (code === "23505") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    console.error("[stripe-webhook] dedupe record failed", recErr);
+    return NextResponse.json({ error: "Webhook dedupe record failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
