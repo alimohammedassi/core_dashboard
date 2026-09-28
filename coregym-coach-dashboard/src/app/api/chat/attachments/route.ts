@@ -49,7 +49,11 @@ export async function POST(req: NextRequest) {
       msgs.map(async (m) => {
         const bucket = chatBucketFor(m.type ?? "");
         if (!bucket || !m.file_url) return;
-        const { data } = await svc.storage.from(bucket).createSignedUrl(m.file_url, CHAT_SIGNED_URL_TTL);
+        // SEC-02: file downloads are forced to attachment semantics so nothing
+        // from the chat-files bucket renders inline on the storage origin.
+        const { data } = await svc.storage.from(bucket).createSignedUrl(m.file_url, CHAT_SIGNED_URL_TTL, {
+          download: bucket === "chat-files",
+        });
         if (data?.signedUrl) urls[m.id] = data.signedUrl;
       })
     );
@@ -88,7 +92,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "You are not a participant in this conversation" }, { status: 403 });
   }
 
-  const { data, error } = await svc.storage.from(bucket).createSignedUrl(msg.file_url, CHAT_SIGNED_URL_TTL);
+  const { data, error } = await svc.storage.from(bucket).createSignedUrl(msg.file_url, CHAT_SIGNED_URL_TTL, {
+    download: bucket === "chat-files",
+  });
   if (error || !data) {
     return NextResponse.json({ error: "Could not generate attachment link" }, { status: 500 });
   }

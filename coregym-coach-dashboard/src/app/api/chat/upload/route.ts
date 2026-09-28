@@ -1,7 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { chatBucketFor, CHAT_MEDIA_LIMITS, type ChatMediaType } from "@/lib/chat-media";
+import {
+  chatBucketFor,
+  CHAT_MEDIA_LIMITS,
+  looksLikeActiveText,
+  looksLikeAudio,
+  looksLikeImage,
+  type ChatMediaType,
+} from "@/lib/chat-media";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Coach-side chat media upload. Matches the mobile app's conventions exactly
 // (path "{conversationId}/{millis}_{name}", file_url = path without bucket,
@@ -30,6 +38,11 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // API-05: uploads buffer the whole body in memory — 20/min per user/instance.
+  if (rateLimit(`chat-upload:${user.id}`, 20, 60_000)) {
+    return NextResponse.json({ error: "Too many uploads — please wait a moment" }, { status: 429 });
+  }
 
   let form: FormData;
   try {
@@ -105,8 +118,25 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // SEC-02: content sniffing — the client-supplied Content-Type is advisory
+  // only, so the bytes must agree with the declared type. Active markup
+  // (HTML/SVG/scripted XML) is rejected for EVERY type so nothing renderable
+  // as a web page can land on the storage origin.
+  if (looksLikeActiveText(buffer)) {
+    return NextResponse.json({ error: "That file type cannot be sent in chat." }, { status: 400 });
+  }
+  if (type === "image" && !looksLikeImage(buffer)) {
+    return NextResponse.json({ error: "That file is not a supported image." }, { status: 400 });
+  }
+  if (type === "voice" && !looksLikeAudio(buffer)) {
+    return NextResponse.json({ error: "That file is not a supported audio format." }, { status: 400 });
+  }
+
   const { error: upErr } = await svc.storage.from(bucket).upload(path, buffer, {
-    contentType: file.type || "application/octet-stream",
+    // file-type downloads are forced to attachment (see attachments route);
+    // storing a safe, non-renderable content type adds a second layer for files.
+    contentType: type === "file" && (!file.type || file.type === "text/html") ? "application/octet-stream" : file.type || "application/octet-stream",
     upsert: false,
   });
   if (upErr) {

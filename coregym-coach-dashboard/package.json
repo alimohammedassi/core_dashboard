@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/ownership.test.ts tests/rpc-auth.test.ts tests/read-state-auth.test.ts tests/nutrition-coach-edit-auth.test.ts tests/workout-input.test.ts"
+    "test": "node --test tests/ownership.test.ts tests/rpc-auth.test.ts tests/read-state-auth.test.ts tests/nutrition-coach-edit-auth.test.ts tests/workout-input.test.ts tests/csv-security.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
