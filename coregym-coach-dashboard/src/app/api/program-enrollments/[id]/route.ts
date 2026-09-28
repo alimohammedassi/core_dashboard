@@ -33,7 +33,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     );
   }
 
-  const { error } = await svc.from("client_program_enrollments").update({ status }).eq("id", id);
+  // API-04: update is ownership-scoped (defense in depth on top of the
+  // coach_id-scoped pre-read above).
+  const { error } = await svc
+    .from("client_program_enrollments")
+    .update({ status })
+    .eq("id", id)
+    .eq("coach_id", ctx.coachId);
   if (error) return NextResponse.json(dbError("program-enrollments/[id]", error), { status: 400 });
   return NextResponse.json({ ok: true, status });
 }
@@ -74,7 +80,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { error: updErr } = await svc
       .from("client_program_enrollments")
       .update({ status: "cancelled" })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("coach_id", ctx.coachId);
     if (updErr) return NextResponse.json(dbError("program-enrollments/[id]", updErr), { status: 400 });
     if (pristineFuture.length > 0) {
       const { error: delErr } = await svc
@@ -93,7 +100,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { error: delErr } = await svc.from("workout_assignments").delete().eq("enrollment_id", id);
     if (delErr) return NextResponse.json(dbError("program-enrollments/[id]", delErr), { status: 400 });
   }
-  const { error: enrErr } = await svc.from("client_program_enrollments").delete().eq("id", id);
+  const { error: enrErr } = await svc.from("client_program_enrollments").delete().eq("id", id).eq("coach_id", ctx.coachId);
   if (enrErr) return NextResponse.json(dbError("program-enrollments/[id]", enrErr), { status: 400 });
   return NextResponse.json({ ok: true, removed: true, pruned: rows.length });
 }

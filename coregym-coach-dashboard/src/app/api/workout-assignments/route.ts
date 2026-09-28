@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
       .eq("id", String(body.source_assignment_id))
       .maybeSingle();
     if (sErr) return NextResponse.json(dbError("workout-assignments", sErr), { status: 400 });
-    if (!source) return NextResponse.json({ error: "Source assignment not found" }, { status: 404 });
-    if ((source as { coach_id: string }).coach_id !== ctx.coachId) {
-      return NextResponse.json({ error: "This assignment belongs to another coach" }, { status: 403 });
+    // API-03: foreign-owned and missing ids are indistinguishable (404).
+    if (!source || (source as { coach_id: string }).coach_id !== ctx.coachId) {
+      return NextResponse.json({ error: "Source assignment not found" }, { status: 404 });
     }
 
     const parsed = parseTemplatePayload(body.template);
@@ -80,9 +80,9 @@ export async function POST(req: NextRequest) {
     .eq("id", templateId)
     .maybeSingle();
   if (tErr) return NextResponse.json(dbError("workout-assignments", tErr), { status: 400 });
-  if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
-  if ((template as { coach_id: string }).coach_id !== ctx.coachId) {
-    return NextResponse.json({ error: "This template belongs to another coach" }, { status: 403 });
+  // API-03: scoped read — foreign-owned and missing ids are both 404.
+  if (!template || (template as { coach_id: string }).coach_id !== ctx.coachId) {
+    return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
   // The client must be one of this coach's ACTIVE subscribers.

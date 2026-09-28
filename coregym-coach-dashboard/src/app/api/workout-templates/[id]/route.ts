@@ -9,9 +9,10 @@ type RouteContext = { params: Promise<{ id: string }> };
 async function loadOwnedTemplate(svc: Awaited<ReturnType<typeof createServiceClient>>, id: string, coachId: string) {
   const { data, error } = await svc.from("workout_templates").select("*").eq("id", id).maybeSingle();
   if (error) return { ...dbError("workout-templates/[id]", error), status: 400 as const };
-  if (!data) return { error: "Template not found", status: 404 as const };
-  if ((data as { coach_id: string }).coach_id !== coachId) {
-    return { error: "This template belongs to another coach", status: 403 as const };
+  // API-03: foreign-owned and missing ids are indistinguishable (404) — no
+  // cross-tenant existence oracle between coaches.
+  if (!data || (data as { coach_id: string }).coach_id !== coachId) {
+    return { error: "Template not found", status: 404 as const };
   }
   return { template: data as { id: string; coach_id: string; name: string }, status: 200 as const };
 }
@@ -73,7 +74,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     );
   }
 
-  const { error } = await svc.from("workout_templates").delete().eq("id", id);
+  // API-04: the delete is ownership-scoped, not just id-scoped — belt and
+  // braces on top of the loadOwnedTemplate pre-read.
+  const { error } = await svc.from("workout_templates").delete().eq("id", id).eq("coach_id", ctx.coachId);
   if (error) return NextResponse.json(dbError("workout-templates/[id]", error), { status: 400 });
   return NextResponse.json({ ok: true });
 }

@@ -18,12 +18,11 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
     .from("workout_templates")
     .select("*")
     .eq("id", id)
+    .eq("coach_id", ctx.coachId)
     .maybeSingle();
   if (tErr) return NextResponse.json(dbError("workout-templates/[id]/duplicate", tErr), { status: 400 });
+  // API-03: scoped read — foreign-owned and missing ids are both 404.
   if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
-  if ((template as { coach_id: string }).coach_id !== ctx.coachId) {
-    return NextResponse.json({ error: "This template belongs to another coach" }, { status: 403 });
-  }
 
   const { data: exercises, error: eErr } = await svc
     .from("workout_template_exercises")

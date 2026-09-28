@@ -10,7 +10,11 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 80);
-  const page = Math.max(0, Number(req.nextUrl.searchParams.get("page") ?? 0) || 0);
+  // API-11: bound the offset — page=1e308 previously produced
+  // `.range(Infinity, …)` and a PostgREST 400. 100 pages (2000 rows) is far
+  // beyond any real browse depth.
+  const rawPage = Math.max(0, Number(req.nextUrl.searchParams.get("page") ?? 0) || 0);
+  const page = Math.min(rawPage, 100);
   const perPage = 20;
 
   const supabase = await createClient();
@@ -20,7 +24,7 @@ export async function GET(req: NextRequest) {
     .order("name")
     .range(page * perPage, page * perPage + perPage - 1);
   if (q.length > 0) {
-    const safe = q.replace(/[%_,]/g, "");
+    const safe = q.replace(/[%_,()]/g, "");
     query = query.or(`name.ilike.%${safe}%,name_ar.ilike.%${safe}%`);
   }
   const { data, error } = await query;

@@ -26,8 +26,11 @@ export async function POST(req: NextRequest) {
   if (!DATE_RE.test(startDate) || Number.isNaN(new Date(`${startDate}T00:00:00Z`).getTime())) {
     return NextResponse.json({ error: "A valid start date is required" }, { status: 400 });
   }
-  if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
-    return NextResponse.json({ error: "Duration must be a positive whole number of weeks" }, { status: 400 });
+  // API-01: 1–52 weeks, matching the nutrition side and the (migration-gated)
+  // RPC guard. Bounds the assignment fan-out: one enrollment generates at most
+  // 52 × days-per-week assignment rows instead of attacker-chosen millions.
+  if (!Number.isInteger(durationWeeks) || durationWeeks < 1 || durationWeeks > 52) {
+    return NextResponse.json({ error: "Duration must be between 1 and 52 weeks" }, { status: 400 });
   }
 
   const svc = await createServiceClient();

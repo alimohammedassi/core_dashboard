@@ -66,15 +66,34 @@ export async function POST(req: NextRequest) {
   if (mErr) return NextResponse.json(dbError("workout-feedback", mErr), { status: 400 });
 
   // Keep the conversation preview in sync, mirroring what the mobile app does.
-  const currentUnread = existing ? ((existing as { client_unread: number | null }).client_unread ?? 0) : 0;
-  await svc
-    .from("conversations")
-    .update({
-      last_message: content.slice(0, 500),
-      last_message_at: new Date().toISOString(),
-      client_unread: currentUnread + 1,
-    })
-    .eq("id", conversationId);
+  // API-06: the unread bump used to be a read-modify-write
+  // (SELECT client_unread → UPDATE client_unread = old + 1), which silently
+  // lost increments when the mobile app wrote concurrently. The
+  // bump_conversation_unread RPC (supabase/remediation-2026-09-28) performs a
+  // single atomic `client_unread = client_unread + 1`. Until that migration is
+  // applied the RPC is missing (Postgres 42883) and we fall back to the legacy
+  // path so the endpoint never hard-fails.
+  const preview = {
+    last_message: content.slice(0, 500),
+    last_message_at: new Date().toISOString(),
+  };
+  const { error: bumpErr } = await svc.rpc("bump_conversation_unread", {
+    p_conversation_id: conversationId,
+    p_for_coach: false,
+  });
+  if (bumpErr) {
+    const code = (bumpErr as { code?: string }).code;
+    if (code !== "42883" && code !== "PGRST202") {
+      return NextResponse.json(dbError("workout-feedback", bumpErr), { status: 400 });
+    }
+    const currentUnread = existing ? ((existing as { client_unread: number | null }).client_unread ?? 0) : 0;
+    await svc
+      .from("conversations")
+      .update({ ...preview, client_unread: currentUnread + 1 })
+      .eq("id", conversationId);
+  } else {
+    await svc.from("conversations").update(preview).eq("id", conversationId);
+  }
 
   return NextResponse.json({ ok: true, conversation_id: conversationId });
 }

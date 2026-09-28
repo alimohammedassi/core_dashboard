@@ -17,15 +17,14 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
   const svc = await createServiceClient();
 
   // Pre-checks give clean error messages; the RPC re-verifies defensively.
+  // API-03: scoped read — foreign-owned and missing ids are both 404.
   const { data: enrollment } = await svc
     .from("client_program_enrollments")
     .select("id, coach_id, status")
     .eq("id", id)
+    .eq("coach_id", ctx.coachId)
     .maybeSingle();
   if (!enrollment) return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
-  if ((enrollment as { coach_id: string }).coach_id !== ctx.coachId) {
-    return NextResponse.json({ error: "This enrollment belongs to another coach" }, { status: 403 });
-  }
   if ((enrollment as { status: string }).status !== "active") {
     return NextResponse.json({ error: "Only active enrollments can be regenerated" }, { status: 400 });
   }
