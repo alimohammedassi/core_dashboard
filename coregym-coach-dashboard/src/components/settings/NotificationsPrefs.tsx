@@ -3,6 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { describeError } from "@/lib/user-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,7 @@ export function NotificationsPrefs() {
         .select("*")
         .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
         .maybeSingle();
-      if (error) toast.error(error.message);
+      if (error) toast.error(describeError(error, "Something went wrong. Please try again."));
       setPrefs(
         (data as unknown as Prefs) ?? {
           meal_reminders_enabled: true,
@@ -65,7 +66,7 @@ export function NotificationsPrefs() {
       const { error } = await supabase
         .from("notification_preferences")
         .upsert({ user_id: uid, ...next, updated_at: new Date().toISOString() });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       toast.success("Notification preferences saved");
     } catch (err: unknown) {
       if (prev) setPrefs(prev); // roll back the optimistic toggle

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { describeError } from "@/lib/user-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +58,7 @@ export function CredentialsManager({
       .eq("type", type)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
-    if (error) toast.error(error.message);
+    if (error) toast.error(describeError(error, "Something went wrong. Please try again."));
     setItems((data ?? []) as CredentialItem[]);
     setLoading(false);
   }, [supabase, coachId, type]);
@@ -73,7 +74,7 @@ export function CredentialsManager({
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
       if (!cancelled) {
-        if (error) toast.error(error.message);
+        if (error) toast.error(describeError(error, "Something went wrong. Please try again."));
         setItems((data ?? []) as CredentialItem[]);
         setLoading(false);
       }
@@ -143,7 +144,7 @@ export function CredentialsManager({
         file_size_kb: sizeKb,
         sort_order: items.length,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       toast.success("Uploaded");
       setNewTitle("");
       await load();
@@ -163,7 +164,7 @@ export function CredentialsManager({
       const marker = item.file_url.split("?")[0].split("/coach-media/")[1];
       if (marker) await supabase.storage.from("coach-media").remove([decodeURIComponent(marker)]);
       const { error } = await supabase.from("coach_content").delete().eq("id", item.id);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       setItems((prev) => prev.filter((i) => i.id !== item.id));
       toast.success("Removed");
     } catch (err: unknown) {
@@ -184,7 +185,7 @@ export function CredentialsManager({
         .from("coach_content")
         .update({ file_url: publicUrl, file_size_kb: Math.round(file.size / 1024) })
         .eq("id", item.id);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       await load();
       toast.success("Replaced");
     } catch (err: unknown) {
