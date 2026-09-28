@@ -37,6 +37,9 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
   const [sending, setSending] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [pending, setPending] = React.useState<PendingAttachment | null>(null);
+  // P4: prefetched signed URLs for the open thread's media messages —
+  // one batch call per page of messages instead of one POST per message.
+  const [attachmentUrls, setAttachmentUrls] = React.useState<Record<string, string>>({});
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const threadWrapRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -98,19 +101,41 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
           const unreadInPage = rows.some((m) => !m.is_read && m.sender_id !== coachId);
           const conv = conversationsRef.current.find((c) => c.id === selectedId);
           if (unreadInPage || (conv?.unread_count ?? 0) > 0) {
+            const prevUnread = conv?.unread_count ?? 0;
             setConversations((prev) =>
               prev.map((c) => (c.id === selectedId ? { ...c, unread_count: 0 } : c))
             );
             setMessages((prev) =>
               prev.map((m) => (m.sender_id !== coachId ? { ...m, is_read: true } : m))
             );
-            void supabase
-              .from("messages")
-              .update({ is_read: true })
-              .eq("conversation_id", selectedId)
-              .neq("sender_id", coachId)
-              .eq("is_read", false);
-            void supabase.from("conversations").update({ coach_unread: 0 }).eq("id", selectedId);
+            // CH1: persist the read state — awaited, retried once, rolled
+            // back on failure so the badge reflects reality instead of
+            // getting stuck cleared (or stuck set) after a failed write.
+            const persistRead = () =>
+              Promise.all([
+                supabase
+                  .from("messages")
+                  .update({ is_read: true })
+                  .eq("conversation_id", selectedId)
+                  .neq("sender_id", coachId)
+                  .eq("is_read", false),
+                supabase.from("conversations").update({ coach_unread: 0 }).eq("id", selectedId),
+              ]);
+            try {
+              const [msgRes, convRes] = await persistRead();
+              if (msgRes.error || convRes.error) throw msgRes.error ?? convRes.error;
+            } catch {
+              try {
+                const [msgRes2, convRes2] = await persistRead();
+                if (msgRes2.error || convRes2.error) throw msgRes2.error ?? convRes2.error;
+              } catch {
+                // Roll the badge back so a refresh/retry can clear it.
+                setConversations((prev) =>
+                  prev.map((c) => (c.id === selectedId ? { ...c, unread_count: prevUnread } : c))
+                );
+                toast.error("Couldn't mark messages as read — check your connection");
+              }
+            }
           }
         }
       }
@@ -120,8 +145,41 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     };
   }, [selectedId, supabase, coachId]);
 
-  async function loadOlder() {
-    if (!selectedId || !hasMore || loadingOlder) return;
+  // P4: prefetch signed URLs for the visible page's media messages in ONE
+  // batch call. MediaMessage still single-fetches as fallback (new realtime
+  // arrivals, expired URLs), so this is purely an optimization.
+  React.useEffect(() => {
+    const ids = messages
+      .filter(
+        (m) =>
+          (m.type === "image" || m.type === "voice" || m.type === "file") &&
+          m.file_url &&
+          attachmentUrls[m.id] === undefined
+      )
+      .map((m) => m.id);
+    if (ids.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/chat/attachments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageIds: ids }),
+        });
+        const b = await res.json().catch(() => ({}));
+        if (cancelled || !res.ok || !b.urls) return;
+        setAttachmentUrls((prev) => ({ ...prev, ...(b.urls as Record<string, string>) }));
+      } catch {
+        // Fallback path in MediaMessage covers failures — stay silent.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  async function loadOlder() {    if (!selectedId || !hasMore || loadingOlder) return;
     const oldest = messages[0];
     if (!oldest) return;
     setLoadingOlder(true);
@@ -174,6 +232,41 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
             }
           }
           bumpConversation(msg);
+        }
+      )
+      // CH2: read-state sync — the mobile app flips is_read / coach_unread
+      // via UPDATEs, which the INSERT-only subscription never saw (stale
+      // green badges). Merge both into local state live.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload) => {
+          const msg = payload.new as Message;
+          if (msg.conversation_id !== selectedIdRef.current) return;
+          if (msg.sender_id === coachId) return;
+          setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, is_read: msg.is_read } : m)));
+          // If every client message in the open thread is now read, the
+          // badge for this conversation can clear without a refresh.
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id !== msg.conversation_id) return c;
+              return { ...c, unread_count: msg.is_read ? 0 : c.unread_count };
+            })
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversations" },
+        (payload) => {
+          const conv = payload.new as { id: string; coach_unread?: number | null };
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === conv.id && typeof conv.coach_unread === "number"
+                ? { ...c, unread_count: conv.coach_unread }
+                : c
+            )
+          );
         }
       )
       .subscribe();
@@ -355,7 +448,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
                         className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted rounded-bl-sm"}`}
                       >
                         {isMedia ? (
-                          <MediaMessage message={m} />
+                          <MediaMessage message={m} prefetchedSrc={attachmentUrls[m.id]} />
                         ) : (
                           <p className="whitespace-pre-wrap break-words">{m.content}</p>
                         )}

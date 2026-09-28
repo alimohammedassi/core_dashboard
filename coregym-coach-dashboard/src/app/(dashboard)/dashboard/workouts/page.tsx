@@ -2,12 +2,18 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { loadActiveClients, loadExerciseCatalog } from "@/lib/workouts";
+import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "@/lib/pagination";
+import { Pager } from "@/components/dashboard/Pager";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";import { WorkoutsClient } from "@/components/workouts/WorkoutsClient";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function WorkoutsPage() {
+export default async function WorkoutsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ page?: string }>;
+}) {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -15,6 +21,18 @@ export default async function WorkoutsPage() {
 
   const coachId = await resolveCoachId(supabase, user.id);
   const hasCoachRow = coachId !== user.id;
+  const requestedPage = parsePageParam((await searchParams)?.page);
+
+  // P3: exact total first (for clamp + pager), then the bounded page slice.
+  const { count: templateTotal } = hasCoachRow
+    ? await supabase
+        .from("workout_templates")
+        .select("id", { count: "exact", head: true })
+        .eq("coach_id", coachId)
+    : { count: 0 };
+  const total = templateTotal ?? 0;
+  const page = clampPage(requestedPage, total);
+  const { from, to } = pageRange(page);
 
   const [templatesRes, clients, catalog] = await Promise.all([
     hasCoachRow
@@ -23,6 +41,7 @@ export default async function WorkoutsPage() {
           .select("*, exercises:workout_template_exercises(*)")
           .eq("coach_id", coachId)
           .order("updated_at", { ascending: false })
+          .range(from, to)
       : Promise.resolve({ data: [] as unknown[], error: null }),
     hasCoachRow ? loadActiveClients(coachId) : Promise.resolve([]),
     loadExerciseCatalog(),
@@ -59,6 +78,7 @@ export default async function WorkoutsPage() {
         </p>
       </div>
       <WorkoutsClient initialTemplates={templates} clients={clients} catalog={catalog} />
+      <Pager basePath="/dashboard/workouts" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />
     </div>
   );
 }

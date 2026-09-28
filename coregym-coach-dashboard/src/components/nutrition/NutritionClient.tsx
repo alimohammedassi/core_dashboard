@@ -503,14 +503,39 @@ function BuilderDialog({
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Save failed");
       toast.success(seed.editing ? "Program updated" : "Program created");
-      // Re-fetch the saved program shape for the library card.
+      // N3: render the card from the just-saved builder state (real names,
+      // macros, day badges) instead of a {days:[]} stub. Row ids are
+      // temporary until the refresh below reconciles them from the server —
+      // the library card only reads names/counts, never these ids.
       onSaved({
         id: (body.id as string) ?? seed.editing?.id ?? "",
         name: payload.name,
         description: payload.description,
         is_active: true,
         updated_at: new Date().toISOString(),
-        days: [],
+        days: days.map((d) => ({
+          id: `local-day-${d.day_of_week}`,
+          day_of_week: d.day_of_week,
+          notes: d.notes.trim() || null,
+          meals: d.meals.map((m, mi) => ({
+            id: m.key,
+            name: m.name.trim(),
+            order_index: mi,
+            foods: m.foods.map((f, fi) => ({
+              id: f.key,
+              food_id: f.food_id,
+              quantity: Number(f.quantity) || 0,
+              order_index: fi,
+              foodName: f.foodName,
+              serving_unit: f.serving_unit,
+              serving_size: f.serving_size,
+              calories: f.calories,
+              protein_g: f.protein_g,
+              carbs_g: f.carbs_g,
+              fat_g: f.fat_g,
+            })),
+          })),
+        })),
       });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Save failed");

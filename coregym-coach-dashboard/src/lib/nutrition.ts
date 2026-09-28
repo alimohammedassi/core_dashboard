@@ -65,7 +65,44 @@ export async function loadNutritionPrograms(coachId: string): Promise<NutritionP
     .order("updated_at", { ascending: false });
   if (error) return [];
 
-  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  return mapNutritionProgramRows((data ?? []) as unknown as Record<string, unknown>[]);
+}
+
+// P3: paged library read — same rows as loadNutritionPrograms, bounded by
+// range() with an exact total for the pager.
+export async function loadNutritionProgramsPage(
+  coachId: string,
+  from: number,
+  to: number
+): Promise<{ programs: NutritionProgram[]; total: number }> {
+  const supabase = await createClient();
+  const select = `
+      id, name, description, is_active, updated_at,
+      days:nutrition_program_days(
+        id, day_of_week, notes,
+        meals:nutrition_program_meals(
+          id, name, order_index,
+          foods:nutrition_program_foods(
+            id, food_id, quantity, order_index,
+            food:foods(id, name, serving_unit, serving_size, calories, protein_g, carbs_g, fat_g)
+          )
+        )
+      )
+      `;
+  const [{ count }, { data, error }] = await Promise.all([
+    supabase.from("nutrition_programs").select("id", { count: "exact", head: true }).eq("coach_id", coachId),
+    supabase
+      .from("nutrition_programs")
+      .select(select)
+      .eq("coach_id", coachId)
+      .order("updated_at", { ascending: false })
+      .range(from, to),
+  ]);
+  if (error) return { programs: [], total: count ?? 0 };
+  return { programs: mapNutritionProgramRows((data ?? []) as unknown as Record<string, unknown>[]), total: count ?? 0 };
+}
+
+function mapNutritionProgramRows(rows: Record<string, unknown>[]): NutritionProgram[] {
   return rows.map((raw) => ({
     id: raw.id as string,
     name: raw.name as string,

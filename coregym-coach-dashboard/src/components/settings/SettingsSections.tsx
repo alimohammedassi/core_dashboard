@@ -170,7 +170,10 @@ export function EmailChange({ currentEmail }: { currentEmail: string }) {
 }
 
 // Change password + sign out everywhere — real Supabase Auth operations.
-export function SecurityControls() {
+// hasEmailIdentity=false means the account has no email/password identity
+// (e.g. Google-only): updateUser({ password }) then SETS a first password
+// (enabling email+password sign-in) instead of changing an existing one.
+export function SecurityControls({ hasEmailIdentity = true }: { hasEmailIdentity?: boolean }) {
   const supabase = React.useMemo(() => createClient(), []);
   const router = useRouter();
   const [pw, setPw] = React.useState("");
@@ -196,7 +199,11 @@ export function SecurityControls() {
       // signed in so the coach isn't logged out mid-flow.
       const { error: revokeErr } = await supabase.auth.signOut({ scope: "others" });
       if (revokeErr) console.error("[settings] session revocation after password change failed", revokeErr);
-      toast.success("Password updated — other devices have been signed out");
+      toast.success(
+        hasEmailIdentity
+          ? "Password updated — other devices have been signed out"
+          : "Password set — you can now also sign in with your email and password"
+      );
       setPw("");
       setPw2("");
     } catch (err: unknown) {
@@ -227,9 +234,15 @@ export function SecurityControls() {
           <Input id="sec-pw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} minLength={8} placeholder="New password (min 8 chars)" />
           <Input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Confirm new password" />
         </div>
+        {!hasEmailIdentity && (
+          <p className="text-xs text-muted-foreground">
+            Your account currently signs in with Google. Setting a password lets you sign in with your email and
+            password as well — your Google sign-in keeps working.
+          </p>
+        )}
         <Button type="button" onClick={handleChangePassword} disabled={saving || pw.length < 8 || pw !== pw2}>
           {saving ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
-          Update password
+          {hasEmailIdentity ? "Update password" : "Set password"}
         </Button>
       </div>
       <div className="rounded-xl border p-4 space-y-2">

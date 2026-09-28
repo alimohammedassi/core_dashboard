@@ -7,14 +7,26 @@ import { toast } from "sonner";
 
 // Renders a non-text chat message (image | voice | file). Signed URLs are
 // minted per message by /api/chat/attachments (participant-verified,
-// short-lived); if one expires mid-session the next media error refetches it.
-export function MediaMessage({ message }: { message: Message }) {
-  const [src, setSrc] = React.useState<string | null>(null);
+// short-lived); the open thread prefetches them in one batch call and passes
+// them via prefetchedSrc — the single fetch below is the fallback for new
+// arrivals and expired URLs. If one expires mid-session the next media error
+// refetches it.
+export function MediaMessage({ message, prefetchedSrc }: { message: Message; prefetchedSrc?: string }) {
+  const [src, setSrc] = React.useState<string | null>(prefetchedSrc ?? null);
   const [failed, setFailed] = React.useState(false);
   const [lightbox, setLightbox] = React.useState(false);
   const retried = React.useRef(false);
 
+  // Adopt prefetched URLs when the batch resolves after first render.
   React.useEffect(() => {
+    if (prefetchedSrc && !retried.current) {
+      setSrc(prefetchedSrc);
+      setFailed(false);
+    }
+  }, [prefetchedSrc]);
+
+  React.useEffect(() => {
+    if (src) return; // already resolved (prefetch or previous fetch)
     let cancelled = false;
     (async () => {
       try {
@@ -38,7 +50,7 @@ export function MediaMessage({ message }: { message: Message }) {
     return () => {
       cancelled = true;
     };
-  }, [message.id]);
+  }, [message.id, src]);
 
   // media elements call this when the signed URL has expired or the object is
   // unreadable — refetch once before giving up

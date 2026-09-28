@@ -26,6 +26,10 @@ export default async function SettingsPage() {
   const avatarUrl = (profile as { avatar_url?: string } | null)?.avatar_url ?? null;
   const displayName = (profile as { name?: string } | null)?.name ?? "";
   const email = user.email ?? "";
+  // Provider-aware password controls: a linked "email" identity means the
+  // account has (or had) an email/password credential. Server-truthful
+  // identities data only — never the email domain, never user_metadata.
+  const hasEmailIdentity = user.identities?.some((identity) => identity.provider === "email") ?? true;
 
   const payouts = (
     <Card>
@@ -165,7 +169,7 @@ export default async function SettingsPage() {
                 <CardDescription>Password and session controls.</CardDescription>
               </CardHeader>
               <CardContent>
-                <SecurityControls />
+                <SecurityControls hasEmailIdentity={hasEmailIdentity} />
               </CardContent>
             </Card>
           ),

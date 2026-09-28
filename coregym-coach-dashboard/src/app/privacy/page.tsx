@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const en: LegalContent = {
   title: "Privacy Policy",
-  updated: "Effective date: September 26, 2026",
+  updated: "Effective date: September 28, 2026",
   intro:
     "CoreGym (\"CoreGym\", \"we\", \"us\") operates a mobile fitness application for clients and a web dashboard for coaches. This policy explains what personal data we collect, how we use it, and the choices and rights you have — including how to delete your account and data at any time.",
   sections: [
@@ -54,6 +54,7 @@ const en: LegalContent = {
         "Your coach (and only the coach you are subscribed to) can see your workout logs, nutrition data and body data, and can message you.",
         "Other users can see your public review ratings and your rank on the gym leaderboard (first name only).",
         "Service providers that process data on our behalf: Supabase (hosting), Stripe (payments), OneSignal (notifications).",
+        "AI analysis (coach dashboard): when a coach runs “Analysis with AI” on a client, CoreGym sends a minimal, non-identifying snapshot of that client's assigned workout program, prescribed nutrition plan and progress/adherence aggregates to Google's Gemini API to generate an educational analysis for the coach. The snapshot excludes contact details, chat messages and raw training logs, is used only to produce that analysis, is not stored by CoreGym, and is handled by Google under its own API terms.",
       ],
     },
     {
@@ -103,7 +104,7 @@ const en: LegalContent = {
 
 const ar: LegalContent = {
   title: "سياسة الخصوصية",
-  updated: "تاريخ السريان: 26 سبتمبر 2026",
+  updated: "تاريخ السريان: 28 سبتمبر 2026",
   intro:
     "كور جيم (\"CoreGym\") تُشغّل تطبيق لياقة للعملاء على الموبايل، ولوحة تحكم على الويب للمدربين. توضح هذه السياسة ما نجمعه من بيانات شخصية، وكيف نستخدمها، وما حقوقك — بما فيها كيفية حذف حسابك وبياناتك في أي وقت.",
   sections: [
@@ -146,6 +147,7 @@ const ar: LegalContent = {
         "مدربك (المدرب المشترك معه فقط) يرى سجلات تمرينك وبيانات تغذيتك وجسمك، ويستطيع مراسلتك.",
         "المستخدمون الآخرون يرون تقييماتك العامة وترتيبك في لوحة الصالة (الاسم الأول فقط).",
         "مزودو الخدمة الذين يعالجون البيانات نيابة عنا: Supabase (الاستضافة)، Stripe (الدفعات)، OneSignal (الإشعارات).",
+        "تحليل بالذكاء الاصطناعي (لوحة المدرب): عندما يشغّل المدرب ميزة «تحليل بالذكاء الاصطناعي» لأحد العملاء، يرسل كور جيم لقطة محدودة وغير محدِّدة للهوية من برنامج التمارين المُسند وخطة التغذية الموصوفة ومؤشرات التقدم والالتزام الخاصة بهذا العميل إلى واجهة Gemini من Google لإنتاج تحليل تعليمي للمدرب. تستبعد هذه اللقطة بيانات التواصل والرسائل وسجلات التمارين التفصيلية، وتُستخدم فقط لإنتاج هذا التحليل، ولا تخزّنها كور جيم، وتخضع لمعالجتها لشروط Google API الخاصة.",
       ],
     },
     {

@@ -2,14 +2,20 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { loadActiveClients } from "@/lib/workouts";
-import { loadCoachPrograms } from "@/lib/programs";
+import { loadCoachProgramsPage } from "@/lib/programs";
+import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "@/lib/pagination";
+import { Pager } from "@/components/dashboard/Pager";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgramsClient } from "@/components/programs/ProgramsClient";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProgramsPage() {
+export default async function ProgramsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ page?: string }>;
+}) {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -17,14 +23,30 @@ export default async function ProgramsPage() {
 
   const coachId = await resolveCoachId(supabase, user.id);
   const hasCoachRow = coachId !== user.id;
+  const requestedPage = parsePageParam((await searchParams)?.page);
 
-  const [programs, clients, templatesRes] = await Promise.all([
-    hasCoachRow ? loadCoachPrograms(coachId) : Promise.resolve([]),
+  const [programsRes, clients, templatesRes] = await Promise.all([
+    hasCoachRow
+      ? (async () => {
+          // Two-step: exact total first so the requested page clamps, then
+          // the bounded page slice (P3 — no more full-library loads).
+          const { count } = await supabase
+            .from("coach_programs")
+            .select("id", { count: "exact", head: true })
+            .eq("coach_id", coachId);
+          const total = count ?? 0;
+          const page = clampPage(requestedPage, total);
+          const { from, to } = pageRange(page);
+          const { programs } = await loadCoachProgramsPage(coachId, from, to);
+          return { programs, total, page };
+        })()
+      : Promise.resolve({ programs: [], total: 0, page: 1 }),
     hasCoachRow ? loadActiveClients(coachId) : Promise.resolve([]),
     hasCoachRow
       ? supabase.from("workout_templates").select("id, name").eq("coach_id", coachId).order("name")
       : Promise.resolve({ data: [] as unknown[], error: null }),
   ]);
+  const { programs, total, page } = programsRes;
 
   const templates = (templatesRes.data ?? []) as unknown as Pick<WorkoutTemplate, "id" | "name">[];
 
@@ -54,6 +76,7 @@ export default async function ProgramsPage() {
         </p>
       </div>
       <ProgramsClient initialPrograms={programs} clients={clients} templates={templates} />
+      <Pager basePath="/dashboard/programs" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />
     </div>
   );
 }

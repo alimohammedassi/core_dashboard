@@ -39,7 +39,36 @@ export async function loadCoachPrograms(coachId: string): Promise<CoachProgram[]
     .order("updated_at", { ascending: false });
   if (error) return []; // tables not migrated yet, or RLS error — render empty state
 
-  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  return mapCoachProgramRows((data ?? []) as unknown as Record<string, unknown>[]);
+}
+
+// P3: paged library read — same rows as loadCoachPrograms, bounded by
+// range() with an exact total for the pager. Keeps the unpaged loader for
+// small callers (enrollment dialogs only need names via separate queries).
+export async function loadCoachProgramsPage(
+  coachId: string,
+  from: number,
+  to: number
+): Promise<{ programs: CoachProgram[]; total: number }> {
+  const supabase = await createClient();
+  const select = `
+      id, name, description, is_active, updated_at,
+      days:coach_program_days(id, day_of_week, template_id, order_index, template:workout_templates(id, name))
+      `;
+  const [{ count }, { data, error }] = await Promise.all([
+    supabase.from("coach_programs").select("id", { count: "exact", head: true }).eq("coach_id", coachId),
+    supabase
+      .from("coach_programs")
+      .select(select)
+      .eq("coach_id", coachId)
+      .order("updated_at", { ascending: false })
+      .range(from, to),
+  ]);
+  if (error) return { programs: [], total: count ?? 0 };
+  return { programs: mapCoachProgramRows((data ?? []) as unknown as Record<string, unknown>[]), total: count ?? 0 };
+}
+
+function mapCoachProgramRows(rows: Record<string, unknown>[]): CoachProgram[] {
   return rows.map((raw) => {
     const daysRaw = (raw.days ?? []) as unknown as Record<string, unknown>[];
     const days = daysRaw

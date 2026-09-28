@@ -26,17 +26,23 @@ export default async function RevenuePage() {
   if (user) {
     const coachId = await resolveCoachId(supabase, user.id);
 
-    // Fetch real transactions (payment_intents) for this coach — always real data.
+    // P2: the transactions query and the coach Stripe-account lookup are
+    // independent — run them concurrently instead of stacking round trips.
     // payment_intents.client_id references auth.users (NOT profiles), so there is
     // no PostgREST-joinable relationship to profiles: fetch the rows and the
     // client names separately, then map in memory (profiles.id = auth.uid, so
     // the id values match one-to-one).
-    const { data: txData, error: txErr } = await supabase
-      .from("payment_intents")
-      .select("id, amount, currency, status, created_at, client_id")
-      .eq("coach_id", coachId)
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const [txRes, coachRes] = await Promise.all([
+      supabase
+        .from("payment_intents")
+        .select("id, amount, currency, status, created_at, client_id")
+        .eq("coach_id", coachId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      // stripe_account_id lives on the coaches row (canonical), not profiles
+      supabase.from("coaches").select("stripe_account_id").eq("id", coachId).single(),
+    ]);
+    const { data: txData, error: txErr } = txRes;
     if (txErr) {
       dbError = txErr.message;
     } else {
@@ -70,8 +76,7 @@ export default async function RevenuePage() {
 
     // Try Stripe payouts if account is connected (real Stripe data)
     try {
-      // stripe_account_id lives on the coaches row (canonical), not profiles
-      const { data: coach } = await supabase.from("coaches").select("stripe_account_id").eq("id", coachId).single();
+      const { data: coach } = coachRes;
       const acct = (coach as { stripe_account_id?: string } | null)?.stripe_account_id;
       if (acct && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
         const stripe = getStripe();
@@ -116,13 +121,16 @@ export default async function RevenuePage() {
       if (gross === 0 && transactions.length > 0) {
         gross = transactions.filter((t) => t.status === "succeeded").reduce((s, r) => s + (r.amount ?? 0), 0);
       }
-      // Fallback query if transactions empty (e.g., RLS or no join)
+      // Fallback query if transactions empty (e.g., RLS or no join).
+      // P1 bound: never scan the whole table into memory — 2000 capped rows
+      // is a guardrail, and the note below tells the coach when it engages.
       if (gross === 0) {
         const { data: allPayments } = await supabase
           .from("payment_intents")
           .select("amount")
           .eq("coach_id", coachId)
-          .eq("status", "succeeded");
+          .eq("status", "succeeded")
+          .limit(2000);
         gross = (allPayments ?? []).reduce((s: number, r: { amount: number }) => s + (r.amount ?? 0), 0);
       }
       commission = Math.round(gross * 0.15);

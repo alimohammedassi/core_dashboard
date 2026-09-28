@@ -8,6 +8,9 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { checkPublicEnv } from "@/lib/env-check";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getLang } from "@/lib/i18n/server";
+import { dirFor } from "@/lib/i18n/config";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -30,20 +33,26 @@ export const metadata: Metadata = {
   description: "Coach dashboard for CoreGym — chat, subscribers, workouts, revenue",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   // D2: loud server-side warning when public env is missing/placeholder.
   checkPublicEnv();
+  // Language comes from a cookie so SERVER components render localized content
+  // and <html lang/dir> is correct on first paint (no RTL flash).
+  const lang = await getLang();
   return (
     <html
-      lang="en"
+      lang={lang}
+      dir={dirFor(lang)}
       suppressHydrationWarning
       className={`${poppins.variable} ${cairo.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
-          {children}
-          <Toaster richColors />
-        </ThemeProvider>
+        <I18nProvider lang={lang}>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+            {children}
+            <Toaster richColors />
+          </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   );

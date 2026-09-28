@@ -8,7 +8,14 @@ const STATIC_ASSET_RE = /\.(svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml|webmanife
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isAuthRoute =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    // Password recovery flow pages (mobile-parity OTP flow: no email link,
+    // the recovery session is created by verifyOtp on /reset-password itself,
+    // so both pages must be reachable without a session).
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/privacy") ||

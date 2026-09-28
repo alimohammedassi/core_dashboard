@@ -1,35 +1,64 @@
-# Remediation migrations — 2026-09-28
+# Remediation migrations — 2026-09-28 (v2, reconciled against live)
 
-Prepared by the remediation run of 2026-09-28 against baseline `b03161f`.
-**NONE of these have been applied** — the run had no live-database access
-(no psql, no supabase CLI, no management token). Every file is written to be
-idempotent or explicitly conditional, and every forward migration has a
-matching `.rollback.sql`.
+Prepared against baseline `b03161f`, reconciled on 2026-09-28 against the
+LIVE database via Management-API SELECT introspection (project
+`mkrjvrnysuvtokqkyoll`). **NONE of these have been applied.** Every forward
+file embeds its own introspect-apply-verify runbook and has a matching
+`.rollback.sql` that restores the exact live pre-state captured during
+introspection.
 
-## Apply order (next run, WITH live DB access)
+## Live facts this reconciliation is built on
 
-| # | File | Fixes | Condition to apply |
+* RLS is ENABLED on all 58 public tables (the leak is permissive policies,
+  not missing RLS).
+* The anon PII/health leak comes from `profiles_select_public` (the
+  `role = 'coach'` OR-term) and `coaches_read_all` — NOT from disabled RLS.
+* `coach_content`, `coach_onboarding`, `notification_preferences`,
+  `daily_summary` already have correct live policies — do not touch.
+* `subscription_plans.coach_manage_own_plans` is live, broken (TO public,
+  `coach_id = auth.uid()`), and fail-closes coach plan reads.
+* `is_coach` / `prevent_role_escalation` / ownership triggers /
+  `bump_conversation_unread` / stripe webhook schema: all ABSENT live.
+* `is_my_active_client(client_uid uuid)` is live, SECURITY DEFINER, without
+  `search_path`.
+* Indexes already live: messages(conversation_id, created_at DESC),
+  coaches(user_id) UNIQUE, daily_summary(user_id, summary_date) — do not
+  recreate.
+* Live `create_program_enrollment_atomic` matches the b03161f body and lacks
+  the 1–52 cap.
+
+## Apply order (later APPLY run — WITH verification at each step)
+
+| # | File | Fixes | Condition / notes |
 |---|------|-------|--------------------|
-| 0 | (runbook step in each file) | introspect pre-state | always |
-| 1 | `db01_profiles_coaches_lockdown.sql` | DB-01 (P0 live leak) | mandatory |
-| 2 | `auth01_app_tables_rls.sql` | AUTH-01 + DB-01b | mandatory (verify column names) |
-| 3 | `db02_performance_indexes.sql` | DB-02 | skip statements whose equivalent index already exists |
-| 4 | `db05_plans_policy_fix.sql` | DB-05 | only if introspection confirms the broken policy |
-| 5 | `db04_function_hardening.sql` | DB-04 | safe no-op if functions absent |
-| 6 | `api01_enrollment_duration_cap.sql` | API-01 (RPC half) | mandatory (route cap is already code) |
-| 7 | `api04_tenant_id_immutability.sql` | API-04 (DB guard) | mandatory (verify all tables exist) |
-| 8 | `str02_webhook_idempotency_ordering.sql` | STR-02/03 | **must precede the next deploy** (new webhook code fails closed without it) |
+| 1 | `db06_role_escalation_guard.sql` | role self-promotion guard | **PRODUCT DECISION REQUIRED** — blocks mobile signup role-pick (see file header). S2-conditional alternative included commented. |
+| 2 | `db01_profiles_coaches_lockdown.sql` | DB-01 (P0 anon PII/health leak) | mandatory. Probe-verify immediately after. |
+| 3 | `api01_enrollment_duration_cap.sql` | API-01 (RPC half) | mandatory (route cap already in code). |
+| 4 | `api04_tenant_id_immutability.sql` | API-04 (DB guard) | mandatory. |
+| 5 | `api06_unread_atomic.sql` | API-06 | safe pre-deploy (route has fallback). |
+| 6 | `db05_plans_policy_fix.sql` | DB-05 | fixes live fail-closed coach plan reads. |
+| 7 | `db02_performance_indexes.sql` | DB-02 (6 indexes) | off-peak; re-check equivalents first. |
+| 8 | `db04_function_hardening.sql` | DB-04 | includes live `is_my_active_client`. |
+| 9 | `str02_webhook_idempotency_ordering.sql` | STR-02/03 | **must precede the next dashboard deploy** (new webhook code 503s without it). |
 
-## Apply/verify rules
+## Post-apply probe expectations
 
-1. Save the introspection output for every object before touching it (queries
-   are embedded in each file's runbook section).
-2. Apply one file at a time; re-run the anon REST probes after files 1 and 2:
-   - `GET /rest/v1/profiles?select=*&limit=1` must return `[]`
-   - `GET /rest/v1/coaches?select=*&limit=1` must be denied or contain no
-     `stripe_account_id` / `user_id`
-3. Smoke-test the mobile app after files 1 and 2 (marketplace discovery, coach
-   profile view, chat) — the coaches column grant and the profiles policies are
-   the two changes that can affect mobile readers.
-4. If any step regresses production behavior, use the matching `.rollback.sql`
-   and document what happened before retrying a corrected version.
+* `GET /rest/v1/profiles?select=*&limit=1` (anon) → `[]` (200)
+* `GET /rest/v1/coaches?select=*&limit=1` (anon) → permission error (column
+  grant); `?select=id,bio,is_active&...` → rows WITHOUT `stripe_account_id`/
+  `user_id`
+* `GET /rest/v1/foods?select=*&limit=50` (anon) → catalog rows only
+  (`is_custom` false/null)
+* authenticated PATCH of own profile role → error (db06)
+
+## Mobile compatibility notes
+
+* Mobile profile reads are own-row; unaffected by db01.
+* Mobile marketplace discovery (if it queries `coaches` as anon) must select
+  the safe columns — `select=*` will be denied by the column grant. This is a
+  documented mobile-side change; do not re-widen the grant instead.
+* Mobile signup that upserts `role='coach'` will be rejected by db06 — mobile
+  must route coach onboarding through the dashboard API (or adopt the
+  S2-conditional variant after a product decision).
+* Mobile custom-food creation (authenticated, `created_by` = self) keeps
+  working under auth01; anonymous public-row inserts are closed.

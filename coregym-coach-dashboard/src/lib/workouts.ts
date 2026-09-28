@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import type {
+  AssignmentStatus,
   PersonalRecord,
   WorkoutAssignment,
   WorkoutSetLog,
@@ -183,6 +184,13 @@ function normalizeExerciseName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+// ── Pure performance math (framework-free, unit-tested) ─────────────────────
+// Lives in ./performance-math so node --test can import it without the
+// server-only Supabase chain; re-exported here for existing importers.
+import { computeExerciseStats, resolveSessionDurationMin } from "@/lib/performance-math";
+export { computeExerciseStats, resolveSessionDurationMin } from "@/lib/performance-math";
+export type { ExerciseStats } from "@/lib/performance-math";
+
 // Loads everything the review screen needs. All reads go through the service
 // role, but only after the caller verifies the assignment belongs to the
 // resolved coach and the requested client — the service role bypasses RLS, so
@@ -250,25 +258,11 @@ export async function loadAssignmentPerformance(
 
   const exercises: ExercisePerformance[] = templateExercises.map((tpl) => {
     const all = byNormalizedName.get(normalizeExerciseName(tpl.exercise_name)) ?? [];
-    const actualSets = all.filter((s) => !s.is_warmup);
-    const warmupSets = all.filter((s) => s.is_warmup);
+    // Pure per-exercise math (unit-tested in tests/exercise-performance.test.ts).
+    const stats = computeExerciseStats(tpl, all);
 
-    let volume = 0;
-    let bestWeightKg: number | null = null;
-    let bestReps: number | null = null;
-    for (const s of actualSets) {
-      const w = s.weight_kg != null ? Number(s.weight_kg) : null;
-      if (w != null && s.reps != null) volume += w * s.reps;
-      if (w != null && (bestWeightKg == null || w > bestWeightKg)) {
-        bestWeightKg = w;
-        bestReps = s.reps;
-      } else if (w != null && w === bestWeightKg && s.reps != null && (bestReps == null || s.reps > bestReps)) {
-        bestReps = s.reps;
-      }
-    }
-
-    totalVolume += volume;
-    completedSets += actualSets.length;
+    totalVolume += stats.volume;
+    completedSets += stats.actualSets.length;
     targetSetsTotal += tpl.target_sets;
 
     return {
@@ -279,20 +273,16 @@ export async function loadAssignmentPerformance(
       targetWeightKg: tpl.target_weight_kg != null ? Number(tpl.target_weight_kg) : null,
       restSec: tpl.rest_sec,
       notes: tpl.notes,
-      actualSets,
-      warmupSets,
-      bestWeightKg,
-      bestReps,
-      totalVolume: Math.round(volume),
-      completionPct: tpl.target_sets > 0 ? Math.round((actualSets.length / tpl.target_sets) * 100) : null,
+      actualSets: stats.actualSets,
+      warmupSets: stats.warmupSets,
+      bestWeightKg: stats.bestWeightKg,
+      bestReps: stats.bestReps,
+      totalVolume: Math.round(stats.volume),
+      completionPct: stats.completionPct,
     };
   });
 
-  let durationMin = session?.duration_min ?? null;
-  if ((durationMin == null || durationMin === 0) && session?.started_at && session?.ended_at) {
-    const ms = new Date(session.ended_at).getTime() - new Date(session.started_at).getTime();
-    if (ms > 0) durationMin = Math.round(ms / 60000);
-  }
+  const durationMin = resolveSessionDurationMin(session);
 
   return {
     assignment,
@@ -305,6 +295,183 @@ export async function loadAssignmentPerformance(
     totalVolume: Math.round(totalVolume),
     completedSets,
     targetSetsTotal,
+  };
+}
+
+// ── Whole-prescription read (AI payload, batched — no per-assignment N+1) ────
+
+export type PrescriptionExercise = {
+  exercise_name: string;
+  target_sets: number;
+  target_reps: number | null;
+  target_weight_kg: number | null;
+  rest_sec: number | null;
+  notes: string | null;
+  order_index: number;
+};
+
+export type PrescriptionDay = {
+  scheduled_date: string; // YYYY-MM-DD
+  week_number: number | null;
+  status: AssignmentStatus;
+  template_name: string | null;
+  target_muscles: string[];
+  template_notes: string | null;
+  exercises: PrescriptionExercise[];
+  session: { session_date: string | null; duration_min: number | null } | null;
+};
+
+export type ClientPrescription = {
+  assignments: PrescriptionDay[]; // chronological, bounded to the window
+  window: { since: string; until: string }; // echo of the applied bounds
+  truncated: boolean; // true when more assignments existed than MAX
+};
+
+// Bounded caps for the AI payload (spec §13). A 52-week × 7-day enrollment is
+// the structural max; the analysis window keeps the payload predictable.
+export const PRESCRIPTION_MAX_ASSIGNMENTS = 120;
+export const PRESCRIPTION_WINDOW_DAYS = 28; // recent-performance window
+
+// One batched fetch of a client's assigned workouts + their templates +
+// exercises + linked sessions (session ids only — sets are aggregated
+// elsewhere, never sent raw). All reads go through the service role AFTER
+// the caller has verified the client belongs to the resolved coach (same
+// contract as loadAssignmentPerformance). Bounded by an explicit window and
+// a row cap so a malformed enrollment cannot fan the payload out.
+export async function loadClientPrescription(
+  coachId: string,
+  clientId: string,
+  options?: { windowDays?: number; maxAssignments?: number }
+): Promise<ClientPrescription> {
+  const windowDays = Math.max(1, Math.min(options?.windowDays ?? PRESCRIPTION_WINDOW_DAYS, 365));
+  const maxAssignments = Math.max(1, Math.min(options?.maxAssignments ?? PRESCRIPTION_MAX_ASSIGNMENTS, 500));
+  const since = new Date(Date.now() - windowDays * 86400000).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const svc = await createServiceClient();
+
+  // 1) Assignments in the window (bounded) + total count for truncation flag.
+  //    Chronological order; the cap keeps the LATEST rows (analysis cares
+  //    most about recent scheduling).
+  const [{ count }, { data: assignmentsRaw }] = await Promise.all([
+    svc
+      .from("workout_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("coach_id", coachId)
+      .eq("client_id", clientId)
+      .gte("scheduled_date", since),
+    svc
+      .from("workout_assignments")
+      .select("id, scheduled_date, status, week_number, template_id")
+      .eq("coach_id", coachId)
+      .eq("client_id", clientId)
+      .gte("scheduled_date", since)
+      .order("scheduled_date", { ascending: false })
+      .limit(maxAssignments),
+  ]);
+  const total = count ?? 0;
+  const assignmentRows = (assignmentsRaw ?? []) as unknown as {
+    id: string;
+    scheduled_date: string;
+    status: AssignmentStatus;
+    week_number: number | null;
+    template_id: string;
+  }[];
+
+  const templateIds = [...new Set(assignmentRows.map((a) => a.template_id))];
+
+  // 2) Batched templates + exercises + linked sessions (no per-assignment round trips).
+  const [templatesRes, exercisesRes, sessionsRes] = await Promise.all([
+    templateIds.length
+      ? svc
+          .from("workout_templates")
+          .select("id, name, target_muscles, notes")
+          .in("id", templateIds)
+      : Promise.resolve({ data: [] as unknown[] }),
+    templateIds.length
+      ? svc
+          .from("workout_template_exercises")
+          .select("template_id, exercise_name, target_sets, target_reps, target_weight_kg, rest_sec, notes, order_index")
+          .in("template_id", templateIds)
+          .order("order_index", { ascending: true })
+      : Promise.resolve({ data: [] as unknown[] }),
+    assignmentRows.length
+      ? svc
+          .from("workout_sessions")
+          .select("id, assignment_id, session_date, duration_min")
+          .in(
+            "assignment_id",
+            assignmentRows.map((a) => a.id)
+          )
+          .limit(maxAssignments)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+
+  const templateById = new Map<
+    string,
+    { name: string | null; target_muscles: string[] | null; notes: string | null }
+  >();
+  for (const t of (templatesRes.data ?? []) as unknown as {
+    id: string;
+    name: string | null;
+    target_muscles: string[] | null;
+    notes: string | null;
+  }[]) {
+    templateById.set(t.id, { name: t.name, target_muscles: t.target_muscles, notes: t.notes });
+  }
+
+  const exercisesByTemplate = new Map<string, PrescriptionExercise[]>();
+  for (const e of (exercisesRes.data ?? []) as unknown as (PrescriptionExercise & { template_id: string })[]) {
+    const list = exercisesByTemplate.get(e.template_id) ?? [];
+    list.push({
+      exercise_name: e.exercise_name,
+      target_sets: e.target_sets,
+      target_reps: e.target_reps,
+      target_weight_kg: e.target_weight_kg != null ? Number(e.target_weight_kg) : null,
+      rest_sec: e.rest_sec,
+      notes: e.notes,
+      order_index: e.order_index,
+    });
+    exercisesByTemplate.set(e.template_id, list);
+  }
+
+  // Session presence per assignment (latest session wins); id/dates only —
+  // raw workout_sets are deliberately never loaded here (spec §13).
+  const sessionByAssignment = new Map<
+    string,
+    { id: string; session_date: string | null; duration_min: number | null }
+  >();
+  for (const s of (sessionsRes.data ?? []) as unknown as {
+    id: string;
+    assignment_id: string | null;
+    session_date: string | null;
+    duration_min: number | null;
+  }[]) {
+    if (!s.assignment_id || sessionByAssignment.has(s.assignment_id)) continue;
+    sessionByAssignment.set(s.assignment_id, { id: s.id, session_date: s.session_date, duration_min: s.duration_min });
+  }
+
+  // Chronological output; when capped, keep the most recent `maxAssignments`.
+  const ordered = [...assignmentRows].reverse();
+  const assignments: PrescriptionDay[] = ordered.map((a) => {
+    const tpl = templateById.get(a.template_id);
+    const session = sessionByAssignment.get(a.id) ?? null;
+    return {
+      scheduled_date: a.scheduled_date,
+      week_number: a.week_number,
+      status: a.status,
+      template_name: tpl?.name ?? null,
+      target_muscles: tpl?.target_muscles ?? [],
+      template_notes: tpl?.notes ?? null,
+      exercises: exercisesByTemplate.get(a.template_id) ?? [],
+      session,
+    };
+  });
+
+  return {
+    assignments,
+    window: { since, until: today },
+    truncated: total > maxAssignments,
   };
 }
 

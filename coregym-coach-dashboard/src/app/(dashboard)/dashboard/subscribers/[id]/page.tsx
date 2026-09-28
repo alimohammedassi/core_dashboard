@@ -14,6 +14,7 @@ import {
 import { RegenerateNutritionButton } from "@/components/subscribers/RegenerateNutritionButton";
 import { EnrollmentActions } from "@/components/subscribers/EnrollmentActions";
 import { ExerciseResults } from "@/components/subscribers/ExerciseResults";
+import { AiAnalysisCard } from "@/components/subscribers/AiAnalysisCard";
 import { NutritionTrends } from "@/components/nutrition/NutritionTrends";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -293,6 +294,9 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
         <Link href="/dashboard/subscribers" className="hover:text-foreground">← Subscribers</Link>
       </div>
       <h1 className="-mt-4 text-2xl font-bold tracking-tight">Customer profile</h1>
+
+      {/* ── AI analysis (V1): coach-triggered, read-only, on demand ─────────── */}
+      <AiAnalysisCard subscriptionId={sub.id} />
 
       {/* Identity + subscription */}
       <Card>

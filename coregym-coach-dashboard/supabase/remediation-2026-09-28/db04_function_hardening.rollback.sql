@@ -1,7 +1,6 @@
 -- ============================================================================
--- DB-04 ROLLBACK — clears the search_path override added by the forward
--- migration, restoring the (insecure) pre-state. Run only on a verified
--- regression caused specifically by the search_path change.
+-- DB-04 v2 ROLLBACK — clears the search_path overrides added by the forward
+-- migration, restoring the pre-migration state (absent functions no-op).
 -- ============================================================================
 
 DO $$
@@ -17,3 +16,5 @@ BEGIN
 EXCEPTION WHEN undefined_function THEN
   RAISE NOTICE 'prevent_role_escalation() not present — skipped';
 END $$;
+
+ALTER FUNCTION public.is_my_active_client(client_uid uuid) RESET search_path;

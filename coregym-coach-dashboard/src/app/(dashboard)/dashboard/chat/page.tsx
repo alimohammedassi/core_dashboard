@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enrichConversationUnread } from "@/lib/chat-unread";
 import { ChatClient } from "@/components/chat/ChatClient";
 
 export default async function ChatPage() {
@@ -34,21 +35,10 @@ export default async function ChatPage() {
       .limit(50);
 
     if (!error && data) {
-      // attach last_message + unread_count per conversation
-      const enriched = (data as unknown as Array<Record<string, unknown> & { messages: Array<{ created_at: string; is_read: boolean | null; sender_id: string; content: string }>; coach_unread: number | null }>).map(
-        (c) => {
-          const msgs = (c.messages as unknown[]) ?? [];
-          const sorted = [...(msgs as Array<{ created_at: string }>)].sort(
-            (a, b) => +new Date(a.created_at) - +new Date(b.created_at)
-          );
-          const last = sorted[sorted.length - 1] as unknown;
-          // live schema keeps a precomputed counter on the conversation row
-          const unread =
-            c.coach_unread ??
-            (msgs as Array<{ is_read: boolean | null; sender_id: string }>).filter((m) => !m.is_read && m.sender_id !== coachId)
-              .length;
-          return { ...c, last_message: last ?? null, unread_count: unread };
-        }
+      // attach last_message + unread_count per conversation (pure helper —
+      // unit-tested in tests/chat-unread.test.ts)
+      const enriched = (data as unknown as Array<Record<string, unknown>>).map((c) =>
+        enrichConversationUnread(c, coachId)
       );
       initial = enriched as never[];
     }

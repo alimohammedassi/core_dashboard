@@ -1,20 +1,30 @@
 -- ============================================================================
--- DB-05 (P2) — fix plans_coach_all keying mismatch.
--- NOT APPLIED YET. APPLY ONLY IF live introspection confirms the documented
--- issue: docs/PROJECT_SUMMARY.md (committed at b03161f) states the LIVE
--- policy compares subscription_plans.coach_id = auth.uid(), but live rows key
--- coach_id to coaches.id — so coaches can never SELECT their own plans via
--- the user context. The intended fix text already existed in the unapplied
--- supabase/rls_role_updates.sql:158-164; this file re-states it standalone
--- (rls_role_updates.sql also carries other unrelated changes and must not be
--- applied wholesale).
--- Idempotent. ROLLBACK: db05_plans_policy_fix.rollback.sql
+-- DB-05 v2 (P2) — fix the broken live `coach_manage_own_plans` policy on
+-- subscription_plans. Reconciled against LIVE introspection 2026-09-28.
+-- NOT APPLIED.
+--
+-- Live (verified verbatim):
+--   coach_manage_own_plans · ALL · TO public
+--       USING  (coach_id = auth.uid())
+--       WITH CHECK (coach_id = auth.uid())
+--   -> never matches: subscription_plans.coach_id is keyed to coaches.id while
+--      auth.uid() is the auth user id. Coach plan management via the user
+--      context is fail-closed (the dashboard compensates with service-role
+--      writes; coaches' own plan reads return empty).
+--   client_read_subscribed_plans · SELECT · TO public · subscription-join
+--   -> CORRECT and intentionally PRESERVED UNTOUCHED.
+--
+-- Fix: drop the broken policy and recreate it under the same name, corrected
+-- to TO authenticated with an EXISTS through coaches (the same ownership
+-- model used everywhere else). No broader public read is added.
+-- Idempotent. ROLLBACK: db05_plans_policy_fix.rollback.sql restores the exact
+-- broken policy text above.
 -- ============================================================================
 
-ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY; -- already enabled live; idempotent
 
-DROP POLICY IF EXISTS "plans_coach_all" ON public.subscription_plans;
-CREATE POLICY "plans_coach_all" ON public.subscription_plans
+DROP POLICY IF EXISTS "coach_manage_own_plans" ON public.subscription_plans;
+CREATE POLICY "coach_manage_own_plans" ON public.subscription_plans
   FOR ALL TO authenticated
   USING (
     EXISTS (
@@ -31,17 +41,16 @@ CREATE POLICY "plans_coach_all" ON public.subscription_plans
     )
   );
 
--- Marketplace/public read of ACTIVE plans (mirrors schema.sql intent so
--- client-side plan browsing keeps working once RLS is genuinely enforced).
-DROP POLICY IF EXISTS "plans_read_active" ON public.subscription_plans;
-CREATE POLICY "plans_read_active" ON public.subscription_plans
-  FOR SELECT USING (is_active = true);
+-- client_read_subscribed_plans is NOT dropped or recreated — it is correct
+-- live (verified verbatim) and must survive this migration unchanged.
 
 -- ============================================================================
--- RUNBOOK: introspect live policies first:
---   select policyname, roles, cmd, qual, with_check from pg_policies
---   where tablename='subscription_plans';
--- If live already has a correct EXISTS-based plans_coach_all, SKIP this file.
--- Apply, then verify: coach sees own plans on /dashboard/plans (user-session
--- read), anon sees only active plans, service-role writes unaffected.
+-- RUNBOOK:
+--   1. Save pre-state (pg_policies for subscription_plans) — the rollback
+--      recreates the broken policy verbatim.
+--   2. Apply.
+--   3. Verify: /dashboard/plans shows the coach's own plans (user-session
+--      read now matches); plan create/edit via the dashboard still works
+--      (service-role writes unaffected); a subscribed client still sees the
+--      plan they are enrolled in; anon sees no plan rows.
 -- ============================================================================
