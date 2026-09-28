@@ -162,11 +162,16 @@ function contractValidResult(): Record<string, unknown> {
 // Simulates the user-context Supabase client the way RLS would see it: the
 // subscription row is only returned when it belongs to the requesting coach
 // (the test decides by passing the row or null).
-function fakeSupabase(opts: { subscriptionRow: unknown; sessionUser?: unknown }): SupabaseClient {
+function fakeSupabase(opts: {
+  subscriptionRow: unknown;
+  sessionUser?: unknown;
+  onFrom?: () => void;
+}): SupabaseClient {
   return {
     auth: { getUser: async () => ({ data: { user: opts.sessionUser ?? null } }) },
     from: (table: string) => {
       assert.equal(table, "subscriptions", "the flow must only read subscriptions directly");
+      opts.onFrom?.();
       const chain: Record<string, unknown> = {};
       chain.select = () => chain;
       chain.eq = () => chain;
@@ -187,10 +192,17 @@ function makeDeps(opts: {
   const state = {
     collectCalls: 0,
     rateLimitKeys: [] as string[],
+    fromCalls: 0,
   };
   const deps: AnalysisDeps = {
     createClient: async () =>
-      fakeSupabase({ subscriptionRow: opts.subscriptionRow ?? null, sessionUser: opts.sessionUser }),
+      fakeSupabase({
+        subscriptionRow: opts.subscriptionRow ?? null,
+        sessionUser: opts.sessionUser,
+        onFrom: () => {
+          state.fromCalls += 1;
+        },
+      }),
     requireCoachContext: async () =>
       opts.coachContext === undefined ? { userId: "auth-user-1", coachId: "coach-1" } : opts.coachContext,
     rateLimit: (key) => {
@@ -461,5 +473,44 @@ describe("AI flow runtime — provider interaction, contract and repair (spec §
     const down = await run(makeDeps({ subscriptionRow: ownedRow }).deps, VALID_BODY);
     assert.equal(down.status, 502);
     assert.deepEqual(down.body, { error: "AI analysis is temporarily unavailable — please try again later" });
+  });
+});
+
+describe("AI flow runtime — bounded work and injection-screen hygiene", () => {
+  it("issues exactly one database query for the client lookup (no N+1 in the flow)", async () => {
+    fetchImpl = async () => geminiTextResponse(JSON.stringify(contractValidResult()));
+    const ownedRow = { id: COACH_SUBSCRIPTION_ID, client_id: CLIENT_B_ID, status: "active" };
+    const { deps, state } = makeDeps({ subscriptionRow: ownedRow });
+    const res = await run(deps, VALID_BODY);
+    assert.equal(res.status, 200);
+    assert.equal(
+      state.fromCalls,
+      1,
+      "one coach-scoped subscriptions read per request — collection is injected and batched"
+    );
+  });
+
+  it("does not flag legitimate coaching prose (risk-adjusted / task-specific wording)", async () => {
+    const legit = contractValidResult();
+    (legit.issues as { title: string; detail: string; evidence: string }[])[0].detail =
+      "Weekly volume is risk-adjusted and stable across the mesocycle.";
+    (legit.strengths as string[]).push("Task-specific progression is consistent.");
+    fetchImpl = async () => geminiTextResponse(JSON.stringify(legit));
+    const ownedRow = { id: COACH_SUBSCRIPTION_ID, client_id: CLIENT_B_ID, status: "active" };
+    const { deps } = makeDeps({ subscriptionRow: ownedRow });
+    const res = await run(deps, VALID_BODY);
+    assert.equal(res.status, 200, "legitimate prose must not trip the injection screen");
+  });
+
+  it("still rejects key-shaped secrets (sk-proj-… / gsk_…)", async () => {
+    const poisoned = contractValidResult();
+    (poisoned.strengths as string[]).push("Configuration note: sk-proj-abc123defghij");
+    fetchImpl = async () => geminiTextResponse(JSON.stringify(poisoned));
+    const ownedRow = { id: COACH_SUBSCRIPTION_ID, client_id: CLIENT_B_ID, status: "active" };
+    const { deps } = makeDeps({ subscriptionRow: ownedRow });
+    const res = await run(deps, VALID_BODY);
+    assert.equal(res.status, 502);
+    assert.deepEqual(res.body, { error: GENERIC_FAILURE });
+    assert.equal(fetchCalls.length, 1, "suspicious output is never sent back for repair");
   });
 });

@@ -31,5 +31,10 @@ export async function POST(req: NextRequest) {
     },
     req
   );
-  return NextResponse.json(result.body, { status: result.status });
+  // no-store: the analysis contains client health-adjacent data and must never
+  // sit in any browser/CDN/proxy cache.
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "no-store" },
+  });
 }

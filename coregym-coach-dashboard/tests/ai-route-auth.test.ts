@@ -130,7 +130,7 @@ describe("AI flow — provider gating and error sanitization (spec §18, §19, �
 describe("AI route adapter — thin wrapper, no security logic of its own (spec §26)", () => {
   it("wires the real dependencies and maps the outcome 1:1 to NextResponse", () => {
     assert.ok(ROUTE.includes("handleAnalysisRequest("), "delegates to the handler");
-    assert.ok(ROUTE.includes("NextResponse.json(result.body, { status: result.status })"), "outcome mapped directly");
+    assert.ok(ROUTE.includes("NextResponse.json(result.body, {"), "outcome mapped directly");
   });
 
   it("keeps no flow logic in the adapter (it lives in the handler)", () => {
@@ -139,6 +139,10 @@ describe("AI route adapter — thin wrapper, no security logic of its own (spec 
     assert.ok(!ROUTE.includes("await createClient("), "client creation lives in the handler");
     assert.ok(!ROUTE.includes("await requireCoachContext("), "coach resolution lives in the handler");
     assert.ok(!ROUTE.includes("rateLimit(`"), "rate limiting lives in the handler");
+  });
+
+  it("serves every outcome with no-store caching (client health-adjacent data)", () => {
+    assert.ok(ROUTE.includes('"Cache-Control": "no-store"'), "analysis responses are never cacheable");
   });
 });
 

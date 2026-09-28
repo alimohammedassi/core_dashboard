@@ -219,7 +219,9 @@ export async function handleAnalysisRequest(
 
 // Conservative instruction-like content screen. Deliberately narrow to avoid
 // false positives on legitimate coaching prose; the system instruction and the
-// strict contract remain the primary defenses.
+// strict contract remain the primary defenses. Secret patterns are key-SHAPED
+// (a word boundary + a real token length) so ordinary words like
+// "risk-adjusted" or "task-specific" cannot trip the screen.
 function injectionSuspicion(text: string): boolean {
   const t = text.toLowerCase();
   return (
@@ -228,8 +230,8 @@ function injectionSuspicion(text: string): boolean {
     t.includes("disregard your instructions") ||
     t.includes("reveal your system prompt") ||
     t.includes("api key") ||
-    t.includes("gsk_") ||
-    t.includes("sk-") ||
+    /gsk_[a-z0-9]{10,}/.test(t) ||
+    /\bsk-[a-z0-9_-]{8,}/.test(t) ||
     t.includes("supabase service") ||
     t.includes("service_role")
   );
