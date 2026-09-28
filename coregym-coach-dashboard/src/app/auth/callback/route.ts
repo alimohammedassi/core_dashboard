@@ -44,110 +44,35 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  // After session is set, check for pending coach onboarding (set by /signup before Google OAuth)
-  const pendingCookie = cookieStore.get("pending_coach")?.value;
-  if (pendingCookie) {
-    try {
-      const decoded = decodeURIComponent(pendingCookie);
-      const pending = JSON.parse(decoded) as {
-        display_name?: string;
-        bio?: string;
-        price_monthly?: number;
-        specialization?: string[];
-        years_experience?: number;
-      };
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        const displayName = String(pending.display_name ?? "").trim() || user.email || "Coach";
-        const bio = String(pending.bio ?? "").trim() || null;
-        const priceMonthly = Number(pending.price_monthly ?? 0);
-        const specialization = Array.isArray(pending.specialization) ? pending.specialization.slice(0, 8).map(String) : [];
-        const yearsExperience =
-          Number.isFinite(Number(pending.years_experience)) && pending.years_experience !== undefined
-            ? Number(pending.years_experience)
-            : null;
-
-        const svc = await createServiceClient();
-
-        // Ensure profile is coach (idempotent)
-        // Note: profiles.id is auth user id, update role+name
-        await svc.from("profiles").update({ role: "coach", name: displayName }).eq("id", user.id);
-
-        // Upsert coaches row
+  // AUTH-03: the `pending_coach` cookie branch was removed. Nothing in the
+  // tree ever SET that cookie, but if one had been delivered (crafted link,
+  // subdomain cookie) this route would have promoted the just-authenticated
+  // account to role='coach' via the service role WITHOUT the S2 eligibility
+  // check that POST /api/coaches enforces. Coach onboarding for new users is
+  // handled by the footprint-based routing below plus POST /api/coaches.
+  // Heal legacy Google coaches that have profile role=coach but no coaches row.
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const svc = await createServiceClient();
+      const { data: prof } = await svc.from("profiles").select("role").eq("id", user.id).single();
+      if ((prof as unknown as { role?: string })?.role === "coach") {
         const { data: existingCoach } = await svc.from("coaches").select("id").eq("user_id", user.id).maybeSingle();
-        if (existingCoach) {
-          const coachId = (existingCoach as { id: string }).id;
-          await svc
-            .from("coaches")
-            .update({ bio, price_monthly: priceMonthly, specialization, is_active: true })
-            .eq("id", coachId);
-        } else {
-          await svc.from("coaches").insert({ user_id: user.id, bio, price_monthly: priceMonthly, specialization, is_active: true });
-        }
-
-        // Upsert onboarding listing
-        const onboardingFields: Record<string, unknown> = {
-          user_id: user.id,
-          display_name: displayName,
-          bio,
-          price_monthly: priceMonthly,
-          specialization,
-          is_completed: true,
-        };
-        if (yearsExperience !== null) onboardingFields.years_experience = yearsExperience;
-
-        const { data: existingOnboarding } = await svc
-          .from("coach_onboarding")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (existingOnboarding) {
-          await svc
-            .from("coach_onboarding")
-            .update(onboardingFields)
-            .eq("id", (existingOnboarding as { id: string }).id);
-        } else {
-          await svc.from("coach_onboarding").insert(onboardingFields);
+        if (!existingCoach) {
+          await svc.from("coaches").insert({
+            user_id: user.id,
+            bio: null,
+            price_monthly: 0,
+            specialization: [],
+            is_active: true,
+          });
         }
       }
-    } catch (e) {
-      console.error("[auth/callback] pending_coach handling failed", e);
-      // don't block login, just continue
     }
-
-    // Clear pending cookie after attempt
-    try {
-      cookieStore.set("pending_coach", "", { path: "/", maxAge: 0 });
-    } catch {}
-  } else {
-    // No pending – heal legacy Google coaches that have profile role=coach but no coaches row
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const svc = await createServiceClient();
-        const { data: prof } = await svc.from("profiles").select("role").eq("id", user.id).single();
-        if ((prof as unknown as { role?: string })?.role === "coach") {
-          const { data: existingCoach } = await svc.from("coaches").select("id").eq("user_id", user.id).maybeSingle();
-          if (!existingCoach) {
-            await svc.from("coaches").insert({
-              user_id: user.id,
-              bio: null,
-              price_monthly: 0,
-              specialization: [],
-              is_active: true,
-            });
-          }
-        }
-      }
-    } catch (e) {
-      console.error("[auth/callback] heal coaches row failed", e);
-    }
+  } catch (e) {
+    console.error("[auth/callback] heal coaches row failed", e);
   }
 
   // ── Footprint-based routing (never by provider — by application state) ──

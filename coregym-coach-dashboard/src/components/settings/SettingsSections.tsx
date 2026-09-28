@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { describeError } from "@/lib/user-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,7 +66,7 @@ export function AvatarUpload({
       const marker = url.split("?")[0].split("/avatars/")[1];
       if (marker) await supabase.storage.from("avatars").remove([marker]);
       const { error } = await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       setUrl(null);
       onSaved?.(null);
       toast.success("Profile photo removed");
@@ -135,7 +136,7 @@ export function EmailChange({ currentEmail }: { currentEmail: string }) {
     setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({ email: next });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       toast.success("Confirmation sent to your new email — the change applies after you confirm it.");
       setEmail("");
     } catch (err: unknown) {
@@ -189,8 +190,13 @@ export function SecurityControls() {
     setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: pw });
-      if (error) throw new Error(error.message);
-      toast.success("Password updated");
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
+      // AUTH-02: a password change must not leave a stolen session logged in.
+      // Revokes every OTHER session/refresh token; the current device stays
+      // signed in so the coach isn't logged out mid-flow.
+      const { error: revokeErr } = await supabase.auth.signOut({ scope: "others" });
+      if (revokeErr) console.error("[settings] session revocation after password change failed", revokeErr);
+      toast.success("Password updated — other devices have been signed out");
       setPw("");
       setPw2("");
     } catch (err: unknown) {
@@ -205,7 +211,7 @@ export function SecurityControls() {
     setSigningOut(true);
     try {
       const { error } = await supabase.auth.signOut({ scope: "global" });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(describeError(error, "Request failed — please try again."));
       router.replace("/login");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Sign out failed");
