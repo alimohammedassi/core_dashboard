@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { resolveCoachId } from "@/lib/coach";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -28,8 +29,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  // Verify coach role — never assume every user is a coach
-  const { data: profile } = await supabase.from("profiles").select("role, full_name, name, email").eq("id", user.id).single();
+  // PERF-01: profiles (role), coaches id and coach_onboarding are independent
+  // reads once we have user.id — run them in ONE parallel round instead of the
+  // previous 2-layer waterfall. The coaches read goes through resolveCoachId
+  // (React-cache()d per request with the SAME cached client the pages use), so
+  // the layout and every dashboard page share a single coaches round-trip
+  // instead of duplicating it.
+  const [profileRes, coachIdResult, onboardingRes] = await Promise.all([
+    supabase.from("profiles").select("role, full_name, name, email").eq("id", user.id).single(),
+    resolveCoachId(supabase, user.id),
+    supabase.from("coach_onboarding").select("is_completed").eq("user_id", user.id).maybeSingle(),
+  ]);
+  const profile = profileRes.data;
+  const hasCoachRow = coachIdResult !== user.id;
 
   // If profiles table not yet migrated, profile will be null — allow through in dev but flag
   const role = (profile as { role?: string } | null)?.role;
@@ -45,12 +57,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // coach rows have is_completed = true). role === undefined keeps the
   // existing dev-mode tolerance.
   if (isCoach && role === "coach") {
-    const [coachRes, onboardingRes] = await Promise.all([
-      supabase.from("coaches").select("id").eq("user_id", user.id).maybeSingle(),
-      supabase.from("coach_onboarding").select("is_completed").eq("user_id", user.id).maybeSingle(),
-    ]);
     const complete =
-      Boolean(coachRes.data) &&
+      hasCoachRow &&
       (onboardingRes.data as { is_completed?: boolean } | null)?.is_completed === true;
     if (!complete) {
       redirect("/onboarding");
