@@ -1,3 +1,11 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- DEPRECATED (DB2, 2026-09-27) — DO NOT APPLY. This file is an early ASSUMED
+-- schema that contradicts the verified live database: it has no `coaches`
+-- table and models coach_id as profiles.id (= auth.uid()), while live uses
+-- coaches.id via coaches.user_id = auth.uid() (see src/lib/supabase/types.ts
+-- and docs/live-production-verification-report.md §4). Applying it would
+-- CREATE the `coach_id = auth.uid()` bug class. Kept for history only.
+-- ═══════════════════════════════════════════════════════════════════════════
 -- CoreGym Coach Dashboard — Assumed Supabase schema (Step 1)
 -- Project ref: mkrjvrnysuvtokqkyoll
 -- NOTE: Real schema could not be introspected. Flutter app at

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
 import { requireCoachContext } from "@/lib/workouts";
+import { dbError } from "@/lib/api-error";
 
 // Coach profile + policy updates (Settings page). Follows the established
 // service-role convention: the live `coaches_update_own` RLS policy is not
@@ -82,13 +83,14 @@ export async function PATCH(req: NextRequest) {
       const hint = coachErr.message.includes("policy")
         ? " (The policy column migration may not be applied yet — supabase/coach_profile_policy_migration.sql)"
         : "";
-      return NextResponse.json({ error: coachErr.message + hint }, { status: 400 });
+      console.error(`[api:coach/profile] coach update failed${hint}`, coachErr.message);
+      return NextResponse.json({ error: "Could not save the coach profile. Please try again." }, { status: 400 });
     }
   }
 
   if (name) {
     const { error: profileErr } = await svc.from("profiles").update({ name }).eq("id", ctx.userId);
-    if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 400 });
+    if (profileErr) return NextResponse.json(dbError("coach/profile", profileErr), { status: 400 });
   }
 
   if (body.years_experience != null && body.years_experience !== "") {
@@ -99,7 +101,7 @@ export async function PATCH(req: NextRequest) {
     const { error: obErr } = await svc
       .from("coach_onboarding")
       .upsert({ user_id: ctx.userId, years_experience: years }, { onConflict: "user_id" });
-    if (obErr) return NextResponse.json({ error: obErr.message }, { status: 400 });
+    if (obErr) return NextResponse.json(dbError("coach/profile", obErr), { status: 400 });
   }
 
   return NextResponse.json({ ok: true });
@@ -122,7 +124,7 @@ export async function GET() {
     svc.from("profiles").select("name").eq("id", user.id).single(),
     svc.from("coach_onboarding").select("years_experience").eq("user_id", user.id).maybeSingle(),
   ]);
-  if (coachRes.error) return NextResponse.json({ error: coachRes.error.message }, { status: 400 });
+  if (coachRes.error) return NextResponse.json(dbError("coach/profile", coachRes.error), { status: 400 });
 
   return NextResponse.json({
     name: (profileRes.data as { name: string | null } | null)?.name ?? "",

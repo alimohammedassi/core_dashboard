@@ -33,7 +33,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   // If profiles table not yet migrated, profile will be null — allow through in dev but flag
   const role = (profile as { role?: string } | null)?.role;
-  const isCoach = role === "coach" || role === undefined; // undefined = schema not applied yet (dev mode)
+  // S12: the undefined-role bypass is DEV ONLY. In production a missing role
+  // fails closed (deny panel below) instead of silently granting access.
+  const isDevBypass = role === undefined && process.env.NODE_ENV !== "production";
+  const isCoach = role === "coach" || isDevBypass;
 
   // ── Coach onboarding completeness gate ──────────────────────────────────────
   // Coaches whose profile is not yet complete (no coaches row or unfinished
@@ -62,6 +65,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <p className="text-sm text-muted-foreground">
             Your account role is <span className="font-mono font-medium">{role}</span>. Only coaches can access this
             dashboard.
+          </p>
+          <form action="/api/auth/signout" method="post">
+            <Button type="submit" variant="outline">
+              Sign out
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (role === undefined && !isDevBypass) {
+    // Production fail-closed (S12): role unreadable and this is not dev.
+    return (
+      <div className="flex min-h-svh items-center justify-center p-8">
+        <div className="max-w-md text-center space-y-4 border rounded-xl p-8">
+          <h1 className="text-xl font-semibold">Access denied</h1>
+          <p className="text-sm text-muted-foreground">
+            Your account could not be verified as a coach. Please sign out and try again,
+            or contact support.
           </p>
           <form action="/api/auth/signout" method="post">
             <Button type="submit" variant="outline">

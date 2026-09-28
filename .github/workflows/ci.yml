@@ -1,6 +1,6 @@
 # CI gate for the CoreGym Coach Dashboard (app lives in coregym-coach-dashboard/).
-# Runs on every push to main and every PR: typecheck → lint → production build.
-# All three are blocking. Deployments stay on Vercel's GitHub integration;
+# Runs on every push to main and every PR: typecheck → lint → tests → audit → build.
+# All blocking. Deployments stay on Vercel's GitHub integration;
 # this workflow only gates what can be merged/pushed.
 
 name: Dashboard CI
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, lint & build
+    name: Typecheck, lint, tests, audit & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,6 +42,15 @@ jobs:
 # Keep it blocking; any new lint error should fail CI.
       - name: Lint
         run: npm run lint
+
+      # Unit tests (node:test, zero new dependencies): parser caps, unread
+      # math, review math, ownership predicate. Blocking.
+      - name: Tests
+        run: npm test
+
+      # Dependency vulnerabilities. Fails on high/critical advisories.
+      - name: Audit
+        run: npm audit --omit=dev --audit-level=high
 
       # Build needs the public Supabase vars at bundle time (they are inlined
       # into client code). CI uses placeholders — the anon key is public by

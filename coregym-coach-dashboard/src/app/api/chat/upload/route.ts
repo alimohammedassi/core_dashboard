@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { chatBucketFor, CHAT_MEDIA_LIMITS, type ChatMediaType } from "@/lib/chat-media";
+import { dbError } from "@/lib/api-error";
 
 // Coach-side chat media upload. Matches the mobile app's conventions exactly
 // (path "{conversationId}/{millis}_{name}", file_url = path without bucket,
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
   if (msgErr || !message) {
     // don't leave an orphaned object behind if the message insert fails
     await svc.storage.from(bucket).remove([path]);
-    return NextResponse.json({ error: msgErr?.message ?? "Could not send the attachment" }, { status: 500 });
+    return NextResponse.json(dbError("chat/upload", msgErr), { status: 500 });
   }
 
   // keep the conversation preview fresh, same as the text send path

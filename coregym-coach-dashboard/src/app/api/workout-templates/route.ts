@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { parseTemplatePayload } from "@/lib/workout-input";
+import { dbError } from "@/lib/api-error";
 
 // Template writes go through the service role after the caller is
 // authenticated and resolved to their coach row (mirrors /api/plans).
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     p_exercises: parsed.data.exercises,
   });
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(dbError("workout-templates", error), { status: 400 });
   }
 
   const id = templateId as string;
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     svc.from("workout_template_exercises").select("*").eq("template_id", id).order("order_index"),
   ]);
   if (t.error || !t.data) {
-    return NextResponse.json({ error: t.error?.message ?? "Template created but could not be read back" }, { status: 500 });
+    return NextResponse.json(dbError("workout-templates", t.error), { status: 500 });
   }
   return NextResponse.json({ ...t.data, exercises: ex.data ?? [] });
 }

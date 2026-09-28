@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { dbError } from "@/lib/api-error";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -33,7 +34,7 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
     p_enrollment_id: id,
     p_coach_id: ctx.coachId,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("program-enrollments/[id]/regenerate", error), { status: 400 });
 
   return NextResponse.json({ replaced: replaced ?? 0 });
 }

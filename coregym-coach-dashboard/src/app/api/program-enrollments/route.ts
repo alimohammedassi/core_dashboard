@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { generateEnrollmentDates } from "@/lib/program-dates";
+import { dbError } from "@/lib/api-error";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
     p_start_date: startDate,
     p_duration_weeks: durationWeeks,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("program-enrollments", error), { status: 400 });
 
   // Expected assignment count comes from the same pure, unit-tested math the
   // SQL uses — surfaced so the UI can confirm what was generated.

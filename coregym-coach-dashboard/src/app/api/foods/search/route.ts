@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { dbError } from "@/lib/api-error";
 
 // GET /api/foods/search?q=chicken&page=0 — server-side ilike over the shared
 // foods library, 20 rows per page. Never loads the library into the browser.
@@ -23,6 +24,6 @@ export async function GET(req: NextRequest) {
     query = query.or(`name.ilike.%${safe}%,name_ar.ilike.%${safe}%`);
   }
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("foods/search", error), { status: 400 });
   return NextResponse.json({ foods: data ?? [], page, perPage });
 }

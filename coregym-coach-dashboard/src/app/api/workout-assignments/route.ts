@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { parseTemplatePayload } from "@/lib/workout-input";
+import { dbError } from "@/lib/api-error";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
       .select("id, coach_id, client_id, program_id")
       .eq("id", String(body.source_assignment_id))
       .maybeSingle();
-    if (sErr) return NextResponse.json({ error: sErr.message }, { status: 400 });
+    if (sErr) return NextResponse.json(dbError("workout-assignments", sErr), { status: 400 });
     if (!source) return NextResponse.json({ error: "Source assignment not found" }, { status: 404 });
     if ((source as { coach_id: string }).coach_id !== ctx.coachId) {
       return NextResponse.json({ error: "This assignment belongs to another coach" }, { status: 403 });
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       p_notes: parsed.data.notes,
       p_exercises: parsed.data.exercises,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) return NextResponse.json(dbError("workout-assignments", error), { status: 400 });
 
     const { data: assignment, error: aErr } = await svc
       .from("workout_assignments")
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
       })
       .select("*")
       .single();
-    if (aErr) return NextResponse.json({ error: aErr.message }, { status: 400 });
+    if (aErr) return NextResponse.json(dbError("workout-assignments", aErr), { status: 400 });
     return NextResponse.json({ assignment, template_id: templateId });
   }
 
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     .select("id, coach_id, name")
     .eq("id", templateId)
     .maybeSingle();
-  if (tErr) return NextResponse.json({ error: tErr.message }, { status: 400 });
+  if (tErr) return NextResponse.json(dbError("workout-assignments", tErr), { status: 400 });
   if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
   if ((template as { coach_id: string }).coach_id !== ctx.coachId) {
     return NextResponse.json({ error: "This template belongs to another coach" }, { status: 403 });
@@ -92,12 +93,18 @@ export async function POST(req: NextRequest) {
     .eq("client_id", clientId)
     .eq("status", "active")
     .limit(1);
-  if (subErr) return NextResponse.json({ error: subErr.message }, { status: 400 });
+  if (subErr) return NextResponse.json(dbError("workout-assignments", subErr), { status: 400 });
   if (!sub || sub.length === 0) {
     return NextResponse.json({ error: "Client must be an active subscriber of yours" }, { status: 400 });
   }
 
   // Program link is optional; when present it must reference a real program.
+  // S4 boundary note (verified live 2026-09-27): training_programs is the
+  // mobile app's GLOBAL catalog table — it has no coach_id column, so any
+  // program id is linkable by design (same as catalog exercises). Tenant
+  // isolation lives on the assignment row itself (coach_id = ctx.coachId,
+  // coach-owned template, subscribed client — all checked above), not on
+  // this link. The existence check below prevents dangling references.
   let programId: string | null = null;
   if (body.program_id != null && String(body.program_id).trim() !== "") {
     const pid = String(body.program_id);
@@ -118,7 +125,7 @@ export async function POST(req: NextRequest) {
     })
     .select("*")
     .single();
-  if (aErr) return NextResponse.json({ error: aErr.message }, { status: 400 });
+  if (aErr) return NextResponse.json(dbError("workout-assignments", aErr), { status: 400 });
 
   return NextResponse.json({ assignment });
 }

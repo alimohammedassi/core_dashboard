@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
+import { checkCooldown } from "@/lib/rate-limit";
 
 export async function POST() {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -16,6 +17,15 @@ export async function POST() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // ST3: one Connect flow per user per minute (link minting + account
+  // creation are the abuse-sensitive operations here).
+  if (checkCooldown(`stripe-connect:${user.id}`)) {
+    return NextResponse.json(
+      { error: "Please wait a minute before retrying the Stripe connection" },
+      { status: 429 }
+    );
+  }
 
   // stripe_account_id lives on the coaches row (canonical), not profiles.
   const coachId = await resolveCoachId(supabase, user.id);

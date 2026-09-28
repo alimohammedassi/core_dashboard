@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
+import { dbError } from "@/lib/api-error";
 
 // Live search over the coach's subscribers (profiles joined through
 // subscriptions). Results carry the subscription id because profile pages
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     .order("start_date", { ascending: false })
     .limit(500);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("coach/clients/search", error), { status: 400 });
 
   type Row = {
     id: string;

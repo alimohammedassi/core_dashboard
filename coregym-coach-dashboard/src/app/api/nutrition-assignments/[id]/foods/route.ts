@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { dbError } from "@/lib/api-error";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     p_assignment_food_id: null,
     p_note: note,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-assignments/[id]/foods", error), { status: 400 });
   return NextResponse.json({ ok: true });
 }
 
@@ -83,6 +84,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     p_assignment_food_id: assignmentFoodId,
     p_note: null,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-assignments/[id]/foods", error), { status: 400 });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
+import { dbError } from "@/lib/api-error";
 
 // subscription_plans is keyed by coaches.id but the live RLS policy compares
 // coach_id against auth.uid(), so authenticated inserts can never pass.
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
   const svc = await createServiceClient();
   const { data, error } = await svc.from("subscription_plans").insert(payload).select().single();
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(dbError("plans", error), { status: 400 });
   }
   return NextResponse.json(data);
 }
@@ -71,7 +72,7 @@ export async function PATCH(req: NextRequest) {
     .select()
     .single();
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(dbError("plans", error), { status: 400 });
   }
   return NextResponse.json(data);
 }

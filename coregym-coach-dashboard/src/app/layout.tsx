@@ -3,6 +3,7 @@ import { Poppins, Cairo, Inter, Plus_Jakarta_Sans, Instrument_Serif } from "next
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { checkPublicEnv } from "@/lib/env-check";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -39,6 +40,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // D2: loud server-side warning when public env is missing/placeholder.
+  checkPublicEnv();
   return (
     <html
       lang="en"

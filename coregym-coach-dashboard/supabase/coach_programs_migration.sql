@@ -204,6 +204,18 @@ declare
   v_program_id uuid;
   v_day jsonb;
 begin
+  -- Ownership (authenticated IDOR fix): direct JWT callers must own the
+  -- coach row (auth.uid() → coaches.user_id → coaches.id). service_role
+  -- calls skip this — the API routes verify ownership before calling.
+  if auth.role() <> 'service_role' then
+    if not exists (
+      select 1 from coaches
+      where id = p_coach_id and user_id = auth.uid()
+    ) then
+      raise exception 'Not authorized for this coach';
+    end if;
+  end if;
+
   if p_name is null or btrim(p_name) = '' then
     raise exception 'Program name is required';
   end if;
@@ -294,6 +306,17 @@ declare
   v_iso_start int;
   w int;
 begin
+  -- Ownership (authenticated IDOR fix): same pattern as
+  -- upsert_coach_program_atomic above.
+  if auth.role() <> 'service_role' then
+    if not exists (
+      select 1 from coaches
+      where id = p_coach_id and user_id = auth.uid()
+    ) then
+      raise exception 'Not authorized for this coach';
+    end if;
+  end if;
+
   if p_duration_weeks is null or p_duration_weeks <= 0 then
     raise exception 'Duration must be a positive number of weeks';
   end if;
@@ -357,6 +380,17 @@ declare
   w int;
   v_replaced int := 0;
 begin
+  -- Ownership (authenticated IDOR fix): same pattern as above. Placed
+  -- before the enrollment lookup so cross-coach ids fail closed immediately.
+  if auth.role() <> 'service_role' then
+    if not exists (
+      select 1 from coaches
+      where id = p_coach_id and user_id = auth.uid()
+    ) then
+      raise exception 'Not authorized for this coach';
+    end if;
+  end if;
+
   select * into v_enrollment
   from client_program_enrollments
   where id = p_enrollment_id and coach_id = p_coach_id;
@@ -404,3 +438,17 @@ begin
   return v_replaced;
 end;
 $$;
+
+-- ----------------------------------------------------------------------------
+-- 7) Least privilege (DB5): same pattern as the nutrition RPCs. Each
+--    function body re-verifies auth.uid() → coaches.user_id → coaches.id for
+--    direct JWT callers (service_role bypasses the in-function check), so the
+--    authenticated EXECUTE below is safe.
+--    Idempotent: safe to re-run on an already-migrated database.
+-- ----------------------------------------------------------------------------
+revoke all on function public.upsert_coach_program_atomic(uuid, uuid, text, text, jsonb) from public, anon;
+grant execute on function public.upsert_coach_program_atomic(uuid, uuid, text, text, jsonb) to authenticated, service_role;
+revoke all on function public.create_program_enrollment_atomic(uuid, uuid, uuid, date, int) from public, anon;
+grant execute on function public.create_program_enrollment_atomic(uuid, uuid, uuid, date, int) to authenticated, service_role;
+revoke all on function public.regenerate_remaining_enrollment_assignments(uuid, uuid) from public, anon;
+grant execute on function public.regenerate_remaining_enrollment_assignments(uuid, uuid) to authenticated, service_role;

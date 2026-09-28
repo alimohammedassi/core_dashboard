@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { isCoachOwned } from "@/lib/ownership";
 import { parseNutritionPayload } from "@/lib/nutrition-input";
+import { dbError } from "@/lib/api-error";
 
 // Nutrition program writes go through the service role after the caller is
 // authenticated and resolved to their coach row (mirrors /api/coach-programs).
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
     p_description: parsed.data.description,
     p_tree: parsed.data.days,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-programs", error), { status: 400 });
 
   return NextResponse.json({ id: programId });
 }
@@ -40,6 +42,16 @@ export async function PATCH(req: NextRequest) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   const svc = await createServiceClient();
+  // Ownership pre-read (S7): same boundary as coach program PATCH.
+  const { data: existing } = await svc
+    .from("nutrition_programs")
+    .select("id, coach_id")
+    .eq("id", body.id)
+    .maybeSingle();
+  if (!isCoachOwned(existing as { coach_id: string } | null, ctx.coachId)) {
+    return NextResponse.json({ error: "Program not found" }, { status: 404 });
+  }
+
   const { data: programId, error } = await svc.rpc("upsert_nutrition_program_atomic", {
     p_program_id: body.id,
     p_coach_id: ctx.coachId,
@@ -47,7 +59,7 @@ export async function PATCH(req: NextRequest) {
     p_description: parsed.data.description,
     p_tree: parsed.data.days,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-programs", error), { status: 400 });
 
   return NextResponse.json({ id: programId });
 }
@@ -74,6 +86,6 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { error } = await svc.from("nutrition_programs").delete().eq("id", id).eq("coach_id", ctx.coachId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-programs", error), { status: 400 });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { isCoachOwned } from "@/lib/ownership";
+import { dbError } from "@/lib/api-error";
 
 // Enroll a client in a nutrition program: validates program ownership + the
 // client's ACTIVE subscription, then materializes every meal row in one
@@ -24,6 +26,17 @@ export async function POST(req: NextRequest) {
   }
 
   const svc = await createServiceClient();
+  // Ownership pre-read (S5): the program must belong to this coach — never
+  // enroll a client into another coach's program via a client-supplied id.
+  const { data: program } = await svc
+    .from("nutrition_programs")
+    .select("id, coach_id")
+    .eq("id", programId)
+    .maybeSingle();
+  if (!isCoachOwned(program as { coach_id: string } | null, ctx.coachId)) {
+    return NextResponse.json({ error: "Program not found" }, { status: 404 });
+  }
+
   // Eligibility: active subscription with this coach (same rule as workouts).
   const { data: sub } = await svc
     .from("subscriptions")
@@ -43,7 +56,7 @@ export async function POST(req: NextRequest) {
     p_start_date: startDate,
     p_duration_weeks: durationWeeks,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-enrollments", error), { status: 400 });
 
   const { count } = await svc
     .from("nutrition_assignments")

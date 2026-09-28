@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { dbError } from "@/lib/api-error";
 
 // Duplicate a nutrition program with its full tree as an independent copy.
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -41,6 +42,6 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     p_description: s.description,
     p_tree: tree,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("nutrition-programs/[id]/duplicate", error), { status: 400 });
   return NextResponse.json({ id: newId });
 }

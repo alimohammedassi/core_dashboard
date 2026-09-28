@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { dbError } from "@/lib/api-error";
 
 // Coach feedback after a performance review. Uses the EXISTING chat system:
 // finds the coach/client conversation (conversations.coach_id is the auth uid,
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
       .select("id")
       .single();
     if (cErr || !created) {
-      return NextResponse.json({ error: cErr?.message ?? "Could not open a conversation" }, { status: 400 });
+      return NextResponse.json(dbError("workout-feedback", cErr), { status: 400 });
     }
     conversationId = (created as { id: string }).id;
   }
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     type: "text",
     is_read: false,
   });
-  if (mErr) return NextResponse.json({ error: mErr.message }, { status: 400 });
+  if (mErr) return NextResponse.json(dbError("workout-feedback", mErr), { status: 400 });
 
   // Keep the conversation preview in sync, mirroring what the mobile app does.
   const currentUnread = existing ? ((existing as { client_unread: number | null }).client_unread ?? 0) : 0;

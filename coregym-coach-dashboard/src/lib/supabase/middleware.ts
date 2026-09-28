@@ -32,15 +32,27 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname.startsWith("/privacy") ||
+    pathname.startsWith("/terms") ||
+    pathname.startsWith("/auth/callback");
   const isPublicAsset =
-    request.nextUrl.pathname.startsWith("/_next") ||
-    request.nextUrl.pathname.startsWith("/api/webhooks");
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/webhooks") ||
+    pathname.includes(".");
+  // S11 defense-in-depth: redirect unauthenticated visitors away from
+  // authenticated areas here too (the dashboard layout still enforces it).
+  // API routes are excluded — they return their own 401 JSON.
+  const needsAuth =
+    !isAuthRoute && !isPublicRoute && !isPublicAsset && !pathname.startsWith("/api/");
 
-  if (!user && !isAuthRoute && !isPublicAsset) {
-    // Let dashboard layout handle redirect; middleware just refreshes session.
-    // Optionally redirect to login if desired:
-    // return NextResponse.redirect(new URL("/login", request.url));
+  if (!user && needsAuth) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

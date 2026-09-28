@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCoachId } from "@/lib/coach";
+import { dbError } from "@/lib/api-error";
 
 // CSV export of the coach's subscribers (Overview "Export" button).
 function csvEscape(value: string | number | null | undefined): string {
@@ -36,7 +37,7 @@ export async function GET() {
     supabase.from("payment_intents").select("client_id, amount").eq("coach_id", coachId).eq("status", "succeeded"),
   ]);
 
-  if (subsRes.error) return NextResponse.json({ error: subsRes.error.message }, { status: 400 });
+  if (subsRes.error) return NextResponse.json(dbError("export/subscribers", subsRes.error), { status: 400 });
 
   const paidByClient = new Map<string, number>();
   for (const p of (paymentsRes.data ?? []) as unknown as Array<{ client_id: string | null; amount: number }>) {

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { dbError } from "@/lib/api-error";
 
 // POST /api/client-nutrition/complete { assignment_id, status } — mobile meal
 // completion. The client owns the row (client_id = auth.uid()); the
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     .from("nutrition_assignments")
     .update({ status, completed_at: new Date().toISOString() })
     .eq("id", assignmentId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("client-nutrition/complete", error), { status: 400 });
 
   const r = row as unknown as {
     enrollment_id: string;

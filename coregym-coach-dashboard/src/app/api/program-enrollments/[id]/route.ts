@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { dbError } from "@/lib/api-error";
 
 // PATCH /api/program-enrollments/[id] — pause or resume an enrollment.
 // Only active ↔ paused transitions. Frozen history is never touched.
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { error } = await svc.from("client_program_enrollments").update({ status }).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("program-enrollments/[id]", error), { status: 400 });
   return NextResponse.json({ ok: true, status });
 }
 
@@ -74,7 +75,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       .from("client_program_enrollments")
       .update({ status: "cancelled" })
       .eq("id", id);
-    if (updErr) return NextResponse.json({ error: updErr.message }, { status: 400 });
+    if (updErr) return NextResponse.json(dbError("program-enrollments/[id]", updErr), { status: 400 });
     if (pristineFuture.length > 0) {
       const { error: delErr } = await svc
         .from("workout_assignments")
@@ -82,7 +83,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         .eq("enrollment_id", id)
         .eq("status", "assigned")
         .gt("scheduled_date", today);
-      if (delErr) return NextResponse.json({ error: delErr.message }, { status: 400 });
+      if (delErr) return NextResponse.json(dbError("program-enrollments/[id]", delErr), { status: 400 });
     }
     return NextResponse.json({ ok: true, cancelled: true, pruned: pristineFuture.length });
   }
@@ -90,9 +91,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   // Nothing ever happened — full removal (also unblocks program deletion).
   if (rows.length > 0) {
     const { error: delErr } = await svc.from("workout_assignments").delete().eq("enrollment_id", id);
-    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 400 });
+    if (delErr) return NextResponse.json(dbError("program-enrollments/[id]", delErr), { status: 400 });
   }
   const { error: enrErr } = await svc.from("client_program_enrollments").delete().eq("id", id);
-  if (enrErr) return NextResponse.json({ error: enrErr.message }, { status: 400 });
+  if (enrErr) return NextResponse.json(dbError("program-enrollments/[id]", enrErr), { status: 400 });
   return NextResponse.json({ ok: true, removed: true, pruned: rows.length });
 }

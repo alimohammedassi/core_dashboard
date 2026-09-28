@@ -214,6 +214,18 @@ as $$
 declare
   v_template_id uuid;
 begin
+  -- Ownership (authenticated IDOR fix): direct JWT callers must own the
+  -- coach row (auth.uid() → coaches.user_id → coaches.id). service_role
+  -- calls skip this — the API routes verify ownership before calling.
+  if auth.role() <> 'service_role' then
+    if not exists (
+      select 1 from coaches
+      where id = p_coach_id and user_id = auth.uid()
+    ) then
+      raise exception 'Not authorized for this coach';
+    end if;
+  end if;
+
   if p_exercises is null or jsonb_typeof(p_exercises) <> 'array'
      or jsonb_array_length(p_exercises) = 0 then
     raise exception 'At least one exercise is required';
@@ -251,7 +263,24 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_coach_id uuid;
 begin
+  -- Ownership (authenticated IDOR fix): this RPC takes no coach parameter,
+  -- so resolve the template's owner first, then require the JWT caller to
+  -- own that coach row. service_role skips (route pre-verified). Unknown
+  -- template ids fail closed here for JWT callers.
+  if auth.role() <> 'service_role' then
+    select coach_id into v_coach_id
+    from workout_templates where id = p_template_id;
+    if v_coach_id is null or not exists (
+      select 1 from coaches
+      where id = v_coach_id and user_id = auth.uid()
+    ) then
+      raise exception 'Not authorized for this coach';
+    end if;
+  end if;
+
   if p_exercises is null or jsonb_typeof(p_exercises) <> 'array'
      or jsonb_array_length(p_exercises) = 0 then
     raise exception 'At least one exercise is required';
@@ -286,3 +315,16 @@ $$;
 --
 -- alter publication supabase_realtime add table public.workout_assignments;
 -- ----------------------------------------------------------------------------
+
+-- ----------------------------------------------------------------------------
+-- 7) Least privilege (DB5): SECURITY DEFINER RPCs must not be callable by
+--    anon/public. Routes call them via service_role after verifying auth +
+--    ownership; direct JWT callers are limited to authenticated coaches AND
+--    each function body re-verifies auth.uid() → coaches.user_id → coaches.id
+--    (service_role bypasses the in-function check).
+--    Idempotent: safe to re-run on an already-migrated database.
+-- ----------------------------------------------------------------------------
+revoke all on function public.create_workout_template_atomic(uuid, text, text[], text, jsonb) from public, anon;
+grant execute on function public.create_workout_template_atomic(uuid, text, text[], text, jsonb) to authenticated, service_role;
+revoke all on function public.update_workout_template_atomic(uuid, text, text[], text, jsonb) from public, anon;
+grant execute on function public.update_workout_template_atomic(uuid, text, text[], text, jsonb) to authenticated, service_role;

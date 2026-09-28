@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { isCoachOwned } from "@/lib/ownership";
+import { dbError } from "@/lib/api-error";
 
 // Create a Coach Program (name, description, weekday→template mapping) in one
 // atomic call. Days arrive as [{day_of_week, template_id}]; the RPC re-checks
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
     p_description: parsed.data.description,
     p_days: parsed.data.days,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("coach-programs", error), { status: 400 });
 
   return NextResponse.json(await readBack(svc, programId as string));
 }
@@ -40,6 +42,17 @@ export async function PATCH(req: NextRequest) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   const svc = await createServiceClient();
+  // Ownership pre-read (S7): the program being updated must belong to this
+  // coach — the RPC check alone is not the authorization boundary.
+  const { data: existing } = await svc
+    .from("coach_programs")
+    .select("id, coach_id")
+    .eq("id", body.id)
+    .maybeSingle();
+  if (!isCoachOwned(existing as { coach_id: string } | null, ctx.coachId)) {
+    return NextResponse.json({ error: "Program not found" }, { status: 404 });
+  }
+
   const { data: programId, error } = await svc.rpc("upsert_coach_program_atomic", {
     p_program_id: body.id,
     p_coach_id: ctx.coachId,
@@ -47,7 +60,7 @@ export async function PATCH(req: NextRequest) {
     p_description: parsed.data.description,
     p_days: parsed.data.days,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("coach-programs", error), { status: 400 });
 
   return NextResponse.json(await readBack(svc, programId as string));
 }
@@ -74,7 +87,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { error } = await svc.from("coach_programs").delete().eq("id", id).eq("coach_id", ctx.coachId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("coach-programs", error), { status: 400 });
   return NextResponse.json({ ok: true });
 }
 

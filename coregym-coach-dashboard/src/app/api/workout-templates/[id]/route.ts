@@ -2,12 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { parseTemplatePayload } from "@/lib/workout-input";
+import { dbError } from "@/lib/api-error";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 async function loadOwnedTemplate(svc: Awaited<ReturnType<typeof createServiceClient>>, id: string, coachId: string) {
   const { data, error } = await svc.from("workout_templates").select("*").eq("id", id).maybeSingle();
-  if (error) return { error: error.message, status: 400 as const };
+  if (error) return { ...dbError("workout-templates/[id]", error), status: 400 as const };
   if (!data) return { error: "Template not found", status: 404 as const };
   if ((data as { coach_id: string }).coach_id !== coachId) {
     return { error: "This template belongs to another coach", status: 403 as const };
@@ -37,14 +38,14 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     p_notes: parsed.data.notes,
     p_exercises: parsed.data.exercises,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("workout-templates/[id]", error), { status: 400 });
 
   const [t, ex] = await Promise.all([
     svc.from("workout_templates").select("*").eq("id", id).single(),
     svc.from("workout_template_exercises").select("*").eq("template_id", id).order("order_index"),
   ]);
   if (t.error || !t.data) {
-    return NextResponse.json({ error: t.error?.message ?? "Updated but could not be read back" }, { status: 500 });
+    return NextResponse.json(dbError("workout-templates/[id]", t.error), { status: 500 });
   }
   return NextResponse.json({ ...t.data, exercises: ex.data ?? [] });
 }
@@ -73,6 +74,6 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   }
 
   const { error } = await svc.from("workout_templates").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json(dbError("workout-templates/[id]", error), { status: 400 });
   return NextResponse.json({ ok: true });
 }

@@ -12,6 +12,14 @@ node_modules/
 .next/
 out/
 
+# ── QA session material (S13): live cookies, creds, coach ids, manifests ────
+# Never track: these hold real session credentials. Verified 2026-09-27 via
+# `git log --all -- .qa-cookie.txt .qa-e2e-creds.txt .qa-coach-id.txt`
+# that none was ever committed — this rule keeps it that way.
+.qa-*
+loadtest-manifest.json
+loadtest-results.json
+
 # ── OS noise ─────────────────────────────────────────────────────────────────
 Thumbs.db
 .DS_Store
