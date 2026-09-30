@@ -205,7 +205,7 @@ This project is proprietary and confidential. All rights reserved.
 
 ---
 
-Built by [Ali Mohamed Assi](https://github.com/alimohammedassi) & Mohammed Saead Abdelgaid
+Built by [Ali Mohamed Assi](https://github.com/alimohammedassi) & [Mohammed Saead Abdelgaid](https://github.com/mohammedsaead00)
 
 **CoreGym** — eat smart, train hard, and let the AI do the math.
 
