@@ -197,6 +197,16 @@ npm run dev                  # http://localhost:3000
 | [mobile-assignment-linking.md](coregym-coach-dashboard/docs/mobile-assignment-linking.md) | Contract with the Flutter app |
 | [performance-audit.md](coregym-coach-dashboard/docs/performance-audit.md) · [load-test-report.md](coregym-coach-dashboard/docs/load-test-report.md) | Performance record (50-client load test) |
 
+## 📄 License
+
+Copyright (c) 2026 Ali Mohammed & Mohammed Saead Abdelgaid. All rights reserved. This code may not be copied, modified, or distributed without written permission.
+
+This project is proprietary and confidential. All rights reserved.
+
 ---
+
+Built by [Ali Mohamed Assi](https://github.com/alimohammedassi) & Mohammed Saead Abdelgaid
+
+**CoreGym** — eat smart, train hard, and let the AI do the math.
 
 *The coach prescribes. The client performs. The data connects.*
