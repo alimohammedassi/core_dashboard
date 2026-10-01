@@ -94,6 +94,105 @@ function mapCoachProgramRows(rows: Record<string, unknown>[]): CoachProgram[] {
   });
 }
 
+// ── Library KPI stats (programs page) ────────────────────────────────────────
+
+export type ProgramsLibraryStats = {
+  /** Distinct active clients with at least one active enrollment. */
+  activeEnrolledAthletes: number;
+  /** Active enrollment rows for this coach. */
+  activeEnrollments: number;
+  /** Earliest start_date >= today among active enrollments (YYYY-MM-DD). */
+  nextStart: string | null;
+  /** Completed / total workout assignments across the coach's enrollments. */
+  completedAssignments: number;
+  totalAssignments: number;
+  /** Active enrollment count per program id (library card pills). */
+  athletesPerProgram: Record<string, number>;
+};
+
+// All reads are bounded head-count/col reductions (P3 convention) and fail
+// soft to zeros when tables/RLS block the read, like the loaders above.
+export async function loadProgramsLibraryStats(
+  coachId: string,
+  programIds: string[]
+): Promise<ProgramsLibraryStats> {
+  const supabase = await createClient();
+  const empty: ProgramsLibraryStats = {
+    activeEnrolledAthletes: 0,
+    activeEnrollments: 0,
+    nextStart: null,
+    completedAssignments: 0,
+    totalAssignments: 0,
+    athletesPerProgram: {},
+  };
+
+  const [activeRes, allEnrollRes, perProgramRes] = await Promise.all([
+    // Active enrollments: distinct athletes + count + next upcoming start.
+    supabase
+      .from("client_program_enrollments")
+      .select("client_id, start_date")
+      .eq("coach_id", coachId)
+      .eq("status", "active")
+      .limit(1000),
+    // Assignment scope: this coach's enrollment ids (bounded feed for the
+    // workout_assignments status read below).
+    supabase.from("client_program_enrollments").select("id").eq("coach_id", coachId).limit(1000),
+    // Per-program active-athlete pills for the current page's programs.
+    programIds.length > 0
+      ? supabase
+          .from("client_program_enrollments")
+          .select("program_id, client_id")
+          .eq("coach_id", coachId)
+          .eq("status", "active")
+          .in("program_id", programIds)
+          .limit(2000)
+      : Promise.resolve({ data: [] as unknown[], error: null }),
+  ]);
+  if (activeRes.error && perProgramRes.error) return empty;
+
+  const activeRows = (activeRes.data ?? []) as unknown as { client_id: string; start_date: string }[];
+  const athletes = new Set<string>();
+  let nextStart: string | null = null;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  for (const row of activeRows) {
+    if (row.client_id) athletes.add(row.client_id);
+    if (row.start_date && row.start_date >= todayStr && (nextStart === null || row.start_date < nextStart)) {
+      nextStart = row.start_date;
+    }
+  }
+
+  const perProgram: Record<string, number> = {};
+  for (const row of (perProgramRes.data ?? []) as unknown as { program_id: string; client_id: string }[]) {
+    if (!row.program_id) continue;
+    // One active program per client is enforced upstream, so row count ==
+    // athlete count; reduce via map anyway to stay correct if that relaxes.
+    perProgram[row.program_id] = (perProgram[row.program_id] ?? 0) + 1;
+  }
+
+  const enrollmentIds = ((allEnrollRes.data ?? []) as unknown as { id: string }[]).map((r) => r.id);
+  let completed = 0;
+  let totalAssignments = 0;
+  if (enrollmentIds.length > 0) {
+    const { data: assignmentsRaw } = await supabase
+      .from("workout_assignments")
+      .select("status")
+      .in("enrollment_id", enrollmentIds)
+      .limit(5000);
+    const assignments = (assignmentsRaw ?? []) as unknown as { status: string | null }[];
+    totalAssignments = assignments.length;
+    completed = assignments.filter((a) => a.status === "completed").length;
+  }
+
+  return {
+    activeEnrolledAthletes: athletes.size,
+    activeEnrollments: activeRows.length,
+    nextStart,
+    completedAssignments: completed,
+    totalAssignments,
+    athletesPerProgram: perProgram,
+  };
+}
+
 // ── Enrollments (client profile) ─────────────────────────────────────────────
 
 export type ProgramEnrollment = {

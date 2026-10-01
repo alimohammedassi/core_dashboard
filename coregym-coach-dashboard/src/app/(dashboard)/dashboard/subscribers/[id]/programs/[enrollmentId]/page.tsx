@@ -6,7 +6,7 @@ import { loadEnrollmentProgress } from "@/lib/programs";
 import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/core/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { RegenerateButton } from "@/components/programs/RegenerateButton";
 import { TrendingUp } from "lucide-react";
@@ -27,6 +27,23 @@ const SUB_STATUS: Record<string, TKey> = {
   trialing: "subscribers.status.trialing",
   expired: "subscribers.status.expired",
   completed: "subscribers.status.completed",
+};
+
+// Enrollment status → Stitch chip tone.
+const ENROLLMENT_TONE: Record<string, StatusTone> = {
+  active: "emerald",
+  paused: "amber",
+  cancelled: "coral",
+  canceled: "coral",
+  completed: "mint",
+};
+
+// Assignment status → chip tone for the progress-grid cells.
+const CELL_TONE: Record<string, StatusTone> = {
+  completed: "emerald",
+  assigned: "volt",
+  started: "amber",
+  skipped: "neutral",
 };
 
 // coach_program_days.day_of_week is 1 (Mon) … 7 (Sun)
@@ -74,28 +91,33 @@ export default async function EnrollmentProgressPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <GlobalLink href={`/dashboard/subscribers/${id}`} className="hover:text-foreground">
-          {t("subscribers.shared.backToProfile")}
-        </GlobalLink>
-        <span>/</span>
-        <span className="text-foreground">{t("subscribers.enrollmentPage.crumb")}</span>
-      </div>
-
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-3">
-            <CardTitle className="font-display text-xl font-bold tracking-tight">{enrollment.program_name}</CardTitle>
-            <Badge variant={enrollment.status === "active" ? "default" : "outline"}>{subLabel(enrollment.status)}</Badge>
+      {/* Header (PageHeader-style): display headline + status chip, back-link
+          row, and the enrollment meta line. */}
+      <div className="relative overflow-hidden rounded-xl bg-card p-5 ring-1 ring-border">
+        <div className="pointer-events-none absolute -end-16 -top-16 size-64 rounded-full bg-primary/5 blur-3xl" />
+        <div className="relative flex min-w-0 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="font-display text-[1.5rem] leading-8 tracking-tight text-foreground lg:text-headline-lg lg:leading-10">
+              {enrollment.program_name}
+            </h1>
+            <StatusBadge tone={ENROLLMENT_TONE[enrollment.status] ?? "neutral"}>
+              {subLabel(enrollment.status)}
+            </StatusBadge>
           </div>
-          <CardDescription className="flex flex-wrap gap-x-6 gap-y-1 pt-1">
+          <div className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
+            <GlobalLink href={`/dashboard/subscribers/${id}`} className="hover:text-foreground">
+              {t("subscribers.shared.backToProfile")}
+            </GlobalLink>
+            <span>/</span>
+            <span className="text-foreground">{t("subscribers.enrollmentPage.crumb")}</span>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-body-sm text-muted-foreground tabular-nums">
             <span>{t("subscribers.shared.starts", { date: fmt.date(enrollment.start_date) })}</span>
-            <span>{t("subscribers.shared.weeks", { n: enrollment.duration_weeks })}</span>
+            <span>{t("subscribers.shared.weeks", { n: fmt.num(enrollment.duration_weeks) })}</span>
             <span>
               {t("subscribers.enrollmentPage.adherenceWorkouts", {
-                completed: progress.completedAssignments,
-                total: progress.totalAssignments,
+                completed: fmt.num(progress.completedAssignments),
+                total: fmt.num(progress.totalAssignments),
               })}
             </span>
             <span className="text-foreground">
@@ -105,25 +127,25 @@ export default async function EnrollmentProgressPage({
                   t("subscribers.enrollmentPage.noTrainingDays"),
               })}
             </span>
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </div>
+        </div>
+      </div>
 
       {/* Weeks × days grid */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("subscribers.enrollmentPage.gridTitle")}</CardTitle>
+          <CardTitle>{t("subscribers.enrollmentPage.gridTitle")}</CardTitle>
           <CardDescription>{t("subscribers.enrollmentPage.gridDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-separate border-spacing-1 text-sm">
             <thead>
               <tr>
-                <th className="w-14 text-start text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <th className="w-14 text-start text-label-sm font-semibold uppercase tracking-wider text-faint">
                   {t("common.time.week")}
                 </th>
                 {programDays.map((d) => (
-                  <th key={d.id} className="text-start text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <th key={d.id} className="text-start text-label-sm font-semibold uppercase tracking-wider text-faint">
                     {weekday(d.day_of_week)}
                   </th>
                 ))}
@@ -132,7 +154,7 @@ export default async function EnrollmentProgressPage({
             <tbody>
               {weeks.map((week) => (
                 <tr key={week}>
-                  <td className="align-middle text-xs font-semibold text-muted-foreground">
+                  <td className="align-middle text-label-md text-muted-foreground tabular-nums">
                     {t("subscribers.enrollmentPage.weekShort", { n: week })}
                   </td>
                   {programDays.map((day) => {
@@ -144,16 +166,10 @@ export default async function EnrollmentProgressPage({
                         </td>
                       );
                     }
-                    const variant =
-                      cell.status === "completed"
-                        ? "default"
-                        : cell.status === "assigned"
-                          ? "outline"
-                          : "secondary";
                     const inner = (
-                      <Badge variant={variant} className="w-full justify-center">
+                      <StatusBadge tone={CELL_TONE[cell.status] ?? "neutral"} className="w-full justify-center">
                         {statusLabel(cell.status)}
-                      </Badge>
+                      </StatusBadge>
                     );
                     return (
                       <td key={day.id} className="p-0">
@@ -188,7 +204,7 @@ export default async function EnrollmentProgressPage({
       {/* Volume trend scoped to this enrollment */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2">
             <TrendingUp className="size-4" /> {t("subscribers.enrollmentPage.volumeTitle")}
           </CardTitle>
           <CardDescription>{t("subscribers.enrollmentPage.volumeDesc")}</CardDescription>
@@ -202,7 +218,7 @@ export default async function EnrollmentProgressPage({
                 const max = Math.max(...weeklyVolume.map((x) => x.volume), 1);
                 return (
                   <div key={w.week} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
                       {w.volume > 0
                         ? `${fmt.num(w.volume / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}t`
                         : ""}
@@ -216,7 +232,7 @@ export default async function EnrollmentProgressPage({
                         sessions: w.sessions,
                       })}
                     />
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
                       {t("subscribers.enrollmentPage.weekShort", { n: w.week })}
                     </span>
                   </div>
@@ -230,7 +246,7 @@ export default async function EnrollmentProgressPage({
       {/* Update Remaining Weeks */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("subscribers.shared.adjustTitle")}</CardTitle>
+          <CardTitle>{t("subscribers.shared.adjustTitle")}</CardTitle>
           <CardDescription>{t("subscribers.enrollmentPage.adjustDesc")}</CardDescription>
         </CardHeader>
         <CardContent>

@@ -2,12 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { loadActiveClients } from "@/lib/workouts";
-import { loadCoachProgramsPage } from "@/lib/programs";
+import { loadCoachProgramsPage, loadProgramsLibraryStats, type ProgramsLibraryStats } from "@/lib/programs";
 import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "@/lib/pagination";
 import { Pager } from "@/components/dashboard/Pager";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard, StatCardChip } from "@/components/core/StatCard";
 import { ProgramsClient } from "@/components/programs/ProgramsClient";
 import { getI18n } from "@/lib/i18n/server";
+import { CalendarCheck2, Dumbbell, Target, Users } from "lucide-react";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function ProgramsPage({
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const { t } = await getI18n();
+  const { t, fmt } = await getI18n();
 
   if (!user) return null;
 
@@ -27,7 +28,8 @@ export default async function ProgramsPage({
   const hasCoachRow = coachId !== user.id;
   const requestedPage = parsePageParam((await searchParams)?.page);
 
-  const [programsRes, clients, templatesRes] = await Promise.all([
+  // Programs page slice first — its ids scope the per-program athlete counts.
+  const [programsRes, clients] = await Promise.all([
     hasCoachRow
       ? (async () => {
           // Two-step: exact total first so the requested page clamps, then
@@ -44,35 +46,113 @@ export default async function ProgramsPage({
         })()
       : Promise.resolve({ programs: [], total: 0, page: 1 }),
     hasCoachRow ? loadActiveClients(coachId) : Promise.resolve([]),
+  ]);
+  const { programs, total, page } = programsRes;
+
+  const [templatesRes, stats] = await Promise.all([
     hasCoachRow
       ? supabase.from("workout_templates").select("id, name").eq("coach_id", coachId).order("name")
       : Promise.resolve({ data: [] as unknown[], error: null }),
+    hasCoachRow
+      ? loadProgramsLibraryStats(coachId, programs.map((p) => p.id))
+      : Promise.resolve({
+          activeEnrolledAthletes: 0,
+          activeEnrollments: 0,
+          nextStart: null,
+          completedAssignments: 0,
+          totalAssignments: 0,
+          athletesPerProgram: {},
+        } satisfies ProgramsLibraryStats),
   ]);
-  const { programs, total, page } = programsRes;
 
   const templates = (templatesRes.data ?? []) as unknown as Pick<WorkoutTemplate, "id" | "name">[];
 
   if (!hasCoachRow) {
     return (
-      <div className="max-w-2xl space-y-6">
+      <div className="flex flex-col gap-6">
         <h1 className="font-display text-headline-lg tracking-tight">{t("common.nav.programs")}</h1>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("programs.page.coachProfileMissing")}</CardTitle>
-            <CardDescription>{t("programs.page.coachProfileMissingBody")}</CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="rounded-xl bg-card p-5 ring-1 ring-border">
+          <p className="font-display text-headline-sm text-foreground">
+            {t("programs.page.coachProfileMissing")}
+          </p>
+          <p className="mt-1 text-body-md text-muted-foreground">
+            {t("programs.page.coachProfileMissingBody")}
+          </p>
+        </div>
       </div>
     );
   }
 
+  // KPI 3: mean completion over every assignment generated for this coach's
+  // enrollments ("—" until any enrollment exists).
+  const completionPct =
+    stats.totalAssignments > 0 ? (stats.completedAssignments / stats.totalAssignments) * 100 : null;
+  // KPI 4 footer: library is ordered by updated_at desc, so the first loaded
+  // row carries the latest update. Only honest when the page slice is non-empty.
+  const latestUpdated = programs[0]?.updated_at;
+
+  const kpis = (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label={t("programs.page.kpiActiveAthletes")}
+        icon={Users}
+        value={fmt.num(stats.activeEnrolledAthletes)}
+        footer={<span>{t("programs.page.ofClients", { n: fmt.num(clients.length) })}</span>}
+        progress={
+          clients.length > 0 ? Math.round((stats.activeEnrolledAthletes / clients.length) * 100) : undefined
+        }
+      />
+      <StatCard
+        label={t("programs.page.kpiActiveEnrollments")}
+        icon={CalendarCheck2}
+        value={fmt.num(stats.activeEnrollments)}
+        suffix={t("programs.page.ofPrograms", { n: fmt.num(total) })}
+        footer={
+          <span>
+            {stats.nextStart
+              ? t("programs.page.nextStart", { date: fmt.date(stats.nextStart) })
+              : t("programs.page.noScheduledStarts")}
+          </span>
+        }
+      />
+      <StatCard
+        label={t("programs.page.kpiCompletionRate")}
+        icon={Target}
+        value={completionPct != null ? fmt.percent(completionPct) : "—"}
+        valueClassName="text-primary"
+        footer={
+          <span>
+            {t("programs.page.completedOf", {
+              completed: fmt.num(stats.completedAssignments),
+              total: fmt.num(stats.totalAssignments),
+            })}
+          </span>
+        }
+      />
+      <StatCard
+        label={t("programs.page.kpiLibrary")}
+        icon={Dumbbell}
+        value={fmt.num(total)}
+        badge={<StatCardChip tone="mint">{t("programs.page.activeCount", { n: fmt.num(stats.activeEnrollments) })}</StatCardChip>}
+        footer={
+          latestUpdated ? (
+            <span>{t("programs.list.updated", { date: fmt.date(latestUpdated) })}</span>
+          ) : undefined
+        }
+      />
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="font-display text-headline-lg tracking-tight">{t("programs.page.title")}</h1>
-        <p className="mt-1 text-body-md text-muted-foreground">{t("programs.page.subtitle")}</p>
-      </div>
-      <ProgramsClient initialPrograms={programs} clients={clients} templates={templates} />
+    <div className="flex flex-col gap-6">
+      <ProgramsClient
+        initialPrograms={programs}
+        clients={clients}
+        templates={templates}
+        total={total}
+        kpis={kpis}
+        athletesByProgram={stats.athletesPerProgram}
+      />
       <Pager basePath="/dashboard/programs" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />
     </div>
   );

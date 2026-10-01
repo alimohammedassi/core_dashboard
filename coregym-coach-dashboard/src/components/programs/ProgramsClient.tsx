@@ -3,17 +3,18 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarDays, CalendarPlus, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Info, Plus } from "lucide-react";
 import type { CoachProgram } from "@/lib/programs";
 import type { ActiveClient } from "@/lib/workouts";
 import { generateEnrollmentDates, nextMonday } from "@/lib/program-dates";
 import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/core/EmptyState";
+import { PageHeader } from "@/components/core/PageHeader";
+import { ProgramCard, WEEKDAY_KEYS } from "@/components/programs/ProgramCard";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-// Weekday dictionary keys, indexed by day_of_week - 1 (1 = Monday … 7 = Sunday).
-const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 type TemplateOption = { id: string; name: string };
 
@@ -50,10 +48,19 @@ export function ProgramsClient({
   initialPrograms,
   clients,
   templates,
+  total,
+  kpis,
+  athletesByProgram,
 }: {
   initialPrograms: CoachProgram[];
   clients: ActiveClient[];
   templates: TemplateOption[];
+  /** Exact library total (server count) — shown in the header meta line. */
+  total: number;
+  /** Server-rendered KPI row — rendered between the header and the grid. */
+  kpis?: React.ReactNode;
+  /** Active-athlete count per program id (server stats, library card pills). */
+  athletesByProgram?: Record<string, number>;
 }) {
   const router = useRouter();
   const { t, fmt } = useI18n();
@@ -87,115 +94,79 @@ export function ProgramsClient({
     }
   }
 
+  function openCreate() {
+    setBuilderSeed(seedForCreate());
+    setBuilderNonce((n) => n + 1);
+  }
+
   return (
-    <>
-      <div className="flex justify-end">
-        <Button
-          size="lg"
-          onClick={() => {
-            setBuilderSeed(seedForCreate());
-            setBuilderNonce((n) => n + 1);
-          }}
-        >
-          <CalendarPlus className="size-4" />
-          {t("programs.list.createProgram")}
-        </Button>
+    <div className="flex flex-col gap-6">
+      {/* Header card: kicker row + display headline + primary action. */}
+      <div className="relative overflow-hidden rounded-xl bg-card p-5 ring-1 ring-border">
+        <div className="pointer-events-none absolute -end-16 -top-16 size-64 rounded-full bg-primary/5 blur-3xl" />
+        <div className="relative flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="rounded bg-primary/15 px-2 py-0.5 text-label-sm uppercase tracking-wider text-primary">
+              {t("programs.page.kicker")}
+            </span>
+            <span className="text-label-sm tracking-wide text-muted-foreground">
+              {t("programs.page.inLibrary", { n: fmt.num(total) })}
+            </span>
+          </div>
+          <PageHeader
+            title={t("programs.page.title")}
+            description={t("programs.page.subtitle")}
+            actions={
+              <Button
+                size="lg"
+                className="text-label-lg font-bold shadow-md shadow-primary/20"
+                onClick={openCreate}
+              >
+                <Plus className="size-4" />
+                {t("programs.list.createProgram")}
+              </Button>
+            }
+          />
+        </div>
       </div>
+
+      {kpis}
 
       {programs.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
           title={t("programs.list.emptyTitle")}
           hint={t("programs.list.emptyBody")}
-          action={
-            <Button
-              onClick={() => {
-                setBuilderSeed(seedForCreate());
-                setBuilderNonce((n) => n + 1);
-              }}
-            >
-              {t("programs.list.createProgram")}
-            </Button>
-          }
+          action={<Button onClick={openCreate}>{t("programs.list.createProgram")}</Button>}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {programs.map((p) => {
-            // Stitch week strip: 7 fixed slots, template name per training day,
-            // dimmed rest slots for everything else.
-            const byDay = new Map<number, string>();
-            for (const d of p.days) byDay.set(d.day_of_week, d.templateName ?? "—");
-            return (
-              <Card key={p.id} className="flex flex-col">
-                <CardContent className="flex flex-1 flex-col gap-3">
-                  <div className="space-y-1">
-                    <h3 className="font-display text-headline-sm text-foreground">{p.name}</h3>
-                    {p.description && (
-                      <p className="line-clamp-2 text-body-sm text-muted-foreground">{p.description}</p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1">
-                    {WEEKDAY_KEYS.map((key, idx) => {
-                      const dow = idx + 1;
-                      const tplName = byDay.get(dow);
-                      const rest = !tplName;
-                      return (
-                        <div
-                          key={dow}
-                          title={rest ? t("programs.builder.rest") : tplName}
-                          className={`rounded-md border p-1.5 text-center ${
-                            rest ? "border-border/60 bg-background/40" : "border-primary/25 bg-primary/10"
-                          }`}
-                        >
-                          <p className={`text-[10px] font-bold uppercase tracking-wide ${rest ? "text-faint" : "text-primary"}`}>
-                            {t(`programs.weekdaysShort.${key}`)}
-                          </p>
-                          <p className={`mt-0.5 line-clamp-3 text-[10px] leading-tight ${rest ? "text-faint/70" : "text-foreground"}`}>
-                            {rest ? t("programs.builder.rest") : tplName}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <p className="mt-auto flex items-center gap-1.5 text-body-sm text-faint">
-                    <span className="size-1.5 rounded-full bg-primary/60" />
-                    {t("programs.list.updated", { date: fmt.date(p.updated_at) })}
-                  </p>
-
-                  <div className="flex items-center gap-2 border-t border-border/60 pt-3">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={busyId === p.id}
-                      onClick={() => {
-                        setBuilderSeed(seedForEdit(p));
-                        setBuilderNonce((n) => n + 1);
-                      }}
-                    >
-                      <Pencil className="size-3.5" /> {t("common.actions.edit")}
-                    </Button>
-                    <Button size="sm" disabled={busyId === p.id} onClick={() => setEnrollSeed(p)}>
-                      <CalendarPlus className="size-3.5" /> {t("programs.list.enroll")}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="ms-auto text-destructive hover:text-destructive"
-                      aria-label={t("common.actions.delete")}
-                      title={t("common.actions.delete")}
-                      disabled={busyId === p.id}
-                      onClick={() => handleDelete(p)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="font-display text-headline-sm tracking-tight text-foreground">
+              {t("programs.page.kpiLibrary")}
+            </h2>
+            <span className="rounded bg-accent px-2 py-0.5 text-label-sm text-muted-foreground">
+              {t("programs.page.inLibrary", { n: fmt.num(programs.length) })}
+            </span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {programs.map((p, i) => (
+              <ProgramCard
+                key={p.id}
+                program={p}
+                index={i}
+                athletes={athletesByProgram?.[p.id] ?? 0}
+                busy={busyId === p.id}
+                onEdit={() => {
+                  setBuilderSeed(seedForEdit(p));
+                  setBuilderNonce((n) => n + 1);
+                }}
+                onEnroll={() => setEnrollSeed(p)}
+                onDelete={() => handleDelete(p)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {builderSeed && (
@@ -219,7 +190,7 @@ export function ProgramsClient({
           onEnrolled={() => router.refresh()}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -306,7 +277,7 @@ function ProgramBuilder({
                 const dow = idx + 1;
                 return (
                   <div key={dow} className="flex items-center gap-3">
-                    <span className="w-20 text-sm font-medium">{t(`programs.weekdays.${key}`)}</span>
+                    <span className="w-24 shrink-0 text-label-md text-muted-foreground">{t(`programs.weekdays.${key}`)}</span>
                     <select
                       value={days[dow] ?? ""}
                       onChange={(e) =>
@@ -317,7 +288,7 @@ function ProgramBuilder({
                           return next;
                         })
                       }
-                      className="h-8 flex-1 rounded-md border bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      className="h-9 flex-1 rounded-lg border border-border bg-background px-2.5 text-body-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
                       <option value="">{t("programs.builder.rest")}</option>
                       {templates.map((tpl) => (
@@ -337,10 +308,10 @@ function ProgramBuilder({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button type="button" variant="outline" className="text-label-md" onClick={() => onOpenChange(false)} disabled={saving}>
             {t("common.actions.cancel")}
           </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
+          <Button type="button" className="text-label-md font-bold" onClick={handleSave} disabled={saving}>
             {saving
               ? t("common.actions.saving")
               : seed.editing
@@ -371,7 +342,7 @@ function EnrollDialog({
   onOpenChange: (v: boolean) => void;
   onEnrolled?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   const [clientId, setClientId] = React.useState("");
   const [startDate, setStartDate] = React.useState(() => nextMonday(todayLocal()));
   const [durationWeeks, setDurationWeeks] = React.useState("8");
@@ -463,7 +434,7 @@ function EnrollDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("programs.enroll.title", { name: seed.name })}</DialogTitle>
           <DialogDescription>
@@ -475,7 +446,14 @@ function EnrollDialog({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="enroll-client">{t("programs.enroll.clientLabel")}</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="enroll-client">{t("programs.enroll.clientLabel")}</Label>
+              {clients.length > 0 && (
+                <span className="text-[11px] text-mint">
+                  {t("programs.enroll.activeClientsHint", { n: fmt.num(clients.length) })}
+                </span>
+              )}
+            </div>
             {clients.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("programs.enroll.noClients")}</p>
             ) : (
@@ -483,7 +461,7 @@ function EnrollDialog({
                 id="enroll-client"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                className="h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="h-11 w-full rounded-lg bg-background px-3 text-body-md ring-1 ring-border outline-none focus:ring-primary"
               >
                 <option value="">{t("programs.enroll.selectClient")}</option>
                 {clients.map((c) => (
@@ -520,13 +498,38 @@ function EnrollDialog({
               </p>
             </div>
           </div>
+
+          {/* Schedule computation — mirrors the SQL generation math
+              (generateEnrollmentDates), never weeks × days. */}
+          <div className="rounded-lg bg-background p-3">
+            <p className="text-label-sm uppercase text-faint">{t("programs.enroll.computationTitle")}</p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+              <span className="font-display text-headline-sm font-bold tabular-nums text-primary">
+                {fmt.num(expected)}
+              </span>
+              <span className="text-body-sm text-muted-foreground">
+                {t("programs.enroll.computationValue", { n: expected })}
+              </span>
+            </div>
+          </div>
+
+          {/* Policy note: mirrors the 409 replace flow — no invented claim. */}
+          <div className="flex gap-2 rounded-lg bg-mint/10 p-2.5">
+            <Info className="size-4 shrink-0 text-mint" />
+            <p className="text-body-sm text-muted-foreground">{t("programs.enroll.conflictNote")}</p>
+          </div>
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button type="button" variant="outline" className="text-label-md" onClick={() => onOpenChange(false)} disabled={submitting}>
             {t("common.actions.cancel")}
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={submitting || clients.length === 0}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting || clients.length === 0}
+            className="h-11 w-full text-label-lg font-bold sm:w-auto sm:flex-1"
+          >
             {submitting ? t("programs.enroll.submitting") : t("programs.enroll.submit")}
           </Button>
         </DialogFooter>

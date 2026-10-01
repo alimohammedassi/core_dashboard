@@ -50,12 +50,12 @@ export function RegenerateButton({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col items-start gap-2">
       <Button type="button" onClick={handleRegenerate} disabled={!enabled || busy}>
         <RefreshCw className="me-1 size-3.5" />
         {busy ? t("programs.regenerate.updating") : t("programs.regenerate.button")}
       </Button>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-body-sm text-muted-foreground">
         {enabled
           ? futureCount === 1
             ? t("programs.regenerate.hintOne", { n: futureCount })
