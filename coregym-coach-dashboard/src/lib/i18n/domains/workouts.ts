@@ -7,9 +7,15 @@ export const workouts = {
       coachProfileMissing: "Coach profile missing",
       coachProfileMissingBody:
         "Workout templates are owned by your coach profile, which does not exist yet. Complete coach onboarding first, then come back to build your template library.",
+      kicker: "Template Library",
       subtitle:
         "Your reusable workout templates. Build once, assign to any active client, then review their performance.",
+      templateCount: "{n} templates",
       title: "Workout Templates",
+    },
+    pager: {
+      aria: "Pagination",
+      showing: "Showing {from}–{to} of {total} templates",
     },
     list: {
       createTemplate: "Create Template",
@@ -24,6 +30,9 @@ export const workouts = {
       moreExercises: "+{n} more",
       searchPlaceholder: "Search templates, muscle groups, exercises…",
       searchEmpty: "No templates match your filters.",
+      setsOne: "1 set",
+      setsMany: "{n} sets",
+      usedBy: "Used by {n} athletes",
     },
     builder: {
       createTitle: "Create template",
@@ -43,6 +52,13 @@ export const workouts = {
       emptyRows: "No exercises yet — add the first one.",
       saveChanges: "Save changes",
       createSubmit: "Create template",
+      studioKicker: "Tactical Studio",
+      editing: "Editing: {name}",
+      exerciseFlow: "Exercise flow ({n})",
+      insertMovement: "Insert movement",
+      discard: "Discard",
+      saveTemplate: "Save template",
+      templateName: "Template name",
     },
     fields: {
       exercisePlaceholder: "Bench Press",
@@ -125,13 +141,19 @@ export const workouts = {
     },
   },
 
-  ar: {
+    ar: {
     page: {
       coachProfileMissing: "مفيش ملف كوتش",
       coachProfileMissingBody:
         "قوالب التمارين مرتبطة بملف الكوتش بتاعك، وده لسه مش موجود. كمّل تسجيل الكوتش الأول، وبعدين ارجع اعمل مكتبة القوالب بتاعتك.",
+      kicker: "مكتبة القوالب",
       subtitle: "قوالب التمارين اللي بتستخدمها تاني. جهّزها مرة واحدة، وزّعها على أي عميل نشط، وبعدين راجع أداءه.",
+      templateCount: "{n} قالب",
       title: "قوالب التمارين",
+    },
+    pager: {
+      aria: "تنقل الصفحات",
+      showing: "بيعرض {from}–{to} من {total} قالب",
     },
     list: {
       createTemplate: "إنشاء قالب",
@@ -146,6 +168,9 @@ export const workouts = {
       moreExercises: "+{n} كمان",
       searchPlaceholder: "دوّر على قوالب، عضلات، أو تمارين…",
       searchEmpty: "مفيش قوالب مطابقة للفلتر.",
+      setsOne: "مجموعة واحدة",
+      setsMany: "{n} مجموعة",
+      usedBy: "بيستخدمه {n} رياضي",
     },
     builder: {
       createTitle: "إنشاء قالب",
@@ -165,6 +190,13 @@ export const workouts = {
       emptyRows: "مفيش تمارين لسه — ضيف أول تمرين.",
       saveChanges: "حفظ التعديلات",
       createSubmit: "إنشاء القالب",
+      studioKicker: "الاستوديو التكتيكي",
+      editing: "بتعدّل: {name}",
+      exerciseFlow: "تسلسل التمارين ({n})",
+      insertMovement: "إضافة حركة",
+      discard: "تجاهل",
+      saveTemplate: "حفظ القالب",
+      templateName: "اسم القالب",
     },
     fields: {
       exercisePlaceholder: "Bench Press",

@@ -19,6 +19,12 @@ export function daysAgoISO(days: number): string {
   return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 }
 
+// True when an ISO timestamp falls inside the last N days (request-time "now";
+// kept outside components so render stays lint-pure).
+export function isWithinDays(timestamp: string, days: number): boolean {
+  return Date.now() - new Date(timestamp).getTime() < days * 86400000;
+}
+
 // Whole days between two date-only strings (a - b).
 export function diffDays(a: string, b: string): number {
   return Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86400000);

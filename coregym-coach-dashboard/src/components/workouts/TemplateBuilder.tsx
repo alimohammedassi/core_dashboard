@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, PlusCircle, X } from "lucide-react";
 import type { WorkoutTemplate, WorkoutTemplateExercise } from "@/lib/supabase/types";
 import type { ExerciseCatalogItem } from "@/lib/workouts";
 import { useI18n } from "@/lib/i18n/client";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,19 @@ const MUSCLE_OPTIONS = [
   "Calves",
   "Core",
 ];
+
+// Solid muscle palette for active toggles — same anatomical map as the card
+// chips in WorkoutsClient (solid here instead of the /15 tint). Unmapped
+// custom muscles fall back to the volt.
+const MUSCLE_SOLID: Record<string, string> = {
+  chest: "bg-muscle-chest",
+  arms: "bg-muscle-arms",
+  legs: "bg-muscle-legs",
+  core: "bg-muscle-core",
+  back: "bg-[#54c7be]",
+  shoulders: "bg-[#4fd1c5]",
+  "full body": "bg-[#d1fc00]",
+};
 
 type BuilderRow = {
   key: string;
@@ -269,12 +281,24 @@ export function TemplateBuilder({
   }
 
   const allMuscleChips = [...MUSCLE_OPTIONS, ...muscles.filter((m) => !MUSCLE_OPTIONS.includes(m))];
+  // Truthful live total: real sum of the sets on named rows only.
+  const totalSets = rows
+    .filter((r) => r.exercise_name.trim())
+    .reduce((s, r) => s + (Number(r.target_sets) || 0), 0);
 
   return (
     <Dialog open={seed !== null} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
+          <p className="text-label-sm uppercase tracking-wider text-primary">
+            {t("workouts.builder.studioKicker")}
+          </p>
           <DialogTitle>{editing ? t("workouts.builder.editTitle") : t("workouts.builder.createTitle")}</DialogTitle>
+          {editing && (
+            <p className="text-body-sm text-muted-foreground">
+              {t("workouts.builder.editing", { name: editing.name })}
+            </p>
+          )}
           <DialogDescription>
             {editing ? t("workouts.builder.editDesc") : t("workouts.builder.createDesc")}
           </DialogDescription>
@@ -282,7 +306,9 @@ export function TemplateBuilder({
 
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="tpl-name">{t("common.table.name")}</Label>
+            <Label htmlFor="tpl-name" className="text-label-sm uppercase tracking-wider">
+              {t("workouts.builder.templateName")}
+            </Label>
             <Input
               id="tpl-name"
               value={name}
@@ -293,22 +319,28 @@ export function TemplateBuilder({
           </div>
 
           <div className="space-y-2">
-            <Label>{t("workouts.builder.muscles")}</Label>
-            <div className="flex flex-wrap gap-2">
-              {allMuscleChips.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => toggleMuscle(m)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                    muscles.includes(m)
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
+            <Label className="text-label-sm uppercase tracking-wider">{t("workouts.builder.muscles")}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {allMuscleChips.map((m) => {
+                const active = muscles.includes(m);
+                const solid = MUSCLE_SOLID[m.toLowerCase()] ?? "bg-primary";
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => toggleMuscle(m)}
+                    aria-pressed={active}
+                    className={`inline-flex items-center gap-1 rounded-[6px] px-2.5 py-1 text-label-sm transition-colors ${
+                      active
+                        ? `${solid} font-bold text-[#161806]`
+                        : "bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                  >
+                    {m}
+                    {active && <Check className="size-3" />}
+                  </button>
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <Input
@@ -330,7 +362,9 @@ export function TemplateBuilder({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tpl-notes">{t("workouts.builder.notesLabel")}</Label>
+            <Label htmlFor="tpl-notes" className="text-label-sm uppercase tracking-wider">
+              {t("workouts.builder.notesLabel")}
+            </Label>
             <Textarea
               id="tpl-notes"
               rows={2}
@@ -341,25 +375,40 @@ export function TemplateBuilder({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>{t("workouts.builder.exercises")}</Label>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-label-sm uppercase tracking-wider">
+                  {t("workouts.builder.exerciseFlow", { n: rows.length })}
+                </Label>
+                {totalSets > 0 && (
+                  <span className="text-label-sm tabular-nums text-faint">
+                    {t("workouts.list.setsMany", { n: totalSets })}
+                  </span>
+                )}
+              </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
+                className="text-primary hover:text-primary"
                 onClick={() => setRows((prev) => [...prev, blankRow()])}
               >
-                <Plus className="me-1 size-3.5" /> {t("workouts.builder.addExercise")}
+                <PlusCircle className="size-4" />
+                {t("workouts.builder.insertMovement")}
               </Button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {rows.map((row, index) => (
-                <div key={row.key} className="rounded-xl border p-3 space-y-3">
+                <div key={row.key} className="space-y-2 rounded-lg bg-background p-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="font-mono">
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                        index === 0 ? "bg-primary text-primary-foreground" : "bg-accent text-muted-foreground"
+                      }`}
+                    >
                       {index + 1}
-                    </Badge>
+                    </span>
                     <div className="flex-1">
                       <ExerciseNameInput
                         value={row.exercise_name}
@@ -368,12 +417,12 @@ export function TemplateBuilder({
                         placeholder={t("workouts.fields.exercisePlaceholder")}
                       />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-7"
+                        className="size-6"
                         aria-label={t("workouts.builder.moveUp")}
                         disabled={index === 0}
                         onClick={() => moveRow(index, -1)}
@@ -384,7 +433,7 @@ export function TemplateBuilder({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-7"
+                        className="size-6"
                         aria-label={t("workouts.builder.moveDown")}
                         disabled={index === rows.length - 1}
                         onClick={() => moveRow(index, 1)}
@@ -395,56 +444,36 @@ export function TemplateBuilder({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-destructive"
+                        className="size-6 hover:bg-destructive/20 hover:text-destructive"
                         aria-label={t("workouts.builder.removeExercise")}
                         onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
                       >
-                        <Trash2 className="size-3.5" />
+                        <X className="size-3.5" />
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.setsRequired")}</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={row.target_sets}
-                        onChange={(e) => updateRow(row.key, { target_sets: e.target.value })}
-                        placeholder="3"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.reps")}</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={row.target_reps}
-                        onChange={(e) => updateRow(row.key, { target_reps: e.target.value })}
-                        placeholder="10"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.weight")}</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={row.target_weight_kg}
-                        onChange={(e) => updateRow(row.key, { target_weight_kg: e.target.value })}
-                        placeholder="40"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t("workouts.fields.rest")}</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={row.rest_sec}
-                        onChange={(e) => updateRow(row.key, { rest_sec: e.target.value })}
-                        placeholder="90"
-                      />
-                    </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(
+                      [
+                        { label: t("workouts.fields.setsRequired"), field: "target_sets", min: "1", step: undefined, placeholder: "3", valueClass: "" },
+                        { label: t("workouts.fields.reps"), field: "target_reps", min: "1", step: undefined, placeholder: "10", valueClass: "" },
+                        { label: t("workouts.fields.weight"), field: "target_weight_kg", min: "0", step: "0.5", placeholder: "40", valueClass: "" },
+                        { label: t("workouts.fields.rest"), field: "rest_sec", min: "0", step: undefined, placeholder: "90", valueClass: "text-primary" },
+                      ] as const
+                    ).map((cell) => (
+                      <div key={cell.field} className="rounded bg-secondary p-1">
+                        <span className="block text-[9px] uppercase text-faint">{cell.label}</span>
+                        <Input
+                          type="number"
+                          min={cell.min}
+                          step={cell.step}
+                          value={row[cell.field]}
+                          onChange={(e) => updateRow(row.key, { [cell.field]: e.target.value })}
+                          placeholder={cell.placeholder}
+                          className={`h-6 border-0 bg-transparent px-0 text-center text-[11px] font-semibold md:text-[11px] dark:bg-transparent ${cell.valueClass}`}
+                        />
+                      </div>
+                    ))}
                   </div>
                   <Input
                     value={row.notes}
@@ -463,14 +492,10 @@ export function TemplateBuilder({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            {t("common.actions.cancel")}
+            {t("workouts.builder.discard")}
           </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving
-              ? t("common.actions.saving")
-              : editing
-                ? t("workouts.builder.saveChanges")
-                : t("workouts.builder.createSubmit")}
+          <Button type="button" className="flex-1" onClick={handleSave} disabled={saving}>
+            {saving ? t("common.actions.saving") : t("workouts.builder.saveTemplate")}
           </Button>
         </DialogFooter>
       </DialogContent>
