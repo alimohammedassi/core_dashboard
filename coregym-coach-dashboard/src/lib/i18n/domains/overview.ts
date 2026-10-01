@@ -2,11 +2,12 @@
    MUST have the identical ar key path. */
 export const overview = {
   en: {
-    pageTitle: "Dashboard",
+    pageTitle: "Dashboard Overview",
     realDataOnly: "Real data only",
 
     header: {
       createWorkout: "Create Workout",
+      newMessage: "New Message",
     },
 
     range: {
@@ -40,7 +41,7 @@ export const overview = {
     },
 
     chart: {
-      revenueTitle: "Net revenue trend",
+      revenueTitle: "Revenue & Growth Velocity",
       subscribersTitle: "New subscribers",
       revenueSeries: "Net revenue",
       subscriberSeries: "New subscribers",
@@ -48,10 +49,19 @@ export const overview = {
       totalMoney: "{amount} in window",
       totalCount: "{n} in window",
       empty: "No data in this window yet.",
-      adherenceTitle: "Nutrition adherence",
+      adherenceTitle: "Overall Client Adherence",
       adherenceOnTrack: "{on} / {total} clients on track",
       adherencePercent: "{p}% adherence",
-      weekdayTitle: "Workouts by weekday",
+      revenueToggle: "Revenue ($)",
+      subscribersToggle: "Subscribers",
+      totalPeriod: "Total Period Value",
+      peakWeekly: "Peak Weekly Run-Rate",
+      projectedMrr: "Projected Net MRR",
+      peakLoad: "Peak Load",
+      standard: "Standard",
+      weekdaySubtitle: "Daily execution counts across assigned client programs.",
+      target: "Target {p}%",
+      weekdayTitle: "Workout Activity by Day (Mon–Sun)",
       workoutCount: "{n} workouts",
       completedSeries: "Completed",
     },
@@ -75,9 +85,30 @@ export const overview = {
       pastDue: "Past due",
     },
 
+    adherence: {
+      high: "HIGH COMPLIANCE",
+      moderate: "MODERATE",
+      low: "LOW",
+      onTrack: "On Track",
+      onTrackTh: ">85%",
+      atRisk: "At Risk",
+      atRiskTh: "70–84%",
+      critical: "Critical",
+      criticalTh: "<70%",
+      viewNonCompliant: "View Non-Compliant Athletes",
+      noData: "Adherence data appears once clients log meals against calorie goals.",
+    },
+
     table: {
-      title: "Top clients",
-      subtitle: "Adherence, plans and lifetime value for your premier tier athletes.",
+      title: "Top Active Clients",
+      subtitle: "Real-time pacing, adherence scores, and lifetime value for your premier tier athletes.",
+      highEngagement: "High Engagement",
+      filterRoster: "Filter roster…",
+      filterEmpty: "No clients match your filter.",
+      adherence: "Adherence",
+      lastCheckIn: "Last check-in",
+      viewProfile: "View Profile",
+      footer: "Showing {shown} of {total} active subscribers",
       exportCsv: "Export CSV",
       client: "Client",
       plan: "Plan",
@@ -164,11 +195,12 @@ export const overview = {
   },
 
   ar: {
-    pageTitle: "داشبورد",
+    pageTitle: "نظرة عامة على الداشبورد",
     realDataOnly: "بيانات حقيقية بس",
 
     header: {
       createWorkout: "إنشاء تمرين",
+      newMessage: "رسالة جديدة",
     },
 
     range: {
@@ -202,7 +234,7 @@ export const overview = {
     },
 
     chart: {
-      revenueTitle: "تطور صافي الإيرادات",
+      revenueTitle: "الإيرادات وسرعة النمو",
       subscribersTitle: "مشتركين جداد",
       revenueSeries: "صافي الإيرادات",
       subscriberSeries: "مشتركين جداد",
@@ -210,10 +242,19 @@ export const overview = {
       totalMoney: "{amount} خلال الفترة",
       totalCount: "{n} خلال الفترة",
       empty: "مفيش بيانات في الفترة دي لسه.",
-      adherenceTitle: "الالتزام بالتغذية",
+      adherenceTitle: "الالتزام العام للعملاء",
       adherenceOnTrack: "{on} / {total} عملاء ملتزمين",
       adherencePercent: "التزام {p}%",
-      weekdayTitle: "التمارين على مدار الأسبوع",
+      revenueToggle: "الإيرادات ($)",
+      subscribersToggle: "المشتركين",
+      totalPeriod: "قيمة الفترة الكاملة",
+      peakWeekly: "أعلى وتيرة أسبوعية",
+      projectedMrr: "صافي MRR المتوقع",
+      peakLoad: "الحمل الأعلى",
+      standard: "عادي",
+      weekdaySubtitle: "عدد التمارين اليومية على مدار برامج العملاء المسندة.",
+      target: "الهدف {p}%",
+      weekdayTitle: "نشاط التمارين بالأيام (الاثنين–الحد)",
       workoutCount: "{n} تمرين",
       completedSeries: "اتعملت",
     },
@@ -237,9 +278,30 @@ export const overview = {
       pastDue: "متأخر",
     },
 
+    adherence: {
+      high: "التزام عالٍ",
+      moderate: "متوسط",
+      low: "منخفض",
+      onTrack: "على المسار",
+      onTrackTh: ">85%",
+      atRisk: "معرض للخطر",
+      atRiskTh: "70–84%",
+      critical: "حرج",
+      criticalTh: "<70%",
+      viewNonCompliant: "عرض غير الملتزمين",
+      noData: "بيانات الالتزام هتظهر أول ما العملاء يسجلوا وجبات مقابل أهداف السعرات.",
+    },
+
     table: {
-      title: "أفضل العملاء",
+      title: "أفضل العملاء النشطين",
       subtitle: "الالتزام والخطط وقيمة كل عميل من أفضل عملائك.",
+      highEngagement: "تفاعل عالٍ",
+      filterRoster: "فلترة القائمة…",
+      filterEmpty: "مفيش عملاء مطابقين للفلتر.",
+      adherence: "الالتزام",
+      lastCheckIn: "آخر تسجيل",
+      viewProfile: "عرض الملف",
+      footer: "بيعرض {shown} من {total} مشترك نشط",
       exportCsv: "تصدير CSV",
       client: "العميل",
       plan: "الخطة",

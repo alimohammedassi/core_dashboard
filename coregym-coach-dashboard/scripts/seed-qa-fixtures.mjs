@@ -293,6 +293,7 @@ for (const a of assignments.filter((x) => x.status === "completed")) {
     muscle_group: sessionCount % 3 === 0 ? "chest" : sessionCount % 3 === 1 ? "legs" : "back",
     duration_min: 48 + (sessionCount % 4) * 5,
     session_date: a.scheduled_date, started_at: ts(new Date(a.scheduled_date + "T18:00:00Z")),
+    ended_at: new Date(new Date(a.scheduled_date + "T18:00:00Z").getTime() + 60 * 60000).toISOString(),
   }).select("id").single();
   if (!session) { throw new Error("session insert failed: " + JSON.stringify(ssErr ?? "data null")); }
   sessionCount++;

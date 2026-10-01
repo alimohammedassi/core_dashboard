@@ -146,11 +146,21 @@ export interface OverviewData {
     mode: "revenue" | "subscribers";
     points: BucketPoint[];
     total: number; // total across window (net cents or subscriber count)
+    /** Stitch "Week 01 (Aug 16)" series — both modes, toggleable client-side. */
+    weekly: { revenue: BucketPoint[]; subscribers: BucketPoint[] };
+    peakWeeklyNetCents: number; // best week in-window (derived)
+    projectedMrrCents: number; // avg weekly net × 4.33 (labeled "Projected")
   };
   breakdown: { label: string; count: number; tone: "lime" | "teal" | "coral" }[];
   weekday: { day: string; count: number }[];
   peakDay: number; // index into weekday, -1 when all zero
-  adherence: { rate: number | null; onTrack: number; tracked: number };
+  adherence: {
+    rate: number | null; // on-track share of goal-tracked active clients
+    onTrack: number;
+    atRisk: number;
+    critical: number;
+    tracked: number;
+  };
   topSubscribers: {
     id: string;
     name: string;
@@ -159,6 +169,8 @@ export interface OverviewData {
     status: string;
     startDate: string;
     revenueCents: number;
+    adherencePct: number | null; // derived from latest in-window log vs goal
+    lastCheckIn: string | null; // latest daily_summary date in window
   }[];
   statusCounts: { active: number; trial: number; cancelled: number; total: number };
   today: { checkIns: number; meals: number };
@@ -242,7 +254,9 @@ export async function getOverviewData(
     new Set(subs.filter((s) => s.status === "active").map((s) => s.client_id).filter(Boolean))
   ) as string[];
 
-  const [msgRes, sessionsRes, goalsRes, summariesRes] = await Promise.all([
+  // Adherence is derived from the coach-readable prescription chain:
+  // nutrition_assignments (+ foods) per client/date vs daily_summary calories.
+  const [msgRes, sessionsRes, assignsRes, summariesRes] = await Promise.all([
     convIds.length
       ? supabase
           .from("messages")
@@ -263,7 +277,13 @@ export async function getOverviewData(
           .limit(5000)
       : Promise.resolve({ data: [] as unknown[] }),
     activeIds.length
-      ? supabase.from("user_goals").select("user_id, daily_calories").in("user_id", activeIds)
+      ? supabase
+          .from("nutrition_assignments")
+          .select("id, client_id, scheduled_date")
+          .in("client_id", activeIds)
+          .gte("scheduled_date", period.start.toISOString().slice(0, 10))
+          .order("scheduled_date", { ascending: false })
+          .limit(5000)
       : Promise.resolve({ data: [] as unknown[] }),
     activeIds.length
       ? supabase
@@ -276,11 +296,19 @@ export async function getOverviewData(
       : Promise.resolve({ data: [] as unknown[] }),
   ]);
 
-    // Round 3 — today-level engagement + active program counts (independent)
-  const [checkinsRes, mealsRes, enrollmentsRes] = await Promise.all([
+    // Round 2b — prescribed calories per assignment (coach-readable, no goals read)
+  const assignIds = ((assignsRes.data ?? []) as unknown as Array<{ id: string }>).map((a) => a.id);
+  const [checkinsRes, mealsRes, enrollmentsRes, assignFoodsRes] = await Promise.all([
     activeIds.length ? supabase.from('daily_summary').select('user_id, summary_date').in('user_id', activeIds).eq('summary_date', new Date().toISOString().slice(0, 10)).limit(500) : Promise.resolve({ data: [] as unknown[] }),
     activeIds.length ? supabase.from('nutrition_logs').select('id, user_id').in('user_id', activeIds).eq('logged_date', new Date().toISOString().slice(0, 10)).limit(500) : Promise.resolve({ data: [] as unknown[] }),
     supabase.from('client_program_enrollments').select('id', { count: 'exact', head: true }).eq('coach_id', coachId).eq('status', 'active'),
+    assignIds.length
+      ? supabase
+          .from("nutrition_assignment_foods")
+          .select("assignment_id, original_calories")
+          .in("assignment_id", assignIds)
+          .limit(8000)
+      : Promise.resolve({ data: [] as unknown[] }),
   ]);
   const todayCheckIns = new Set(((checkinsRes.data ?? []) as unknown as Array<{ user_id: string }>).map((r) => r.user_id)).size;
   const todayMeals = (mealsRes.data ?? []).length;
@@ -316,6 +344,34 @@ const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sende
   }
   const chartPoints = buckets.map((b, i) => ({ label: b.label, value: series[i] }));
 
+  // Stitch "Revenue & Growth Velocity" — week-based series for BOTH modes so
+  // the client toggle can switch honestly between real aggregates. Weekly
+  // buckets cover the whole window (7-day steps, last bucket clipped).
+  const weekBuckets: { label: string; key: number; end: number }[] = [];
+  {
+    const cursor = new Date(period.start);
+    let n = 1;
+    while (cursor < period.end) {
+      const next = new Date(Math.min(cursor.getTime() + 7 * DAY, period.end.getTime()));
+      weekBuckets.push({ label: `Week ${String(n).padStart(2, "0")}`, key: cursor.getTime(), end: next.getTime() });
+      cursor.setTime(next.getTime());
+      n += 1;
+    }
+  }
+  const weeklyRevenue = weekBuckets.map((b) => ({
+    label: b.label,
+    value: Math.round(netOf(payments, new Date(b.key), new Date(b.end)) * 0.85),
+  }));
+  const weeklySubscribers = bucketize(
+    subs.map((s) => ({ ts: s.created_at })),
+    weekBuckets
+  ).map((v, i) => ({ label: weekBuckets[i].label, value: v }));
+  const peakWeeklyNetCents = weeklyRevenue.reduce((m, p) => Math.max(m, p.value), 0);
+  const activeWeeks = weeklyRevenue.filter((p) => p.value > 0).length;
+  const avgWeeklyNet =
+    activeWeeks > 0 ? weeklyRevenue.reduce((a, b) => a + b.value, 0) / activeWeeks : 0;
+  const projectedMrrCents = Math.round(avgWeeklyNet * 4.33);
+
   // Breakdown strip — current status mix across all of the coach's subscriptions
   const statusCounts = {
     active: subs.filter((s) => s.status === "active").length,
@@ -343,28 +399,82 @@ const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sende
   }));
   const peakDay = weekdayCounts.some((c) => c > 0) ? weekdayCounts.indexOf(Math.max(...weekdayCounts)) : -1;
 
-  // Goal adherence — active clients whose latest in-period daily_summary lands
-  // within ±10% of their calorie goal
-  const goals = (goalsRes.data ?? []) as unknown as Array<{ user_id: string; daily_calories: number | null }>;
-  const goalByUser = new Map(goals.map((g) => [g.user_id, g.daily_calories]));
-  const latestByUser = new Map<string, number | null>();
+  // Adherence — latest in-window day per client: prescribed calories (from the
+  // client's actual meal plan) vs logged calories (daily_summary). Stitch
+  // thresholds: >85% on track, 70–84% at risk, <70% critical.
+  const prescribedByUserDate = new Map<string, Map<string, number>>();
+  {
+    const foodsByAssignment = new Map<string, number>();
+    for (const f of (assignFoodsRes.data ?? []) as unknown as Array<{ assignment_id: string; original_calories: number | null }>) {
+      foodsByAssignment.set(f.assignment_id, (foodsByAssignment.get(f.assignment_id) ?? 0) + (f.original_calories ?? 0));
+    }
+    for (const a of (assignsRes.data ?? []) as unknown as Array<{ id: string; client_id: string; scheduled_date: string }>) {
+      const kcal = foodsByAssignment.get(a.id) ?? 0;
+      if (kcal <= 0) continue;
+      let perDate = prescribedByUserDate.get(a.client_id);
+      if (!perDate) {
+        perDate = new Map<string, number>();
+        prescribedByUserDate.set(a.client_id, perDate);
+      }
+      perDate.set(a.scheduled_date, (perDate.get(a.scheduled_date) ?? 0) + kcal);
+    }
+  }
+  const consumedByUserDate = new Map<string, Map<string, number>>();
   for (const s of (summariesRes.data ?? []) as unknown as Array<{
     user_id: string;
     summary_date: string;
     calories_consumed: number | null;
   }>) {
-    if (!latestByUser.has(s.user_id)) latestByUser.set(s.user_id, s.calories_consumed);
+    let perDate = consumedByUserDate.get(s.user_id);
+    if (!perDate) {
+      perDate = new Map<string, number>();
+      consumedByUserDate.set(s.user_id, perDate);
+    }
+    perDate.set(s.summary_date, s.calories_consumed ?? 0);
   }
   let onTrack = 0;
+  let atRisk = 0;
+  let critical = 0;
   let tracked = 0;
+  // per-client adherence (id -> pct 0-100, null when no prescription/log data)
+  const adherenceByUser = new Map<string, number | null>();
   for (const id of activeIds) {
-    const goal = goalByUser.get(id);
-    const consumed = latestByUser.get(id);
-    if (goal == null || goal <= 0 || consumed == null || consumed <= 0) continue;
+    const prescribed = prescribedByUserDate.get(id);
+    const consumed = consumedByUserDate.get(id);
+    // latest date where BOTH a prescription and a log exist
+    let latest: string | null = null;
+    if (prescribed && consumed) {
+      for (const d of prescribed.keys()) {
+        if (consumed.has(d) && (latest === null || d > latest)) latest = d;
+      }
+    }
+    if (latest === null) {
+      adherenceByUser.set(id, null);
+      continue;
+    }
+    const target = prescribed!.get(latest) ?? 0;
+    const actual = consumed!.get(latest) ?? 0;
+    if (target <= 0 || actual <= 0) {
+      adherenceByUser.set(id, null);
+      continue;
+    }
     tracked += 1;
-    if (Math.abs(consumed - goal) / goal <= 0.1) onTrack += 1;
+    const dev = Math.abs(actual - target) / target;
+    const pct = Math.max(0, Math.round((1 - dev) * 100));
+    adherenceByUser.set(id, pct);
+    if (pct > 85) onTrack += 1;
+    else if (pct >= 70) atRisk += 1;
+    else critical += 1;
   }
-  const adherenceRate = activeIds.length > 0 && tracked > 0 ? Math.round((onTrack / activeIds.length) * 100) : null;
+  const adherenceRate = tracked > 0 ? Math.round((onTrack / tracked) * 100) : null;
+  const lastCheckInByUser = new Map<string, string>();
+  for (const s of (summariesRes.data ?? []) as unknown as Array<{
+    user_id: string;
+    summary_date: string;
+    calories_consumed: number | null;
+  }>) {
+    if (!lastCheckInByUser.has(s.user_id)) lastCheckInByUser.set(s.user_id, s.summary_date);
+  }
 
   // Top subscribers — latest 6 by start date with lifetime paid per client
   const paidByClient = new Map<string, number>();
@@ -372,7 +482,7 @@ const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sende
     if (!p.client_id) continue;
     paidByClient.set(p.client_id, (paidByClient.get(p.client_id) ?? 0) + (p.amount ?? 0));
   }
-  const topSubscribers = subs.slice(0, 6).map((s) => ({
+  const topSubscribers = subs.slice(0, 8).map((s) => ({
     id: s.id,
     name: s.client?.full_name || s.client?.name || s.client?.email || "Client",
     email: s.client?.email ?? null,
@@ -380,6 +490,8 @@ const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sende
     status: s.status,
     startDate: s.start_date,
     revenueCents: paidByClient.get(s.client_id) ?? 0,
+    adherencePct: adherenceByUser.get(s.client_id) ?? null,
+    lastCheckIn: lastCheckInByUser.get(s.client_id) ?? null,
   }));
 
   return {
@@ -390,11 +502,18 @@ const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sende
       unread: { count: unread, tr: trend(msgsCur, msgsPrev) },
       workouts: { current: inCur.length, tr: trend(inCur.length, inPrev.length) },
     },
-    chart: { mode: chartMode, points: chartPoints, total: chartTotal },
+    chart: {
+      mode: chartMode,
+      points: chartPoints,
+      total: chartTotal,
+      weekly: { revenue: weeklyRevenue, subscribers: weeklySubscribers },
+      peakWeeklyNetCents,
+      projectedMrrCents,
+    },
     breakdown,
     weekday,
     peakDay,
-    adherence: { rate: adherenceRate, onTrack, tracked },
+    adherence: { rate: adherenceRate, onTrack, atRisk, critical, tracked },
     topSubscribers,
     statusCounts,
     today: { checkIns: todayCheckIns, meals: todayMeals },
