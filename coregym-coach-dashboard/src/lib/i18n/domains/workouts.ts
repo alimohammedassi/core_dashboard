@@ -22,6 +22,8 @@ export const workouts = {
       program: "Program",
       blueprint: "Exercise blueprint",
       moreExercises: "+{n} more",
+      searchPlaceholder: "Search templates, muscle groups, exercises…",
+      searchEmpty: "No templates match your filters.",
     },
     builder: {
       createTitle: "Create template",
@@ -142,6 +144,8 @@ export const workouts = {
       program: "برنامج",
       blueprint: "بلوبرينت التمارين",
       moreExercises: "+{n} كمان",
+      searchPlaceholder: "دوّر على قوالب، عضلات، أو تمارين…",
+      searchEmpty: "مفيش قوالب مطابقة للفلتر.",
     },
     builder: {
       createTitle: "إنشاء قالب",

@@ -10,7 +10,26 @@
 // Rollback:  node scripts/cleanup-qa-fixtures.mjs
 // ============================================================================
 import { createClient } from "@supabase/supabase-js";
+
+
+// Fixture credentials live in scripts/.qa-credentials.local.json (gitignored).
+// Nothing in this file is a production secret. Env overrides supported.
 import { readFileSync } from "node:fs";
+function loadQaCredentials() {
+  const file = new URL("./.qa-credentials.local.json", import.meta.url);
+  let creds;
+  try {
+    creds = JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    console.error("Missing scripts/.qa-credentials.local.json — see scripts/README-QA-FIXTURES.md");
+    process.exit(1);
+  }
+  return {
+    coachEmail: process.env.QA_COACH_EMAIL ?? creds.coachEmail,
+    coachPassword: process.env.QA_COACH_PASSWORD ?? creds.coachPassword,
+    clientPassword: process.env.QA_CLIENT_PASSWORD ?? creds.clientPasswordTemplate,
+  };
+}
 
 const env = readFileSync(".env.local", "utf8");
 const get = (k) => (env.match(new RegExp(`^${k}=(.*)$`, "m")) ?? [])[1]?.trim();
@@ -18,8 +37,8 @@ const sb = createClient(get("NEXT_PUBLIC_SUPABASE_URL"), get("SUPABASE_SERVICE_R
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const QA_PASSWORD = "QaCl1ent#2026x";
 const CLIENT_COUNT = 27;
+const { coachEmail: QA_COACH_EMAIL, coachPassword: QA_COACH_PASSWORD, clientPassword: QA_PASSWORD } = loadQaCredentials();
 const today = new Date();
 const iso = (d) => d.toISOString().slice(0, 10);
 const daysAgo = (n) => {
@@ -76,7 +95,7 @@ log("wipe", "removing previously tagged QA rows…");
     await sb.from("payment_intents").delete().in("client_id", ids);
   }
   // coach-scoped fixture rows (programs BEFORE their templates — FK order)
-  const { data: coachProf } = await sb.from("profiles").select("id").eq("email", "loadtest+uiqa@coregym.test").maybeSingle();
+  const { data: coachProf } = await sb.from("profiles").select("id").eq("email", QA_COACH_EMAIL).maybeSingle();
   if (coachProf) {
     const { data: cRow } = await sb.from("coaches").select("id").eq("user_id", coachProf.id).maybeSingle();
     if (cRow) {
@@ -118,7 +137,7 @@ log("wipe", "removing previously tagged QA rows…");
 }
 
 // ── 1) Coach identity ───────────────────────────────────────────────────────
-const { data: coachProf } = await sb.from("profiles").select("id").eq("email", "loadtest+uiqa@coregym.test").single();
+const { data: coachProf } = await sb.from("profiles").select("id").eq("email", QA_COACH_EMAIL).single();
 const coachUid = coachProf.id;
 const { data: coachRow } = await sb.from("coaches").select("id").eq("user_id", coachUid).single();
 const coachId = coachRow.id;
@@ -421,6 +440,6 @@ const payRows = clients.slice(0, 10).map((c, i) => ({
 log("payments", `${payRows.length} intents (9 succeeded / 1 pending)`);
 
 console.log("\n[seed] DONE — fixtures tagged [QA]/[LOADTEST] and owned by CoreGym QA Coach.");
-console.log("[seed] Coach login: loadtest+uiqa@coregym.test / UiQa!C0ach#2026x");
-console.log("[seed] Client logins: qa.client.NNN@coregym.test / QaCl1ent#2026x");
+console.log("[seed] Coach login: see scripts/.qa-credentials.local.json");
+console.log("[seed] Client logins: qa.client.NNN@coregym.test (password in scripts/.qa-credentials.local.json)");
 console.log("[seed] Rollback: node scripts/cleanup-qa-fixtures.mjs");

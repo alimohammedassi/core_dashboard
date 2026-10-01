@@ -19,7 +19,7 @@ export const plans = {
       avgPriceHint: "Across your published plans",
     },
 
-    createAction: "Create plan",
+    createAction: "Create Plan",
 
     form: {
       createTitle: "Create plan",

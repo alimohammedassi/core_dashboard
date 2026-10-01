@@ -11,13 +11,17 @@ import { toast } from "sonner";
 import { Pencil, Users, CreditCard } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { EmptyState } from "@/components/core/EmptyState";
+import { PageHeader } from "@/components/core/PageHeader";
 
 export function PlansClient({
   initialPlans,
   coachId,
+  kpis,
 }: {
   initialPlans: SubscriptionPlan[];
   coachId: string;
+  /** Server-rendered KPI row — rendered between the header and the grid. */
+  kpis?: React.ReactNode;
 }) {
   const { t, fmt } = useI18n();
   const [plans, setPlans] = React.useState(initialPlans);
@@ -88,16 +92,20 @@ export function PlansClient({
 
   return (
     <>
-      <div className="flex justify-end">
-        <Dialog
-          open={open}
-          onOpenChange={(v) => {
-            setOpen(v);
-            if (!v) setEditing(null);
-          }}
-        >
-          <DialogTrigger render={<Button onClick={startCreate}>{t("plans.createAction")}</Button>} />
-          <DialogContent>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) setEditing(null);
+        }}
+      >
+        <PageHeader
+          title={t("plans.page.title")}
+          description={t("plans.page.subtitle")}
+          actions={<DialogTrigger render={<Button size="lg" onClick={startCreate}>{t("plans.createAction")}</Button>} />}
+        />
+        {kpis}
+        <DialogContent>
             <DialogHeader>
               <DialogTitle>{editing ? t("plans.form.editTitle") : t("plans.form.createTitle")}</DialogTitle>
             </DialogHeader>
@@ -139,8 +147,7 @@ export function PlansClient({
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+      </Dialog>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((p) => (

@@ -13,6 +13,7 @@ export function StatCard({
   footer,
   progress,
   badge,
+  valueClassName,
   className,
 }: {
   label: React.ReactNode;
@@ -25,6 +26,7 @@ export function StatCard({
   progress?: number;
   /** Small chip rendered next to the label (e.g. "Realtime"). */
   badge?: React.ReactNode;
+  valueClassName?: string;
   className?: string;
 }) {
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
@@ -47,7 +49,7 @@ export function StatCard({
         ) : null}
       </div>
       <div className="my-3 flex flex-wrap items-baseline gap-2">
-        <span className="font-display text-metric-display tabular-nums tracking-tight text-foreground">
+        <span className={cn("font-display text-metric-display tabular-nums tracking-tight text-foreground", valueClassName)}>
           {value}
         </span>
         {trendLabel ? (

@@ -151,7 +151,7 @@ export function ProgramsClient({
                           <p className={`text-[10px] font-bold uppercase tracking-wide ${rest ? "text-faint" : "text-primary"}`}>
                             {t(`programs.weekdaysShort.${key}`)}
                           </p>
-                          <p className={`mt-0.5 line-clamp-2 text-[11px] leading-tight ${rest ? "text-faint/70" : "text-foreground"}`}>
+                          <p className={`mt-0.5 line-clamp-3 text-[10px] leading-tight ${rest ? "text-faint/70" : "text-foreground"}`}>
                             {rest ? t("programs.builder.rest") : tplName}
                           </p>
                         </div>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/core/PageHeader";
 import { StatCard } from "@/components/core/StatCard";
+import { StatusBadge, statusTone } from "@/components/core/StatusBadge";
 import { Landmark, Receipt, Wallet } from "lucide-react";
 
 const STATUS_LABELS: Record<string, TKey> = {
@@ -202,7 +203,8 @@ export default async function RevenuePage() {
         <StatCard
           label={t("revenue.kpi.commission.title")}
           icon={Receipt}
-          value={`−${fmt.money(commission)}`}
+          value={fmt.money(commission)}
+          valueClassName="text-foreground/80"
           footer={<span>{isStripe ? t("revenue.kpi.commission.descLive") : t("revenue.kpi.commission.descEstimate")}</span>}
         />
         <StatCard
@@ -253,7 +255,7 @@ export default async function RevenuePage() {
                   <TableCell className="max-w-[160px] truncate text-body-md">{tx.client?.full_name ?? tx.client?.email ?? tx.client_id?.slice(0, 8) ?? "—"}</TableCell>
                   <TableCell className="text-body-md font-medium tabular-nums">{fmt.money(tx.amount)} <span className="text-xs text-faint">{(tx.currency ?? "usd").toUpperCase()}</span></TableCell>
                   <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(tx.created_at)}</TableCell>
-                  <TableCell><Badge variant={tx.status === "succeeded" ? "default" : tx.status === "pending" ? "secondary" : "outline"}>{statusLabel(tx.status)}</Badge></TableCell>
+                  <TableCell><StatusBadge tone={statusTone(tx.status)}>{statusLabel(tx.status)}</StatusBadge></TableCell>
                 </TableRow>
               ))}
               {transactions.length === 0 && (
@@ -287,7 +289,7 @@ export default async function RevenuePage() {
                   <TableCell className="font-mono text-xs text-faint">{p.id}</TableCell>
                   <TableCell className="tabular-nums">{fmt.money(p.amount)} {p.currency.toUpperCase()}</TableCell>
                   <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(p.arrival_date * 1000)}</TableCell>
-                  <TableCell><Badge variant={p.status === "paid" ? "default" : "secondary"}>{statusLabel(p.status)}</Badge></TableCell>
+                  <TableCell><StatusBadge tone={statusTone(p.status)}>{statusLabel(p.status)}</StatusBadge></TableCell>
                 </TableRow>
               ))}
               {payouts.length === 0 && (

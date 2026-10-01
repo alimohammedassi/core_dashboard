@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Copy, Dumbbell, Layers, Pencil, PlusCircle, Send, Trash2 } from "lucide-react";
+import { Copy, Dumbbell, Layers, Pencil, PlusCircle, Search, Send, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 import type { ActiveClient } from "@/lib/workouts";
 import { useI18n } from "@/lib/i18n/client";
@@ -50,6 +51,9 @@ export function WorkoutsClient({
   const [builderNonce, setBuilderNonce] = React.useState(0);
   const [assign, setAssign] = React.useState<AssignSeed | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  // Stitch filter toolbar state — filters the loaded page client-side
+  const [query, setQuery] = React.useState("");
+  const [muscle, setMuscle] = React.useState<string | null>(null);
 
   function openCreate() {
     setBuilderSeed(seedForCreate());
@@ -95,16 +99,66 @@ export function WorkoutsClient({
     }
   }
 
+  // Muscle chip row derives from the loaded page's own muscle tags (All first)
+  const muscleOptions = [...new Set(templates.flatMap((tpl) => tpl.target_muscles ?? []))];
+  const q = query.trim().toLowerCase();
+  const visibleTemplates = templates.filter((tpl) => {
+    if (muscle && !(tpl.target_muscles ?? []).some((m) => m.toLowerCase() === muscle.toLowerCase())) return false;
+    if (!q) return true;
+    const haystack = [tpl.name, ...(tpl.exercises ?? []).map((e) => e.exercise_name)].join(" ").toLowerCase();
+    return haystack.includes(q);
+  });
+
   return (
     <>
-      <div className="flex justify-end">
-        <Button size="lg" onClick={openCreate}>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full max-w-xl">
+          <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("workouts.list.searchPlaceholder")}
+            aria-label={t("workouts.list.searchPlaceholder")}
+            className="h-10 ps-9"
+          />
+        </div>
+        <Button size="lg" onClick={openCreate} className="shrink-0">
           <PlusCircle className="size-4" />
           {t("workouts.list.createTemplate")}
         </Button>
       </div>
 
-      {templates.length === 0 ? (
+      {muscleOptions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setMuscle(null)}
+            aria-pressed={muscle === null}
+            className={`rounded-[6px] px-3 py-1 text-label-md transition-colors ${
+              muscle === null ? "bg-primary font-semibold text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t("common.state.all")}
+          </button>
+          {muscleOptions.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMuscle(muscle === m ? null : m)}
+              aria-pressed={muscle === m}
+              className={`rounded-[6px] px-3 py-1 text-label-md capitalize transition-colors ${
+                muscle === m ? "bg-primary font-semibold text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {templates.length > 0 && visibleTemplates.length === 0 ? (
+        <EmptyState icon={Search} title={t("workouts.list.searchEmpty")} />
+      ) : templates.length === 0 ? (
         <EmptyState
           icon={Layers}
           title={t("workouts.list.emptyTitle")}
@@ -115,7 +169,7 @@ export function WorkoutsClient({
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {templates.map((tpl) => (
+          {visibleTemplates.map((tpl) => (
             <Card key={tpl.id} className="flex flex-col">
               <CardContent className="flex flex-1 flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
@@ -189,6 +243,7 @@ export function WorkoutsClient({
                   </Button>
                   <Button
                     size="sm"
+                    className="border border-primary/30 bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary"
                     disabled={busyId === tpl.id}
                     onClick={() => setAssign({ template: tpl, mode: "assign", defaultDate: tomorrowLocal() })}
                   >
@@ -236,6 +291,7 @@ export function WorkoutsClient({
         />
       )}
       <AssignDialog
+        key={assign ? `${assign.template.id}:${assign.mode}` : "assign-closed"}
         seed={assign}
         onOpenChange={(v) => {
           if (!v) setAssign(null);

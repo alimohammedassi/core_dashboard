@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AvatarImage } from "@/components/ui/avatar";
+import { StatusBadge } from "@/components/core/StatusBadge";
 import { ChevronLeft, MessageSquare } from "lucide-react";
 
 type SubDetail = {
@@ -325,9 +326,9 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
           <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-headline-md tracking-tight text-foreground">{name}</h1>
-              <Badge variant={sub.status === "active" ? "default" : "secondary"} className="uppercase">
+              <StatusBadge tone={sub.status === "active" ? "emerald" : "neutral"} className="uppercase">
                 {subLabel(sub.status)}
-              </Badge>
+              </StatusBadge>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
               {sub.client.email && <span>{sub.client.email}</span>}

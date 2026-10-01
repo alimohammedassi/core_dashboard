@@ -6,7 +6,6 @@ import { Pager } from "@/components/dashboard/Pager";
 import { PlansClient } from "@/components/plans/PlansClient";
 import { Badge } from "@/components/ui/badge";
 import { getI18n } from "@/lib/i18n/server";
-import { PageHeader } from "@/components/core/PageHeader";
 import { StatCard } from "@/components/core/StatCard";
 import { CreditCard, Users, Wallet } from "lucide-react";
 import type { SubscriptionPlan } from "@/lib/supabase/types";
@@ -63,38 +62,38 @@ export default async function PlansPage({
     }
   }
 
+  const kpis = (
+    <div className="grid gap-4 sm:grid-cols-3">
+      <StatCard
+        label={t("plans.kpi.published")}
+        icon={CreditCard}
+        value={fmt.num(total)}
+        footer={<span>{t("plans.page.subtitleShort")}</span>}
+      />
+      <StatCard
+        label={t("plans.kpi.subscribed")}
+        icon={Users}
+        value={fmt.num(activeSubs)}
+        footer={<span>{t("plans.kpi.subscribedHint")}</span>}
+      />
+      <StatCard
+        label={t("plans.kpi.avgPrice")}
+        icon={Wallet}
+        value={avgPrice != null ? fmt.money(Math.round(avgPrice * 100)) : "—"}
+        footer={<span>{t("plans.kpi.avgPriceHint")}</span>}
+      />
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={t("plans.page.title")} description={t("plans.page.subtitle")} />
-
       {error && (
         <Badge variant="destructive" className="w-fit">
           {t("plans.page.loadError")}
         </Badge>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label={t("plans.kpi.published")}
-          icon={CreditCard}
-          value={fmt.num(total)}
-          footer={<span>{t("plans.page.subtitleShort")}</span>}
-        />
-        <StatCard
-          label={t("plans.kpi.subscribed")}
-          icon={Users}
-          value={fmt.num(activeSubs)}
-          footer={<span>{t("plans.kpi.subscribedHint")}</span>}
-        />
-        <StatCard
-          label={t("plans.kpi.avgPrice")}
-          icon={Wallet}
-          value={avgPrice != null ? fmt.money(Math.round(avgPrice * 100)) : "—"}
-          footer={<span>{t("plans.kpi.avgPriceHint")}</span>}
-        />
-      </div>
-
-      <PlansClient initialPlans={plans} coachId={coachId} />
+      <PlansClient initialPlans={plans} coachId={coachId} kpis={kpis} />
       <Pager basePath="/dashboard/plans" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />
     </div>
   );

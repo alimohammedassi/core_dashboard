@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "@/components/core/PageHeader";
 import { StatCard } from "@/components/core/StatCard";
 import { EmptyState } from "@/components/core/EmptyState";
+import { StatusBadge, statusTone } from "@/components/core/StatusBadge";
 
 const PAGE_SIZE = 25;
 
@@ -209,7 +210,7 @@ export default async function SubscribersPage({
                     </TableCell>
                     <TableCell className="text-body-md">{r.plan?.name ?? "—"}</TableCell>
                     <TableCell>
-                      <StatusBadge status={r.status} label={statusLabel(r.status)} />
+                      <StatusBadge tone={statusTone(r.status)}>{statusLabel(r.status)}</StatusBadge>
                     </TableCell>
                     <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(r.start_date)}</TableCell>
                     <TableCell className="text-end">
@@ -274,32 +275,5 @@ export default async function SubscribersPage({
         )}
       </Card>
     </div>
-  );
-}
-
-// Stitch status palette: volt = active, amber = past due, coral = dead, else graphite
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const variant =
-    status === "active"
-      ? "default"
-      : status === "cancelled" || status === "canceled" || status === "expired"
-        ? "destructive"
-        : status === "past_due"
-          ? "outline"
-          : "secondary";
-  return (
-    <Badge
-      variant={variant}
-      className={
-        status === "past_due"
-          ? "border-warning/40 bg-warning/10 text-warning"
-          : status === "trialing"
-            ? "bg-[#68dfa6]/15 text-[#68dfa6]"
-            : undefined
-      }
-    >
-      <span className="size-1.5 rounded-full bg-current" />
-      {label}
-    </Badge>
   );
 }

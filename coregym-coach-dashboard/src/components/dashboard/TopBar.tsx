@@ -75,7 +75,7 @@ export function Topbar({ items, profile }: { items: NavItem[]; profile: TopbarPr
           <GlobalLink
             href="/dashboard/settings"
             aria-label={profile.name}
-            className="rounded-full ring-1 ring-border transition-opacity hover:opacity-80"
+            className="rounded-full ring-2 ring-primary/40 transition-opacity hover:opacity-80"
           >
             <CoachAvatar profile={profile} size="sm" />
           </GlobalLink>

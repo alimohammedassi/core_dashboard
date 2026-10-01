@@ -397,7 +397,7 @@ export function ChatClient({
     : conversations;
 
   return (
-    <div className="grid h-[calc(100svh-9.5rem)] min-h-80 grid-cols-1 gap-4 md:h-[calc(100svh-8.5rem)] md:grid-cols-[340px_1fr]">
+    <div className="grid h-[calc(100svh-9.5rem)] min-h-80 grid-cols-1 gap-4 md:h-[calc(100svh-8.5rem)] md:grid-cols-[360px_1fr]">
       {/* Conversation roster — Stitch left pane */}
       <Card className="flex flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b p-3">

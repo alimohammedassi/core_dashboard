@@ -5,13 +5,14 @@ import { getOverviewData, resolvePeriod, resolveRange, type RangeKey } from "@/l
 import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RangeSelector } from "@/components/dashboard/overview/RangeSelector";
 import { OverviewAreaChart, WeekdayBarChart, AdherenceGauge } from "@/components/dashboard/overview/OverviewCharts";
 import { PageHeader } from "@/components/core/PageHeader";
 import { StatCard, StatCardChip } from "@/components/core/StatCard";
+import { StatusBadge, statusTone } from "@/components/core/StatusBadge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ClipboardList, Dumbbell, Download, MessageSquare, PlusCircle, Users } from "lucide-react";
 import { GlobalLink } from "@/components/shared/link";
 
@@ -122,11 +123,6 @@ export default async function DashboardOverviewPage({
       <PageHeader
         title={t("overview.pageTitle")}
         chip="PRO"
-        meta={
-          <>
-            <span className="rounded-md bg-secondary px-2 py-0.5 text-label-md text-foreground">{rangeLabel}</span>
-          </>
-        }
         actions={
           <>
             <RangeSelector current={range} rangeLabel={rangeLabel} />
@@ -151,6 +147,7 @@ export default async function DashboardOverviewPage({
           trend={data.kpis.active.tr.dir}
           trendLabel={trLabel(data.kpis.active.tr.label)}
           footer={<span>{trVs(data.kpis.active.tr.vs)}</span>}
+          progress={data.statusCounts.total > 0 ? Math.round((data.kpis.active.current / data.statusCounts.total) * 100) : undefined}
         />
         <StatCard
           label={t("overview.kpi.netRevenue")}
@@ -168,7 +165,7 @@ export default async function DashboardOverviewPage({
         <StatCard
           label={t("overview.kpi.unread")}
           icon={MessageSquare}
-          badge={<StatCardChip tone="mint">RT</StatCardChip>}
+          badge={<StatCardChip tone="mint">LIVE</StatCardChip>}
           value={fmt.num(data.kpis.unread.count)}
           trend={data.kpis.unread.tr.dir}
           trendLabel={trLabel(data.kpis.unread.tr.label)}
@@ -313,12 +310,19 @@ export default async function DashboardOverviewPage({
               {data.topSubscribers.map((s) => (
                 <TableRow key={s.id}>
                   <TableCell>
-                    <p className="text-body-md font-medium">{s.name}</p>
-                    {s.email && <p className="text-body-sm text-faint">{s.email}</p>}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-8">
+                        <AvatarFallback className="text-xs">{(s.name ?? "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="truncate text-body-md font-medium">{s.name}</p>
+                        {s.email && <p className="truncate text-body-sm text-faint">{s.email}</p>}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-body-md">{s.plan ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={s.status === "active" ? "default" : "secondary"}>{statusLabel(s.status)}</Badge>
+                    <StatusBadge tone={statusTone(s.status)}>{statusLabel(s.status)}</StatusBadge>
                   </TableCell>
                   <TableCell className="text-body-sm tabular-nums text-muted-foreground">{s.startDate ? fmt.date(s.startDate) : "—"}</TableCell>
                   <TableCell className="text-end text-body-md font-medium tabular-nums">{fmt.money(s.revenueCents)}</TableCell>

@@ -399,7 +399,7 @@ export function NutritionClient({
                   </div>
 
                   <Button
-                    className="mt-auto w-full"
+                    className="mt-auto w-fit px-4"
                     disabled={clients.length === 0}
                     onClick={() => setEnrollSeed(p)}
                   >
