@@ -24,6 +24,7 @@ const env = readFileSync(".env.local", "utf8");
 const get = (k) => (env.match(new RegExp(`^${k}=(.*)$`, "m")) ?? [])[1]?.trim();
 const url = get("NEXT_PUBLIC_SUPABASE_URL");
 const anon = get("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+const { coachEmail: QA_COACH_EMAIL, coachPassword: QA_COACH_PASSWORD } = loadQaCredentials();
 
 const login = await fetch(`${url}/auth/v1/token?grant_type=password`, {
   method: "POST",

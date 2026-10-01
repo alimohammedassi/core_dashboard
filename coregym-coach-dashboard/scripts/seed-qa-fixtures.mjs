@@ -38,7 +38,7 @@ const sb = createClient(get("NEXT_PUBLIC_SUPABASE_URL"), get("SUPABASE_SERVICE_R
 });
 
 const CLIENT_COUNT = 27;
-const { coachEmail: QA_COACH_EMAIL, coachPassword: QA_COACH_PASSWORD, clientPassword: QA_PASSWORD } = loadQaCredentials();
+const { coachEmail: QA_COACH_EMAIL, clientPassword: QA_PASSWORD } = loadQaCredentials();
 const today = new Date();
 const iso = (d) => d.toISOString().slice(0, 10);
 const daysAgo = (n) => {
