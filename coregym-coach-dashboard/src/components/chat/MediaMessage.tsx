@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { X, FileDown, ImageIcon, AudioLines, FileQuestion } from "lucide-react";
+import {
+  X,
+  FileDown,
+  ImageIcon,
+  AudioLines,
+  FileQuestion,
+  Play,
+  Pause,
+  Camera,
+  ArrowDownToLine,
+} from "lucide-react";
 import type { Message } from "@/lib/supabase/types";
 import type { TFn } from "@/lib/i18n/dictionary";
 import type { Formatters } from "@/lib/i18n/format";
@@ -80,14 +90,24 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
     return (
       <>
         {src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- signed, expiring URL; next/image adds no value
-          <img
-            src={src}
-            alt={message.content || t("chat.media.imageAlt")}
-            onError={reRefetch}
-            onClick={() => setLightbox(true)}
-            className="max-h-56 w-auto cursor-zoom-in rounded-lg"
-          />
+          <div className="group relative w-80 max-w-full overflow-hidden rounded-xl">
+            {/* eslint-disable-next-line @next/next/no-img-element -- signed, expiring URL; next/image adds no value */}
+            <img
+              src={src}
+              alt={message.content || t("chat.media.imageAlt")}
+              onError={reRefetch}
+              onClick={() => setLightbox(true)}
+              className="h-48 w-full cursor-zoom-in object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            {/* Real caption from message.content (the upload API stores "" for
+                plain photos, so the strip degrades to just the icon). */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-background/90 to-transparent p-3 pt-8">
+              <Camera className="size-4 shrink-0 text-primary" />
+              {message.content ? (
+                <span className="truncate text-[13px] font-semibold text-white">{message.content}</span>
+              ) : null}
+            </div>
+          </div>
         ) : (
           <ImagePlaceholder />
         )}
@@ -112,18 +132,9 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
   }
 
   if (message.type === "voice") {
+    // content convention (shared with the mobile app): duration in seconds.
     const seconds = Math.max(1, Math.round(Number(message.content) || 0));
-    return (
-      <div className="flex min-w-52 items-center gap-2">
-        <AudioLines className="size-4 shrink-0 opacity-70" />
-        {src ? (
-          <audio controls preload="metadata" src={src} onError={reRefetch} className="h-8 max-w-52" />
-        ) : (
-          <span className="text-xs opacity-70">{t("chat.media.loadingVoice")}</span>
-        )}
-        <span className="text-xs opacity-70">{t("chat.media.seconds", { s: seconds })}</span>
-      </div>
-    );
+    return <VoiceCard src={src} seconds={seconds} onMediaError={reRefetch} />;
   }
 
   // file
@@ -142,18 +153,116 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
       onClick={(e) => {
         if (!src) e.preventDefault();
       }}
-      className="flex items-center gap-2 rounded-lg bg-black/10 px-3 py-2 transition-colors hover:bg-black/20"
+      className="flex w-80 max-w-full items-center justify-between gap-3 rounded-xl bg-background/80 p-2.5 transition-colors hover:bg-accent"
     >
-      <FileDown className="size-4 shrink-0" />
-      <span className="min-w-0">
-        <span className="block max-w-52 truncate text-sm font-medium">{fileName}</span>
-        <span className="block text-xs opacity-70">
-          {fileInfo?.size != null ? `${formatSize(fileInfo.size, fmt)} · ` : ""}
-          {src ? t("chat.media.clickToDownload") : t("chat.media.preparing")}
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
+          <FileDown className="size-4" />
         </span>
+        <span className="min-w-0">
+          <span className="block truncate text-label-md font-semibold text-foreground">{fileName}</span>
+          <span className="block truncate text-[11px] text-faint">
+            {fileInfo?.size != null ? `${formatSize(fileInfo.size, fmt)} · ` : ""}
+            {src ? t("chat.media.clickToDownload") : t("chat.media.preparing")}
+          </span>
+        </span>
+      </span>
+      <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+        <ArrowDownToLine className="size-4" />
       </span>
     </a>
   );
+}
+
+/* Stitch voice card: 36px volt play button + 19-bar waveform driven by a
+   hidden <audio> element. Playback progress paints bars volt; the rest stay
+   graphite. Duration comes from message.content (real seconds). */
+const BAR_HEIGHTS = [8, 20, 12, 28, 16, 24, 10, 22, 14, 26, 12, 18, 28, 10, 22, 14, 24, 12, 8];
+
+function VoiceCard({ src, seconds, onMediaError }: { src: string | null; seconds: number; onMediaError: () => void }) {
+  const { t } = useI18n();
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [played, setPlayed] = React.useState(0); // 0..1
+
+  const playedBars = Math.round(played * BAR_HEIGHTS.length);
+
+  function togglePlay() {
+    const el = audioRef.current;
+    if (!el || !src) return;
+    if (playing) {
+      el.pause();
+    } else {
+      void el.play().catch(() => setPlaying(false));
+    }
+  }
+
+  return (
+    <div className="w-80 max-w-full">
+      <div className="flex items-center gap-2 pb-1.5">
+        <AudioLines className="size-4 shrink-0 text-primary" />
+        <span className="text-label-sm font-semibold text-foreground">{t("chat.media.voiceNote")}</span>
+        <span className="ms-auto rounded bg-accent px-1.5 py-0.5 text-[11px] tabular-nums text-primary">
+          {formatDuration(seconds)}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 rounded-xl bg-background/80 p-2.5">
+        {src ? (
+          <>
+            <button
+              type="button"
+              onClick={togglePlay}
+              aria-label={playing ? t("chat.media.pause") : t("chat.media.play")}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground glow-volt transition-transform hover:scale-105 active:scale-95"
+            >
+              {playing ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
+            </button>
+            <div className="flex h-8 min-w-0 flex-1 items-center gap-[3px]">
+              {BAR_HEIGHTS.map((h, i) => (
+                <span
+                  key={i}
+                  className={`w-1 shrink-0 rounded-full transition-colors ${
+                    i < playedBars ? "bg-primary" : "bg-border"
+                  }`}
+                  style={{ height: `${h}px` }}
+                />
+              ))}
+            </div>
+            <audio
+              ref={audioRef}
+              src={src}
+              preload="metadata"
+              onError={onMediaError}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => {
+                setPlaying(false);
+                setPlayed(0);
+              }}
+              onTimeUpdate={(e) => {
+                const el = e.currentTarget;
+                setPlayed(Math.min(1, el.currentTime / Math.max(1, seconds)));
+              }}
+              className="hidden"
+            />
+          </>
+        ) : (
+          <>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-faint">
+              <AudioLines className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1 text-body-sm text-faint">{t("chat.media.loadingVoice")}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatDuration(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function formatSize(bytes: number, fmt: Formatters): string {
@@ -165,7 +274,7 @@ function formatSize(bytes: number, fmt: Formatters): string {
 function ImagePlaceholder() {
   const { t } = useI18n();
   return (
-    <span className="flex h-32 w-48 items-center justify-center gap-2 rounded-lg bg-black/10 text-xs opacity-70">
+    <span className="flex h-48 w-80 max-w-full items-center justify-center gap-2 rounded-xl bg-black/10 text-xs opacity-70">
       <ImageIcon className="size-4" /> {t("chat.media.loadingImage")}
     </span>
   );

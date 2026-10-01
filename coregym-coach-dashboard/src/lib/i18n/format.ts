@@ -53,3 +53,23 @@ export function formatters(lang: Lang): Formatters {
     percent: (value) => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value) + "%",
   };
 }
+
+/** Compact relative stamp for chat roster rows: "now" / "5m" / "3h" inside a
+ * day, weekday name inside a week, short date beyond. Pure — pass `now` to
+ * make it deterministic (callers hydrating from SSR should only render it
+ * after mount so server/client clocks can't disagree). */
+export function relTime(value: DateLike, lang: Lang, now: Date = new Date()): string {
+  const date = toDate(value);
+  const locale = intlLocale(lang);
+  const minutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+  if (minutes < 1) return lang === "ar" ? "الآن" : "now";
+  if (minutes < 60) return lang === "ar" ? `${minutes} د` : `${minutes}m`;
+  if (minutes < 24 * 60) {
+    const hours = Math.floor(minutes / 60);
+    return lang === "ar" ? `${hours} س` : `${hours}h`;
+  }
+  if (minutes < 7 * 24 * 60) {
+    return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date);
+  }
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(date);
+}

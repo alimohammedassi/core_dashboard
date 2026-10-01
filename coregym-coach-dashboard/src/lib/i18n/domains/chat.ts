@@ -13,6 +13,8 @@ export const chat = {
 
     list: {
       title: "Athletes",
+      count: "{n} conversations",
+      filterUnread: "Unread only",
       empty: "No conversations yet.",
       searchPlaceholder: "Search conversations…",
       searchEmpty: "No conversations match your search.",
@@ -20,7 +22,11 @@ export const chat = {
 
     thread: {
       select: "Select a conversation",
+      clientProfile: "Client Profile",
+      back: "Back",
       realtime: "Realtime",
+      realtimeConnected: "Realtime connected",
+      realtimeOffline: "Reconnecting…",
       loadOlder: "Load older messages",
       loadingOlder: "Loading older messages…",
       unread: " · unread",
@@ -29,8 +35,14 @@ export const chat = {
       errorMarkRead: "Couldn't mark messages as read — check your connection",
     },
 
+    receipt: {
+      sent: "Sent",
+      read: "Read",
+    },
+
     composer: {
       placeholder: "Type a message…",
+      inputHint: "Enter to send · Shift + Enter for new line",
       attachImage: "Attach image",
       attachFile: "Attach file",
       removeAttachment: "Remove attachment",
@@ -43,6 +55,9 @@ export const chat = {
 
     media: {
       unavailable: "Attachment unavailable",
+      voiceNote: "Voice note",
+      play: "Play",
+      pause: "Pause",
       imageAlt: "Shared image",
       loadingImage: "Loading image…",
       loadingVoice: "Loading voice note…",
@@ -81,6 +96,8 @@ export const chat = {
 
     list: {
       title: "الرياضيين",
+      count: "{n} محادثات",
+      filterUnread: "غير المقروءة فقط",
       searchPlaceholder: "دوّر على محادثة…",
       searchEmpty: "مفيش محادثات مطابقة للبحث.",
       empty: "مفيش محادثات لسه.",
@@ -88,7 +105,11 @@ export const chat = {
 
     thread: {
       select: "اختار محادثة",
+      clientProfile: "ملف العميل",
+      back: "رجوع",
       realtime: "تحديث لحظي",
+      realtimeConnected: "التحديث اللحظي متصل",
+      realtimeOffline: "بنعيد الاتصال…",
       loadOlder: "حمّل رسائل أقدم",
       loadingOlder: "بنحمّل رسائل أقدم…",
       unread: " · غير مقروءة",
@@ -97,8 +118,14 @@ export const chat = {
       errorMarkRead: "معرفناش نعلّم الرسائل إنها اتقرت — شيك على اتصالك",
     },
 
+    receipt: {
+      sent: "اتبعته",
+      read: "اتقرت",
+    },
+
     composer: {
       placeholder: "اكتب رسالة…",
+      inputHint: "Enter للإرسال · Shift + Enter لسطر جديد",
       attachImage: "أرفق صورة",
       attachFile: "أرفق ملف",
       removeAttachment: "شيل المرفق",
@@ -111,6 +138,9 @@ export const chat = {
 
     media: {
       unavailable: "المرفق مش متاح",
+      voiceNote: "رسالة صوتية",
+      play: "تشغيل",
+      pause: "إيقاف",
       imageAlt: "صورة مشتركة",
       loadingImage: "بنحمّل الصورة…",
       loadingVoice: "بنحمّل الرسالة الصوتية…",

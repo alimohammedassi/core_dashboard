@@ -103,7 +103,15 @@ export function VoiceRecorder({
 
   if (state === "idle") {
     return (
-      <Button type="button" variant="ghost" size="icon" disabled={disabled} aria-label={t("chat.recorder.record")} onClick={startRecording}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        disabled={disabled}
+        aria-label={t("chat.recorder.record")}
+        onClick={startRecording}
+        className="size-8 rounded-lg text-faint hover:bg-secondary hover:text-destructive"
+      >
         <Mic className="size-4" />
       </Button>
     );
@@ -111,7 +119,7 @@ export function VoiceRecorder({
 
   if (state === "recording") {
     return (
-      <div className="flex items-center gap-2 rounded-full border px-3 py-1.5">
+      <div className="flex items-center gap-2 rounded-lg bg-secondary px-2.5 py-1.5">
         <span className="size-2 animate-pulse rounded-full bg-destructive" aria-hidden />
         <span className="text-sm tabular-nums">{formatTime(seconds)}</span>
         <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive" aria-label={t("chat.recorder.discardRecording")} onClick={() => stopRecording(false)}>
@@ -125,7 +133,7 @@ export function VoiceRecorder({
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-full border px-3 py-1.5">
+    <div className="flex items-center gap-2 rounded-lg bg-secondary px-2.5 py-1.5">
       {blob ? (
         <audio controls src={URL.createObjectURL(blob)} className="h-8 max-w-44" />
       ) : null}
