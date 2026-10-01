@@ -9,6 +9,18 @@ export const nutrition = {
       title: "Nutrition Programs & Macro Blueprints",
       subtitle: "Build weekly meal plans from the food library, then assign them to clients.",
       coachMissing: "Coach profile missing — complete onboarding to build nutrition programs.",
+      kicker: "Dietary telemetry",
+    },
+
+    metrics: {
+      avgEnergyLabel: "Avg kcal / day",
+      programsLabel: "Nutrition programs",
+      assignmentsFooter: "{n} active assignments · {m} clients",
+      adherenceLabel: "Meal adherence · 7d",
+      adherenceFooter: "{completed}/{planned} completed",
+      noData: "No meals elapsed yet",
+      swapsLabel: "Client swaps · 7d",
+      swapsFooter: "Substitutions & quantity changes",
     },
 
     createProgram: "Create Program",
@@ -33,6 +45,8 @@ export const nutrition = {
       rest: "Rest",
       noSubscribers: "No active subscribers",
       assign: "Assign to client",
+      active: "Active",
+      kcalDay: "{kcal} kcal/day",
     },
 
     builder: {
@@ -61,6 +75,9 @@ export const nutrition = {
       selectDay: "Select a weekday above to add meals.",
       saveChanges: "Save changes",
       create: "Create program",
+      dayKcal: "{kcal} kcal",
+      dayMacrosTitle: "Day macros",
+      unsavedNote: "Changes save only when you press Save.",
     },
 
     macros: {
@@ -78,6 +95,26 @@ export const nutrition = {
       searching: "Searching…",
       noResults: "No foods found — try another search.",
       searchFailed: "Search failed",
+      quickInsert: "Quick insert",
+      serving: "{size} {unit}",
+      kcalShort: "Kcal",
+      proteinShort: "Protein",
+      carbsShort: "Carbs",
+      fatShort: "Fat",
+    },
+
+    enrollment: {
+      current: "Current",
+      metrics: {
+        completed: "Completed",
+        planned: "Planned",
+        skipped: "Skipped",
+        weeks: "Weeks",
+      },
+      lastLogged: "Last logged: {meal} · {date}",
+      noLogs: "Nothing logged yet",
+      skippedFooter: "Excluded from current totals",
+      upcomingMeals: "{n} meals upcoming",
     },
 
     enroll: {
@@ -125,6 +162,18 @@ export const nutrition = {
       title: "برامج التغذية والمخططات الغذائية",
       subtitle: "جهّز خطط وجبات أسبوعية من مكتبة الأكل، وبعدين أسندها للعملاء.",
       coachMissing: "مفيش بروفايل كوتش — كمّل الـ onboarding عشان تقدر تعمل برامج تغذية.",
+      kicker: "بيانات التغذية",
+    },
+
+    metrics: {
+      avgEnergyLabel: "متوسط السعرات / يوم",
+      programsLabel: "برامج التغذية",
+      assignmentsFooter: "{n} إسناد نشط · {m} عملاء",
+      adherenceLabel: "التزام الوجبات · ٧ أيام",
+      adherenceFooter: "{completed}/{planned} مكتملة",
+      noData: "لسه مفيش وجبات عدّت",
+      swapsLabel: "تعديلات العملاء · ٧ أيام",
+      swapsFooter: "استبدالات وتغييرات كميات",
     },
 
     createProgram: "اعمل برنامج",
@@ -149,6 +198,8 @@ export const nutrition = {
       rest: "راحة",
       noSubscribers: "مفيش عملاء مشتركين",
       assign: "أسندها لعميل",
+      active: "نشط",
+      kcalDay: "{kcal} kcal/يوم",
     },
 
     builder: {
@@ -176,6 +227,9 @@ export const nutrition = {
       selectDay: "اختار يوم من الأسبوع فوق عشان تضيف وجبات.",
       saveChanges: "احفظ التعديلات",
       create: "اعمل البرنامج",
+      dayKcal: "{kcal} kcal",
+      dayMacrosTitle: "ماكروز اليوم",
+      unsavedNote: "التغييرات متسجلش غير لما تدوس حفظ.",
     },
 
     macros: {
@@ -193,6 +247,26 @@ export const nutrition = {
       searching: "بدوّر…",
       noResults: "مفيش أكلات — جرّب كلمة تانية.",
       searchFailed: "البحث فشل",
+      quickInsert: "إضافة سريعة",
+      serving: "{size} {unit}",
+      kcalShort: "كالوري",
+      proteinShort: "بروتين",
+      carbsShort: "كارب",
+      fatShort: "دهون",
+    },
+
+    enrollment: {
+      current: "الحالي",
+      metrics: {
+        completed: "مكتملة",
+        planned: "مخططة",
+        skipped: "متخطاة",
+        weeks: "أسابيع",
+      },
+      lastLogged: "آخر تسجيل: {meal} · {date}",
+      noLogs: "لسه مفيش تسجيل",
+      skippedFooter: "مستثناة من إجماليات الحالي",
+      upcomingMeals: "{n} وجبة جاية",
     },
 
     enroll: {

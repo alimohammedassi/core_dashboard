@@ -3,10 +3,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { loadActiveClients } from "@/lib/workouts";
 import { loadNutritionProgramsPage } from "@/lib/nutrition";
+import { averageProgramDayMacros } from "@/lib/nutrition-math";
+import { loadNutritionLibraryMetrics } from "@/lib/nutrition-metrics";
 import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "@/lib/pagination";
 import { Pager } from "@/components/dashboard/Pager";
 import { NutritionClient } from "@/components/nutrition/NutritionClient";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/core/PageHeader";
+import { StatCard } from "@/components/core/StatCard";
+import { EmptyState } from "@/components/core/EmptyState";
+import { Apple, ArrowLeftRight, Flame, UserX, UtensilsCrossed } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function NutritionPage({
@@ -14,7 +19,7 @@ export default async function NutritionPage({
 }: {
   searchParams?: Promise<{ page?: string }>;
 }) {
-  const { t } = await getI18n();
+  const { t, fmt } = await getI18n();
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return null;
@@ -22,13 +27,9 @@ export default async function NutritionPage({
 
   if (coachId === user.id) {
     return (
-      <div className="space-y-4">
-        <h1 className="font-display text-headline-lg tracking-tight">{t("common.nav.nutrition")}</h1>
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            {t("nutrition.page.coachMissing")}
-          </CardContent>
-        </Card>
+      <div className="flex flex-col gap-6">
+        <PageHeader title={t("common.nav.nutrition")} description={t("nutrition.page.subtitle")} />
+        <EmptyState icon={UserX} title={t("nutrition.page.coachMissing")} />
       </div>
     );
   }
@@ -43,18 +44,63 @@ export default async function NutritionPage({
   const page = clampPage(requestedPage, total);
   const { from, to } = pageRange(page);
 
-  const [{ programs }, clients] = await Promise.all([
+  const [{ programs }, clients, metrics] = await Promise.all([
     loadNutritionProgramsPage(coachId, from, to),
     loadActiveClients(coachId),
+    loadNutritionLibraryMetrics(coachId),
   ]);
 
+  // Mean prescribed day energy/macros — computed from the tree already in
+  // memory (this page's programs), no extra query.
+  const avgDay = averageProgramDayMacros(programs);
+
+  const kpis = (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label={t("nutrition.metrics.avgEnergyLabel")}
+        icon={Flame}
+        value={avgDay != null ? fmt.num(avgDay.calories) : "—"}
+      />
+      <StatCard
+        label={t("nutrition.metrics.programsLabel")}
+        icon={Apple}
+        value={fmt.num(total)}
+        footer={
+          <span>
+            {t("nutrition.metrics.assignmentsFooter", {
+              n: fmt.num(metrics.activeAssignments),
+              m: fmt.num(metrics.assignmentClients),
+            })}
+          </span>
+        }
+      />
+      <StatCard
+        label={t("nutrition.metrics.adherenceLabel")}
+        icon={UtensilsCrossed}
+        value={metrics.adherence ? fmt.percent(metrics.adherence.pct) : "—"}
+        footer={
+          <span>
+            {metrics.adherence
+              ? t("nutrition.metrics.adherenceFooter", {
+                  completed: fmt.num(metrics.adherence.completed),
+                  planned: fmt.num(metrics.adherence.planned),
+                })
+              : t("nutrition.metrics.noData")}
+          </span>
+        }
+      />
+      <StatCard
+        label={t("nutrition.metrics.swapsLabel")}
+        icon={ArrowLeftRight}
+        value={fmt.num(metrics.swaps7d)}
+        footer={<span>{t("nutrition.metrics.swapsFooter")}</span>}
+      />
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="font-display text-headline-lg tracking-tight">{t("nutrition.page.title")}</h1>
-        <p className="mt-1 text-body-md text-muted-foreground">{t("nutrition.page.subtitle")}</p>
-      </div>
-      <NutritionClient initialPrograms={programs} clients={clients} />
+    <div className="flex flex-col gap-6">
+      <NutritionClient initialPrograms={programs} clients={clients} kpis={kpis} />
       <Pager basePath="/dashboard/nutrition" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />
     </div>
   );

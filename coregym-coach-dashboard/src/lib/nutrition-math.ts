@@ -153,3 +153,58 @@ export function mealAdherence(
   const skipped = elapsed.filter((m) => m.status === "skipped").length;
   return { planned, completed, skipped, pct: planned === 0 ? null : Math.round((completed / planned) * 100) };
 }
+
+// ── Prescribed per-day energy across programs ──────────────────────────────
+// Mean MacroSet over days that actually prescribe meals (rest days are
+// excluded — they prescribe nothing). Operates purely on the program tree
+// already in memory, so the library page needs no extra query. Null when no
+// prescribed day carries macro data. Null macros scale to zero, never NaN.
+
+type ProgramTree = {
+  days: {
+    meals: {
+      foods: {
+        quantity: number;
+        serving_size: number | null;
+        calories: number | null;
+        protein_g: number | null;
+        carbs_g: number | null;
+        fat_g: number | null;
+      }[];
+    }[];
+  }[];
+};
+
+export function averageProgramDayMacros(programs: ProgramTree[]): MacroSet | null {
+  const days: MacroSet[] = [];
+  for (const p of programs) {
+    for (const d of p.days) {
+      if (d.meals.length === 0) continue;
+      const scaled = d.meals.flatMap((m) =>
+        m.foods.map((f) =>
+          scaleFood(
+            {
+              calories: f.calories ?? 0,
+              protein_g: f.protein_g ?? 0,
+              carbs_g: f.carbs_g ?? 0,
+              fat_g: f.fat_g ?? 0,
+              serving_size: f.serving_size,
+            },
+            f.quantity
+          )
+        )
+      );
+      days.push(sumMacros(scaled));
+    }
+  }
+  if (days.length === 0) return null;
+  const total = sumMacros(days);
+  if (total.calories <= 0 && total.protein_g <= 0 && total.carbs_g <= 0 && total.fat_g <= 0) return null;
+  const n = days.length;
+  return roundMacros({
+    calories: total.calories / n,
+    protein_g: total.protein_g / n,
+    carbs_g: total.carbs_g / n,
+    fat_g: total.fat_g / n,
+  });
+}

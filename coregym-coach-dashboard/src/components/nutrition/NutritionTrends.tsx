@@ -25,7 +25,8 @@ import { useI18n } from "@/lib/i18n/client";
 const tooltipStyle = {
   background: "var(--popover)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: 12,
+  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
   color: "var(--popover-foreground)",
   fontSize: 12,
 };
@@ -79,7 +80,7 @@ export function NutritionTrends({ weekly }: { weekly: WeeklyNutrition[] }) {
     <div className="space-y-6">
       {hasCalories && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
+          <p className="text-label-sm uppercase tracking-wider text-faint mb-2">
             {t("nutrition.trends.caloriesTitle")}
           </p>
           <div dir="ltr">
@@ -100,7 +101,7 @@ export function NutritionTrends({ weekly }: { weekly: WeeklyNutrition[] }) {
 
       {hasMacros && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
+          <p className="text-label-sm uppercase tracking-wider text-faint mb-2">
             {t("nutrition.trends.macrosTitle")}
           </p>
           <div dir="ltr">
@@ -122,7 +123,7 @@ export function NutritionTrends({ weekly }: { weekly: WeeklyNutrition[] }) {
 
       {hasAdherence && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
+          <p className="text-label-sm uppercase tracking-wider text-faint mb-2">
             {t("nutrition.trends.adherenceTitle")}
           </p>
           <div dir="ltr">

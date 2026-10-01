@@ -6,15 +6,17 @@ import { toast } from "sonner";
 import { Apple, Copy, Pencil, Trash2, UserPlus, Plus, ArrowUp, ArrowDown, X, Search } from "lucide-react";
 import type { NutritionProgram } from "@/lib/nutrition";
 import type { ActiveClient } from "@/lib/workouts";
-import { scaleFood, roundMacros, sumMacros, type MacroSet } from "@/lib/nutrition-math";
+import { scaleFood, roundMacros, sumMacros, averageProgramDayMacros, type MacroSet } from "@/lib/nutrition-math";
 import { useI18n } from "@/lib/i18n/client";
-import type { TFn } from "@/lib/i18n/dictionary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/core/EmptyState";
+import { PageHeader } from "@/components/core/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MacroGrid, MacroPill, MealChip, mealNo } from "@/components/nutrition/macro-display";
+import { cn } from "cn";
 import {
   Dialog,
   DialogContent,
@@ -138,12 +140,6 @@ function dayTotals(d: BuilderDay): MacroSet {
   return roundMacros(sumMacros(d.meals.map(mealTotals)));
 }
 
-/** Compact macro summary: "1240 kcal · 120P / 150C / 45F" (technical shorthand
-    kept in both languages). */
-function macrosCompact(t: TFn, m: MacroSet): string {
-  return t("nutrition.macros.compact", { kcal: m.calories, p: m.protein_g, c: m.carbs_g, f: m.fat_g });
-}
-
 // ── Food search ─────────────────────────────────────────────────────────────
 
 type SearchHit = {
@@ -208,13 +204,13 @@ function FoodPicker({
             className="ps-8"
           />
         </div>
-        <div className="max-h-72 overflow-y-auto space-y-1">
-          {loading && <p className="text-sm text-muted-foreground px-1 py-4">{t("nutrition.picker.searching")}</p>}
-          {!loading && error && <p className="text-sm text-destructive px-1 py-4">{error}</p>}
+        <div className="max-h-72 space-y-1.5 overflow-y-auto">
+          {loading && <p className="px-1 py-4 text-sm text-muted-foreground">{t("nutrition.picker.searching")}</p>}
+          {!loading && error && <p className="px-1 py-4 text-sm text-destructive">{error}</p>}
           {!loading && !error && hits.length === 0 && (
-            <p className="text-sm text-muted-foreground px-1 py-4">{t("nutrition.picker.noResults")}</p>
+            <p className="px-1 py-4 text-sm text-muted-foreground">{t("nutrition.picker.noResults")}</p>
           )}
-          {hits.map((h) => (
+          {hits.map((h, hi) => (
             <button
               key={h.id}
               type="button"
@@ -222,22 +218,37 @@ function FoodPicker({
                 onPick(h);
                 onClose();
               }}
-              className="w-full text-start rounded-lg border px-3 py-2 hover:bg-muted transition-colors"
+              className={cn(
+                "w-full rounded-xl border-s-2 bg-background/60 p-2 text-start transition-colors hover:bg-secondary/60",
+                hi === 0 ? "border-s-primary" : "border-s-transparent"
+              )}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-sm">{h.name}</span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {h.serving_size ?? "—"} {h.serving_unit ?? ""}
+                <span className="min-w-0 truncate text-label-md font-semibold">{h.name}</span>
+                <span className="shrink-0 whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 text-label-sm text-muted-foreground">
+                  {t("nutrition.picker.serving", { size: h.serving_size ?? "—", unit: h.serving_unit ?? "" })}
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground">
-                {macrosCompact(t, {
+              <MacroGrid
+                className="mt-1.5"
+                macros={{
                   calories: h.calories ?? 0,
                   protein_g: h.protein_g ?? 0,
                   carbs_g: h.carbs_g ?? 0,
                   fat_g: h.fat_g ?? 0,
-                })}
-                {h.category ? ` · ${h.category}` : ""}
+                }}
+                labels={{
+                  kcal: t("nutrition.picker.kcalShort"),
+                  protein: t("nutrition.picker.proteinShort"),
+                  carbs: t("nutrition.picker.carbsShort"),
+                  fat: t("nutrition.picker.fatShort"),
+                }}
+              />
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate text-label-sm text-faint">{h.category ?? ""}</span>
+                <span className="shrink-0 text-label-sm font-semibold text-primary">
+                  {t("nutrition.picker.quickInsert")}
+                </span>
               </div>
             </button>
           ))}
@@ -252,12 +263,15 @@ function FoodPicker({
 export function NutritionClient({
   initialPrograms,
   clients,
+  kpis,
 }: {
   initialPrograms: NutritionProgram[];
   clients: ActiveClient[];
+  /** Server-rendered metric row, rendered between the header and the grid. */
+  kpis?: React.ReactNode;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   const weekdays = useWeekdays();
   const [programs, setPrograms] = React.useState(initialPrograms);
   const [builderSeed, setBuilderSeed] = React.useState<BuilderSeed | null>(null);
@@ -306,19 +320,27 @@ export function NutritionClient({
   }
 
   return (
-    <>
-      <div className="flex justify-end">
-        <Button
-          size="lg"
-          onClick={() => {
-            setBuilderSeed(seedForCreate(t("nutrition.builder.defaultMeal")));
-            setBuilderNonce((n) => n + 1);
-          }}
-        >
-          <Plus className="size-4" />
-          {t("nutrition.createProgram")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("nutrition.page.title")}
+        chip={t("nutrition.page.kicker")}
+        description={t("nutrition.page.subtitle")}
+        actions={
+          <Button
+            size="lg"
+            className="text-label-lg font-bold shadow-md shadow-primary/20"
+            onClick={() => {
+              setBuilderSeed(seedForCreate(t("nutrition.builder.defaultMeal")));
+              setBuilderNonce((n) => n + 1);
+            }}
+          >
+            <Plus className="size-4" />
+            {t("nutrition.createProgram")}
+          </Button>
+        }
+      />
+
+      {kpis}
 
       {programs.length === 0 ? (
         <EmptyState
@@ -343,14 +365,26 @@ export function NutritionClient({
             // meal counts, rest slots dimmed.
             const byDay = new Map<number, number>();
             for (const d of p.days) byDay.set(d.day_of_week, d.meals.length);
+            // Per-day kcal/macros truth from the already-loaded tree — no
+            // extra query. Temp ids / null macros scale to zero safely.
+            const avgDay = averageProgramDayMacros([p]);
             return (
-              <Card key={p.id} className="flex flex-col">
+              <Card key={p.id} className="flex flex-col transition-colors hover:bg-secondary/60">
                 <CardContent className="flex flex-1 flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="truncate font-display text-headline-sm text-foreground">{p.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate font-display text-headline-sm tracking-tight text-foreground">
+                          {p.name}
+                        </h3>
+                        {p.is_active && (
+                          <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-label-sm uppercase text-primary">
+                            {t("nutrition.card.active")}
+                          </span>
+                        )}
+                      </div>
                       {p.description && (
-                        <p className="mt-1 line-clamp-2 text-body-sm text-muted-foreground">{p.description}</p>
+                        <p className="mt-1 line-clamp-2 text-body-sm text-faint">{p.description}</p>
                       )}
                     </div>
                     <div className="flex shrink-0 gap-1">
@@ -398,6 +432,19 @@ export function NutritionClient({
                     })}
                   </div>
 
+                  <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2.5">
+                    {avgDay != null ? (
+                      <>
+                        <span className="text-label-md font-semibold tabular-nums text-foreground">
+                          {t("nutrition.card.kcalDay", { kcal: fmt.num(avgDay.calories) })}
+                        </span>
+                        <MacroPill macros={avgDay} kcal={false} className="text-label-sm" />
+                      </>
+                    ) : (
+                      <span className="text-label-md tabular-nums text-faint">—</span>
+                    )}
+                  </div>
+
                   <Button
                     className="mt-auto w-fit px-4"
                     disabled={clients.length === 0}
@@ -428,7 +475,7 @@ export function NutritionClient({
       {enrollSeed && (
         <EnrollDialog program={enrollSeed} clients={clients} onClose={() => setEnrollSeed(null)} />
       )}
-    </>
+    </div>
   );
 }
 
@@ -449,7 +496,7 @@ function BuilderDialog({
   const [activeDay, setActiveDay] = React.useState<number>(seed.days[0]?.day_of_week ?? 1);
   const [pickFor, setPickFor] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   const weekdays = useWeekdays();
 
   const day = days.find((d) => d.day_of_week === activeDay);
@@ -584,9 +631,54 @@ function BuilderDialog({
 
   const weekTotals = roundMacros(sumMacros(days.map(dayTotals)));
 
+  // Day-macro summary bar data. The h-2 tracks show each macro's share of
+  // total macro energy (protein/carbs ×4, fat ×9) — absolute values above,
+  // no targets (none are stored).
+  const dt = day ? dayTotals(day) : null;
+  const pKcal = (dt?.protein_g ?? 0) * 4;
+  const cKcal = (dt?.carbs_g ?? 0) * 4;
+  const fKcal = (dt?.fat_g ?? 0) * 9;
+  const macroKcal = pKcal + cKcal + fKcal;
+  const dayMacroCells = dt
+    ? [
+        {
+          key: "kcal",
+          label: t("nutrition.picker.kcalShort"),
+          value: fmt.num(dt.calories),
+          valueClass: "text-foreground",
+          fillClass: null as string | null,
+          share: null as number | null,
+        },
+        {
+          key: "protein",
+          label: t("nutrition.picker.proteinShort"),
+          value: fmt.num(dt.protein_g),
+          valueClass: "text-mint",
+          fillClass: "bg-mint",
+          share: macroKcal > 0 ? pKcal / macroKcal : 0,
+        },
+        {
+          key: "carbs",
+          label: t("nutrition.picker.carbsShort"),
+          value: fmt.num(dt.carbs_g),
+          valueClass: "text-primary",
+          fillClass: "bg-primary",
+          share: macroKcal > 0 ? cKcal / macroKcal : 0,
+        },
+        {
+          key: "fat",
+          label: t("nutrition.picker.fatShort"),
+          value: fmt.num(dt.fat_g),
+          valueClass: "text-faint",
+          fillClass: "bg-faint",
+          share: macroKcal > 0 ? fKcal / macroKcal : 0,
+        },
+      ]
+    : [];
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{seed.editing ? t("nutrition.builder.titleEdit") : t("nutrition.builder.titleCreate")}</DialogTitle>
           <DialogDescription>
@@ -605,29 +697,40 @@ function BuilderDialog({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1 mt-2">
+        {/* Weekday tabs: kcal sub-label from dayTotals; "+" invites adding the day. */}
+        <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
           {weekdays.map((w, i) => {
             const dow = i + 1;
-            const has = days.some((d) => d.day_of_week === dow);
+            const d = days.find((x) => x.day_of_week === dow);
+            const active = activeDay === dow;
             return (
-              <Button
+              <button
                 key={w.short}
-                size="sm"
-                variant={activeDay === dow ? "default" : has ? "secondary" : "outline"}
-                onClick={() => (has ? setActiveDay(dow) : ensureDay(dow))}
+                type="button"
+                aria-pressed={active}
+                onClick={() => (d ? setActiveDay(dow) : ensureDay(dow))}
+                className={cn(
+                  "flex shrink-0 flex-col items-center rounded-lg px-3.5 py-2 transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : d
+                      ? "bg-secondary text-secondary-foreground hover:bg-accent"
+                      : "border border-dashed border-border text-faint hover:bg-muted"
+                )}
               >
-                {w.short}
-              </Button>
+                <span className="text-label-md">{w.short}</span>
+                <span className="text-[11px] tabular-nums opacity-70">
+                  {d ? t("nutrition.builder.dayKcal", { kcal: fmt.num(dayTotals(d).calories) }) : "+"}
+                </span>
+              </button>
             );
           })}
         </div>
 
         {day ? (
-          <div className="space-y-3 border rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">
-                {weekdays[day.day_of_week - 1].full} — {macrosCompact(t, dayTotals(day))}
-              </h3>
+          <div className="space-y-3 rounded-xl border border-border/60 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-label-lg font-semibold text-foreground">{weekdays[day.day_of_week - 1].full}</h3>
               <div className="flex gap-1">
                 <Button size="sm" variant="outline" onClick={addMeal}>
                   <Plus className="size-3 ms-1" /> {t("nutrition.builder.newMeal")}
@@ -637,10 +740,36 @@ function BuilderDialog({
                 </Button>
               </div>
             </div>
-            {day.meals.map((m) => (
-              <div key={m.key} className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Input value={m.name} onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))} className="font-medium" aria-label={t("nutrition.builder.mealNameAria")} />
+
+            {/* Day macro summary — absolute values only (no targets stored). */}
+            <div className="rounded-xl bg-background p-3">
+              <p className="text-label-sm uppercase tracking-wider text-faint">{t("nutrition.builder.dayMacrosTitle")}</p>
+              <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+                {dayMacroCells.map((c) => (
+                  <div key={c.key}>
+                    <p className="text-label-sm uppercase tracking-wider text-faint">{c.label}</p>
+                    <p className={cn("mt-0.5 text-body-md font-semibold tabular-nums", c.valueClass)}>{c.value}</p>
+                    {c.fillClass && c.share != null && c.share > 0 ? (
+                      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
+                        <div className={cn("h-full rounded-full", c.fillClass)} style={{ width: `${Math.round(c.share * 100)}%` }} />
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {day.meals.map((m, mi) => (
+              <div key={m.key} className="space-y-2.5 rounded-lg border border-border/40 p-3">
+                <div className="flex items-center gap-2 border-b border-border/40 pb-2.5">
+                  <MealChip>{t("nutrition.builder.numberedMeal", { n: mealNo(mi + 1) })}</MealChip>
+                  <Input
+                    value={m.name}
+                    onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))}
+                    className="h-8 min-w-0 flex-1 font-semibold"
+                    aria-label={t("nutrition.builder.mealNameAria")}
+                  />
+                  <MacroPill macros={mealTotals(m)} className="shrink-0 text-label-sm" />
                   <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveUp")} onClick={() => moveMeal(m.key, -1)}>
                     <ArrowUp className="size-4" />
                   </Button>
@@ -656,52 +785,53 @@ function BuilderDialog({
                     <X className="size-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {t("nutrition.builder.mealTotal", { macros: macrosCompact(t, mealTotals(m)) })}
-                </p>
-                <div className="space-y-1">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {m.foods.map((f) => {
                     const scaled = roundMacros(foodMacros(f));
                     return (
-                      <div key={f.key} className="flex items-center gap-2 rounded border px-2 py-1.5 text-sm">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{f.foodName || t("nutrition.builder.foodFallback")}</p>
-                          <p className="text-xs text-muted-foreground">{macrosCompact(t, scaled)}</p>
+                      <div key={f.key} className="rounded-lg bg-background/40 p-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <p className="min-w-0 flex-1 truncate text-label-md font-semibold">
+                            {f.foodName || t("nutrition.builder.foodFallback")}
+                          </p>
+                          <Button
+                            size="icon-xs"
+                            variant="ghost"
+                            aria-label={t("nutrition.builder.removeFood")}
+                            onClick={() =>
+                              updateDay(day.day_of_week, (d) => ({
+                                ...d,
+                                meals: d.meals.map((x) =>
+                                  x.key === m.key ? { ...x, foods: x.foods.filter((y) => y.key !== f.key) } : x
+                                ),
+                              }))
+                            }
+                          >
+                            <X className="size-3.5" />
+                          </Button>
                         </div>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="any"
-                          value={f.quantity}
-                          onChange={(e) =>
-                            updateDay(day.day_of_week, (d) => ({
-                              ...d,
-                              meals: d.meals.map((x) =>
-                                x.key === m.key
-                                  ? { ...x, foods: x.foods.map((y) => (y.key === f.key ? { ...y, quantity: e.target.value } : y)) }
-                                  : x
-                              ),
-                            }))
-                          }
-                          className="w-24"
-                          aria-label={t("nutrition.builder.quantityAria", { unit: f.serving_unit ?? t("nutrition.builder.units") })}
-                        />
-                        <span className="text-xs text-muted-foreground w-14 shrink-0">{f.serving_unit ?? ""}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label={t("nutrition.builder.removeFood")}
-                          onClick={() =>
-                            updateDay(day.day_of_week, (d) => ({
-                              ...d,
-                              meals: d.meals.map((x) =>
-                                x.key === m.key ? { ...x, foods: x.foods.filter((y) => y.key !== f.key) } : x
-                              ),
-                            }))
-                          }
-                        >
-                          <X className="size-4" />
-                        </Button>
+                        <MacroPill macros={scaled} className="mt-1 text-label-sm" />
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={f.quantity}
+                            onChange={(e) =>
+                              updateDay(day.day_of_week, (d) => ({
+                                ...d,
+                                meals: d.meals.map((x) =>
+                                  x.key === m.key
+                                    ? { ...x, foods: x.foods.map((y) => (y.key === f.key ? { ...y, quantity: e.target.value } : y)) }
+                                    : x
+                                ),
+                              }))
+                            }
+                            className="h-7 w-20"
+                            aria-label={t("nutrition.builder.quantityAria", { unit: f.serving_unit ?? t("nutrition.builder.units") })}
+                          />
+                          <span className="min-w-0 truncate text-label-sm text-faint">{f.serving_unit ?? ""}</span>
+                        </div>
                       </div>
                     );
                   })}
@@ -722,15 +852,18 @@ function BuilderDialog({
           <p className="text-sm text-muted-foreground">{t("nutrition.builder.selectDay")}</p>
         )}
 
-        <div className="rounded-lg bg-muted px-3 py-2 text-sm">
-          {t("nutrition.builder.weeklyOverview")} <span className="font-medium">{macrosCompact(t, weekTotals)}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background px-3 py-2">
+          <span className="text-label-sm uppercase tracking-wider text-faint">{t("nutrition.builder.weeklyOverview")}</span>
+          <MacroPill macros={weekTotals} className="text-label-sm" />
         </div>
+
+        <p className="text-label-sm text-faint">{t("nutrition.builder.unsavedNote")}</p>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
             {t("common.actions.cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="glow-volt">
             {saving ? t("common.actions.saving") : seed.editing ? t("nutrition.builder.saveChanges") : t("nutrition.builder.create")}
           </Button>
         </DialogFooter>
@@ -804,7 +937,7 @@ function EnrollDialog({
               id="ne-client"
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-body-md"
             >
               {clients.map((c) => (
                 <option key={c.clientId} value={c.clientId}>
@@ -816,11 +949,25 @@ function EnrollDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="ne-date">{t("nutrition.enroll.startDate")}</Label>
-              <Input id="ne-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input
+                id="ne-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-10 rounded-lg bg-background px-3 text-body-md"
+              />
             </div>
             <div>
               <Label htmlFor="ne-weeks">{t("nutrition.enroll.durationWeeks")}</Label>
-              <Input id="ne-weeks" type="number" min={1} max={52} value={weeks} onChange={(e) => setWeeks(e.target.value)} />
+              <Input
+                id="ne-weeks"
+                type="number"
+                min={1}
+                max={52}
+                value={weeks}
+                onChange={(e) => setWeeks(e.target.value)}
+                className="h-10 rounded-lg bg-background px-3 text-body-md"
+              />
             </div>
           </div>
         </div>
