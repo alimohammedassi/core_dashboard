@@ -59,6 +59,11 @@
   /* Dimmest label tier (Stitch "outline" #8f937d) — kickers, timestamps,
      table meta. Sits below muted-foreground in the contrast ladder. */
   --color-faint: var(--faint);
+  /* Stitch surface-container-high (#292a27 dark) — active chips, icon tiles,
+     hover slabs inside content areas (sidebar-accent is unreachable there). */
+  --color-surface-high: var(--surface-high);
+  /* Stitch tertiary-container family (#68dfa6 dark) — mint status accents. */
+  --color-mint: var(--mint);
 
   /* Stitch typography scale (Space Grotesk display / Hanken Grotesk body).
      Family comes from the font-* utilities; these tokens carry size/leading/
@@ -136,6 +141,8 @@
   --input: #e8e8e8;
   --ring: #506b1a;
   --faint: #6f6f68;
+  --surface-high: #e2e2dc;
+  --mint: #2f8f63;
   --chart-1: #f5a623;
   --chart-2: #ea7a72;
   --chart-3: #e8c468;
@@ -185,6 +192,8 @@
   --input: #2c2d27;
   --ring: #b2d742;
   --faint: #8f937d;
+  --surface-high: #292a27;
+  --mint: #68dfa6;
   --chart-1: #f5a623;
   --chart-2: #ea7a72;
   --chart-3: #e8c468;
@@ -230,6 +239,16 @@
    Arabic glyphs, so no extra html[lang="ar"] override is needed here. */
 .dashboard-shell {
   font-family: var(--font-body);
+}
+
+/* ── Volt glow accents (Stitch optical highlights) ───────────────────────────
+   Named utilities (not the tailwind shadow-* namespace) so twMerge never
+   groups them with real elevation shadows. */
+.glow-volt {
+  box-shadow: 0 0 12px rgba(178, 215, 66, 0.3);
+}
+.glow-live {
+  box-shadow: 0 0 8px rgba(205, 244, 92, 0.8);
 }
 
 /* ── Arabic (RTL) ──────────────────────────────────────────────────────────── */

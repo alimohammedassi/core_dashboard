@@ -8,10 +8,12 @@ export function StatCard({
   label,
   icon: Icon,
   value,
+  suffix,
   trend,
   trendLabel,
   footer,
   progress,
+  progressClassName,
   badge,
   valueClassName,
   className,
@@ -19,11 +21,15 @@ export function StatCard({
   label: React.ReactNode;
   icon?: LucideIcon;
   value: React.ReactNode;
+  /** Baseline suffix rendered beside the metric readout (e.g. "/ 54 Cap"). */
+  suffix?: React.ReactNode;
   trend?: "up" | "down" | "flat";
   trendLabel?: React.ReactNode;
   footer?: React.ReactNode;
   /** 0–100 — renders the 1px volt progress rail under the footer. */
   progress?: number;
+  /** Fill color override for the progress rail (default volt). */
+  progressClassName?: string;
   /** Small chip rendered next to the label (e.g. "Realtime"). */
   badge?: React.ReactNode;
   valueClassName?: string;
@@ -43,7 +49,7 @@ export function StatCard({
           {badge}
         </div>
         {Icon ? (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
             <Icon className="size-4" />
           </span>
         ) : null}
@@ -52,6 +58,7 @@ export function StatCard({
         <span className={cn("font-display text-metric-display tabular-nums tracking-tight text-foreground", valueClassName)}>
           {value}
         </span>
+        {suffix ? <span className="text-body-md text-muted-foreground">{suffix}</span> : null}
         {trendLabel ? (
           <span
             className={cn(
@@ -74,7 +81,7 @@ export function StatCard({
       {typeof progress === "number" ? (
         <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-secondary">
           <div
-            className="h-full rounded-full bg-primary"
+            className={cn("h-full rounded-full bg-primary", progressClassName)}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
         </div>
@@ -90,7 +97,7 @@ export function StatCardChip({ children, tone = "volt" }: { children: React.Reac
       className={cn(
         "rounded px-1.5 py-0.5 text-label-sm uppercase tracking-wide",
         tone === "volt" && "bg-primary/15 text-primary",
-        tone === "mint" && "bg-[#68dfa6]/20 text-[#68dfa6]",
+        tone === "mint" && "bg-mint/20 text-mint",
         tone === "neutral" && "bg-secondary text-muted-foreground",
       )}
     >

@@ -29,11 +29,12 @@ export function PageHeader({
     >
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="font-display text-headline-lg tracking-tight text-foreground md:text-[1.75rem] md:leading-10">
+          {/* Stitch headline scale: 24px mobile → 32px desktop (headline-lg). */}
+          <h1 className="font-display text-[1.5rem] leading-8 tracking-tight text-foreground lg:text-headline-lg lg:leading-10">
             {title}
           </h1>
           {chip ? (
-            <span className="rounded-md bg-muted px-2 py-1 text-label-sm uppercase tracking-wider text-primary">
+            <span className="rounded-md bg-accent px-2 py-0.5 text-label-sm uppercase tracking-wider text-primary">
               {chip}
             </span>
           ) : null}

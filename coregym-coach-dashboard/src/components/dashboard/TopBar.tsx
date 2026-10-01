@@ -93,7 +93,7 @@ export function Topbar({ items, profile }: { items: NavItem[]; profile: TopbarPr
             <span className="font-display text-headline-sm uppercase tracking-tight text-foreground">
               CoreGym
             </span>
-            <span className="rounded bg-primary/15 px-1.5 py-0.5 text-label-sm uppercase tracking-wider text-primary">
+            <span className="rounded border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-label-sm uppercase tracking-wider text-primary">
               {t("common.shell.coach")}
             </span>
           </div>
@@ -104,7 +104,7 @@ export function Topbar({ items, profile }: { items: NavItem[]; profile: TopbarPr
               <div className="flex items-center gap-1">
                 <ThemeToggle />
                 <form action="/api/auth/signout" method="post">
-                  <Button type="submit" variant="ghost" size="icon" aria-label={t("common.shell.signOut")}>
+                  <Button type="submit" variant="ghost" size="icon" className="hover:text-destructive" aria-label={t("common.shell.signOut")}>
                     <LogOut className="size-4" />
                   </Button>
                 </form>
