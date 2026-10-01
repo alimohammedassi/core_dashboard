@@ -5,7 +5,7 @@ import { requireCoachContext, loadAssignmentPerformance, loadClientProgress } fr
 import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/core/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FeedbackBox } from "@/components/workouts/FeedbackBox";
 import { NextWorkoutEditor } from "@/components/workouts/NextWorkoutEditor";
@@ -18,6 +18,8 @@ const WORKOUT_STATUS: Record<string, TKey> = {
   completed: "subscribers.workoutStatus.completed",
   skipped: "subscribers.workoutStatus.skipped",
 };
+
+const SETS_TONE: Record<string, StatusTone> = { completed: "emerald", started: "mint", assigned: "neutral", skipped: "coral" };
 
 function fmtTarget(e: { targetSets: number; targetReps: number | null; targetWeightKg: number | null }): string {
   const reps = e.targetReps != null ? `${e.targetReps}` : "—";
@@ -79,10 +81,10 @@ export default async function PerformancePage({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-3">
-            <CardTitle className="font-display text-xl font-bold tracking-tight">{template.name}</CardTitle>
-            <Badge variant={assignment.status === "completed" ? "default" : "outline"}>
+            <CardTitle className="font-display text-headline-md tracking-tight">{template.name}</CardTitle>
+            <StatusBadge tone={SETS_TONE[assignment.status] ?? "neutral"}>
               {wsLabel(assignment.status)}
-            </Badge>
+            </StatusBadge>
           </div>
           <CardDescription className="flex flex-wrap gap-x-6 gap-y-1 pt-1">
             <span>{t("subscribers.assignmentPage.scheduled", { date: fmt.date(assignment.scheduled_date) })}</span>
@@ -124,7 +126,7 @@ export default async function PerformancePage({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-extrabold">
+                <p className="font-display text-headline-md tracking-tight tabular-nums">
                   {performance.completedSets} / {performance.targetSetsTotal}
                 </p>
               </CardContent>
@@ -134,7 +136,7 @@ export default async function PerformancePage({
                 <CardDescription>{t("subscribers.assignmentPage.totalVolume")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-extrabold">{fmt.num(performance.totalVolume)} kg</p>
+                <p className="font-display text-headline-md tracking-tight tabular-nums">{fmt.num(performance.totalVolume)} kg</p>
               </CardContent>
             </Card>
             <Card>
@@ -144,7 +146,7 @@ export default async function PerformancePage({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-extrabold">
+                <p className="font-display text-headline-md tracking-tight tabular-nums">
                   {performance.durationMin != null
                     ? t("subscribers.assignmentPage.duration", { n: performance.durationMin })
                     : "—"}
@@ -159,21 +161,21 @@ export default async function PerformancePage({
               <Card key={`${ex.exerciseName}-${idx}`}>
                 <CardHeader>
                   <div className="flex flex-wrap items-center gap-2">
-                    <CardTitle className="text-base">
+                    <CardTitle>
                       {idx + 1}. {ex.exerciseName}
                     </CardTitle>
-                    <Badge
-                      className="ms-auto"
-                      variant={
+                    <StatusBadge
+                      tone={
                         ex.actualSets.length >= ex.targetSets
-                          ? "default"
+                          ? "emerald"
                           : ex.actualSets.length > 0
-                            ? "outline"
-                            : "secondary"
+                            ? "amber"
+                            : "neutral"
                       }
+                      className="ms-auto"
                     >
                       {t("subscribers.assignmentPage.setsBadge", { done: ex.actualSets.length, target: ex.targetSets })}
-                    </Badge>
+                    </StatusBadge>
                   </div>
                   <CardDescription>
                     {t("subscribers.assignmentPage.target", { target: fmtTarget(ex) })}
@@ -200,24 +202,24 @@ export default async function PerformancePage({
                           <TableBody>
                             {ex.actualSets.map((s) => (
                               <TableRow key={s.id}>
-                                <TableCell>{s.set_number ?? "—"}</TableCell>
-                                <TableCell>
+                                <TableCell className="tabular-nums">{s.set_number ?? "—"}</TableCell>
+                                <TableCell className="tabular-nums">
                                   {s.weight_kg != null ? `${Number(s.weight_kg)} kg` : "—"}
                                   {s.weight_kg != null &&
                                     ex.bestWeightKg != null &&
                                     Number(s.weight_kg) === ex.bestWeightKg && (
-                                      <Badge variant="secondary" className="ms-2">
+                                      <StatusBadge tone="volt" className="ms-2">
                                         {t("subscribers.assignmentPage.best")}
-                                      </Badge>
+                                      </StatusBadge>
                                     )}
                                 </TableCell>
-                                <TableCell>{s.reps ?? "—"}</TableCell>
-                                <TableCell>
+                                <TableCell className="tabular-nums">{s.reps ?? "—"}</TableCell>
+                                <TableCell className="tabular-nums">
                                   {s.weight_kg != null && s.reps != null
                                     ? `${fmt.num(Number(s.weight_kg) * s.reps)} kg`
                                     : "—"}
                                 </TableCell>
-                                <TableCell>{s.rest_sec != null ? `${s.rest_sec}s` : "—"}</TableCell>
+                                <TableCell className="tabular-nums">{s.rest_sec != null ? `${s.rest_sec}s` : "—"}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -268,7 +270,7 @@ export default async function PerformancePage({
             <Card>
               <CardHeader>
                 <CardDescription>{t("subscribers.assignmentPage.clientNote")}</CardDescription>
-                <CardTitle className="text-base font-medium">“{performance.clientNote}”</CardTitle>
+                <CardTitle className="font-medium">“{performance.clientNote}”</CardTitle>
               </CardHeader>
             </Card>
           )}
@@ -279,7 +281,7 @@ export default async function PerformancePage({
       {relevantPrs.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2">
               <Trophy className="size-4" /> {t("subscribers.assignmentPage.prTitle")}
             </CardTitle>
             <CardDescription>{t("subscribers.assignmentPage.prDesc")}</CardDescription>
@@ -287,8 +289,8 @@ export default async function PerformancePage({
           <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {relevantPrs.map((pr) => (
               <div key={pr.exercise_name} className="rounded-lg bg-secondary/50 p-3">
-                <p className="text-sm font-medium">{pr.exercise_name}</p>
-                <p className="text-lg font-extrabold">
+                <p className="text-body-sm font-medium">{pr.exercise_name}</p>
+                <p className="font-display text-headline-sm tracking-tight tabular-nums">
                   {pr.max_weight != null ? `${Number(pr.max_weight)} kg` : "—"}
                   {pr.reps != null ? (
                     <span className="text-xs font-normal text-muted-foreground"> × {pr.reps}</span>
@@ -307,7 +309,7 @@ export default async function PerformancePage({
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2">
               <MessageSquare className="size-4" /> {t("subscribers.assignmentPage.feedbackTitle")}
             </CardTitle>
             <CardDescription>{t("subscribers.assignmentPage.feedbackDesc")}</CardDescription>
@@ -318,7 +320,7 @@ export default async function PerformancePage({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{t("subscribers.assignmentPage.adjustNextTitle")}</CardTitle>
+            <CardTitle>{t("subscribers.assignmentPage.adjustNextTitle")}</CardTitle>
             <CardDescription>{t("subscribers.assignmentPage.adjustDesc")}</CardDescription>
           </CardHeader>
           <CardContent>

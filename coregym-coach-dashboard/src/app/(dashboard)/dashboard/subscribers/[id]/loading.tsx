@@ -1,72 +1,68 @@
-import { getI18n } from "@/lib/i18n/server";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function SubscriberProfileLoading() {
-  const { t } = await getI18n();
+export default function SubscriberProfileLoading() {
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="flex flex-col gap-5">
       <Skeleton className="h-4 w-36" />
-      <h1 className="-mt-4 text-2xl font-bold tracking-tight">{t("subscribers.detail.profileTitle")}</h1>
+      {/* Hero */}
       <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-          <Skeleton className="size-12 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-3 w-52" />
-          </div>
-          <Skeleton className="ms-auto h-6 w-16 rounded-full" />
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="space-y-1.5">
-              <Skeleton className="h-3 w-10" />
-              <Skeleton className="h-4 w-20" />
+        <CardContent className="flex flex-wrap items-center gap-4 py-5 sm:gap-5">
+          <Skeleton className="size-20 rounded-xl sm:size-24" />
+          <div className="min-w-0 space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <div className="flex flex-wrap gap-3">
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-3 w-36" />
+              <Skeleton className="h-3 w-28" />
             </div>
-          ))}
+          </div>
+          <Skeleton className="ms-auto hidden h-10 w-32 rounded-lg lg:block" />
         </CardContent>
       </Card>
-      <div className="grid gap-4 md:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-3 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-            </CardContent>
-          </Card>
-        ))}
+      {/* AI analysis */}
+      <Card>
+        <CardContent className="space-y-3 py-5">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-8 rounded-lg" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <Skeleton className="h-3 w-96 max-w-full" />
+        </CardContent>
+      </Card>
+      {/* Telemetry tiles */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="size-2.5 rounded-full" />
+          <Skeleton className="h-4 w-44" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i} className="p-5">
+              <div className="space-y-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-1.5 w-full" />
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
-      {[0, 1].map((i) => (
+      {/* Content cards */}
+      {[0, 1, 2].map((i) => (
         <Card key={i}>
-          <CardHeader>
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-64" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <CardContent className="space-y-3 py-5">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
           </CardContent>
         </Card>
       ))}
-      {/* Nutrition table */}
+      {/* Charts */}
       <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-40" />
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-8 w-full" />
-          ))}
-        </CardContent>
-      </Card>
-      {/* Exercise results charts */}
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-36" />
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 py-5">
+          <Skeleton className="h-4 w-56" />
           <Skeleton className="h-44 w-full" />
           <Skeleton className="h-44 w-full" />
         </CardContent>

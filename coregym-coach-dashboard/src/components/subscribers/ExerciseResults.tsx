@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -46,7 +47,7 @@ export function ExerciseResults({
     <div className="space-y-6">
       {hasVolume && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
+          <p className="mb-2 text-label-sm uppercase tracking-wider text-faint">
             {t("subscribers.exerciseResults.volumeTitle")}
           </p>
           {/* recharts SVGs are not RTL-aware */}
@@ -60,13 +61,18 @@ export function ExerciseResults({
                   contentStyle={{
                     background: "var(--popover)",
                     border: "1px solid var(--border)",
-                    borderRadius: 10,
+                    borderRadius: 12,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                     color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}
                   formatter={(value) => [`${fmt.num(Number(value))} kg`, t("subscribers.exerciseResults.volumeSeries")]}
                 />
-                <Bar dataKey="volume" radius={[6, 6, 0, 0]} fill="var(--primary)" maxBarSize={38} />
+                <Bar dataKey="volume" radius={[6, 6, 0, 0]} fill="var(--primary)" maxBarSize={38}>
+                  {sessionVolume.map((point, i) => (
+                    <Cell key={point.date} fill={i === sessionVolume.length - 1 ? "var(--volt)" : "var(--primary)"} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -75,7 +81,7 @@ export function ExerciseResults({
 
       {hasProgression && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
+          <p className="mb-2 text-label-sm uppercase tracking-wider text-faint">
             {t("subscribers.exerciseResults.weightTitle")}
           </p>
           {/* recharts SVGs are not RTL-aware */}
@@ -96,7 +102,8 @@ export function ExerciseResults({
                   contentStyle={{
                     background: "var(--popover)",
                     border: "1px solid var(--border)",
-                    borderRadius: 10,
+                    borderRadius: 12,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                     color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}
@@ -119,7 +126,7 @@ export function ExerciseResults({
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
             {exercises.map((ex, i) => (
-              <span key={ex.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span key={ex.name} className="flex items-center gap-1.5 rounded-md bg-secondary px-2 py-0.5 text-label-md text-muted-foreground">
                 <span className="size-2 rounded-full" style={{ background: LINE_COLORS[i % LINE_COLORS.length] }} />
                 {ex.name}
               </span>

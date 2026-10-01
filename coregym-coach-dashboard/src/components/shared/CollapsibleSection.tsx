@@ -36,12 +36,12 @@ export function CollapsibleSection({
           className="flex w-full items-start gap-3 text-start"
         >
           <span className="min-w-0 flex-1">
-            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+            <CardTitle className="flex flex-wrap items-center gap-2">
               {title}
               {badge}
             </CardTitle>
-            {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
-            {!open && summary && <div className="mt-2 text-sm text-muted-foreground">{summary}</div>}
+            {description && <p className="mt-1 text-body-sm text-muted-foreground">{description}</p>}
+            {!open && summary && <div className="mt-2 text-body-sm text-faint">{summary}</div>}
           </span>
           <span
             className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}

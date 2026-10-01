@@ -32,7 +32,7 @@ export function AiCharts({ metrics }: { metrics: AiAnalysisMetrics }) {
     <div className="grid gap-4 lg:grid-cols-2">
       {volumeData.length > 0 && (
         <div className="rounded-lg border p-3">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="mb-2 text-label-sm uppercase tracking-wider text-faint">
             {t("subscribers.ai.charts.weeklyVolume")}
           </p>
           {/* recharts SVGs are not RTL-aware */}
@@ -46,7 +46,8 @@ export function AiCharts({ metrics }: { metrics: AiAnalysisMetrics }) {
                   contentStyle={{
                     background: "var(--popover)",
                     border: "1px solid var(--border)",
-                    borderRadius: 10,
+                    borderRadius: 12,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                     color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}
@@ -61,7 +62,7 @@ export function AiCharts({ metrics }: { metrics: AiAnalysisMetrics }) {
 
       {adherenceData.length > 0 && (
         <div className="rounded-lg border p-3">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="mb-2 text-label-sm uppercase tracking-wider text-faint">
             {t("subscribers.ai.charts.weeklyAdherence")}
           </p>
           {/* recharts SVGs are not RTL-aware */}
@@ -75,7 +76,8 @@ export function AiCharts({ metrics }: { metrics: AiAnalysisMetrics }) {
                   contentStyle={{
                     background: "var(--popover)",
                     border: "1px solid var(--border)",
-                    borderRadius: 10,
+                    borderRadius: 12,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                     color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}

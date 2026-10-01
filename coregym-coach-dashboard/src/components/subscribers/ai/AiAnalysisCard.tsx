@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "cn";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -20,7 +21,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { describeError } from "@/lib/user-error";
 import type { AiAnalysisResult } from "@/lib/ai/contract";
 import type { AiAnalysisMetrics } from "@/lib/ai/metrics";
-import { AiMetricsRow } from "./AiMetricsRow";
 import { AiCharts } from "./AiCharts";
 import { AiProposalCard } from "./AiProposalCard";
 
@@ -110,10 +110,33 @@ function ShowMoreList({ items }: { items: string[] }) {
 
 function SectionHeading({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+    <p className="flex items-center gap-2 text-label-sm uppercase tracking-wider text-faint">
       <span className="text-primary">{icon}</span>
       {children}
     </p>
+  );
+}
+
+// Bento tile: subtle secondary→accent wash, uppercase kicker + content.
+function BentoTile({
+  kicker,
+  children,
+  className,
+}: {
+  kicker: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-2 rounded-xl border bg-gradient-to-b from-secondary to-accent p-4",
+        className
+      )}
+    >
+      <p className="text-label-sm uppercase tracking-wider text-faint">{kicker}</p>
+      {children}
+    </div>
   );
 }
 
@@ -187,7 +210,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export function AiAnalysisCard({ subscriptionId }: Props) {
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AiAnalysisResult | null>(null);
   const [metrics, setMetrics] = useState<AiAnalysisMetrics | null>(null);
@@ -231,9 +254,15 @@ export function AiAnalysisCard({ subscriptionId }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="size-4" /> {t("subscribers.ai.title")}
-        </CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
+              <Sparkles className="size-4" />
+            </span>
+            <CardTitle>{t("subscribers.ai.title")}</CardTitle>
+          </div>
+          <span className="text-label-sm text-faint">{t("subscribers.ai.onDemand")}</span>
+        </div>
         <CardDescription>{t("subscribers.ai.desc")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -267,13 +296,74 @@ export function AiAnalysisCard({ subscriptionId }: Props) {
 
         {analysis && (
           <div className="space-y-4">
-            {metrics && <AiMetricsRow metrics={metrics} />}
-            {metrics && <AiCharts metrics={metrics} />}
+            {/* Bento summary — deterministic numbers only (metrics), never AI text */}
+            {metrics && (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <BentoTile kicker={t("subscribers.ai.overall")}>
+                  <p className="text-body-sm leading-relaxed text-foreground">{analysis.overall_assessment}</p>
+                </BentoTile>
+                <BentoTile kicker={t("subscribers.ai.workoutMetrics")}>
+                  <p className="font-display text-headline-sm tabular-nums text-foreground">
+                    {metrics.workout.completion_pct != null
+                      ? `${metrics.workout.completion_pct}%`
+                      : t("subscribers.ai.metrics.noData")}
+                  </p>
+                  {metrics.workout.elapsed > 0 && (
+                    <p className="text-body-sm text-muted-foreground">
+                      {t("subscribers.ai.metrics.completedOf", {
+                        done: metrics.workout.completed,
+                        total: metrics.workout.elapsed,
+                      })}
+                    </p>
+                  )}
+                  <p className="text-body-sm text-muted-foreground">
+                    {t("subscribers.ai.metrics.sessionsLast30")}:{" "}
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {metrics.workout.sessions_last_30 != null ? fmt.num(metrics.workout.sessions_last_30) : "—"}
+                    </span>
+                  </p>
+                  <p className="text-body-sm text-muted-foreground">
+                    {t("subscribers.ai.metrics.tonnage")}:{" "}
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {fmt.num(metrics.workout.weekly_volume.reduce((s, w) => s + w.volume, 0))}
+                    </span>
+                  </p>
+                </BentoTile>
+                {analysis.issues.length > 0 && (
+                  <BentoTile
+                    kicker={t("subscribers.ai.issues")}
+                    className="border-destructive/30 bg-destructive/5"
+                  >
+                    <p className="font-display text-headline-sm tabular-nums text-destructive">
+                      {analysis.issues.length}
+                    </p>
+                    <ul className="space-y-1">
+                      {analysis.issues.slice(0, 2).map((issue, i) => (
+                        <li key={i} className="text-body-sm text-muted-foreground">
+                          {issue.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </BentoTile>
+                )}
+                {analysis.coach_action_items.length > 0 && (
+                  <BentoTile kicker={t("subscribers.ai.actionItemsTitle")}>
+                    <ul className="space-y-2">
+                      {analysis.coach_action_items.slice(0, 3).map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-label-sm font-bold text-primary">
+                            {i + 1}
+                          </span>
+                          <p className="text-body-sm text-foreground">{item.action}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </BentoTile>
+                )}
+              </div>
+            )}
 
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionHeading icon={<Sparkles className="size-3.5" />}>{t("subscribers.ai.overall")}</SectionHeading>
-              <p className="mt-1 text-sm">{analysis.overall_assessment}</p>
-            </div>
+            {metrics && <AiCharts metrics={metrics} />}
 
             <AnalysisSection
               icon={<Dumbbell className="size-4" />}

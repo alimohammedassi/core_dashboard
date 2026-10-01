@@ -6,7 +6,20 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 
-export function RegenerateNutritionButton({ enrollmentId }: { enrollmentId: string }) {
+// POST-only write path: /api/nutrition-enrollments/{id}/regenerate.
+// variant/size/label are presentation-only overrides (the client-profile hero
+// renders it as a secondary lg button); the request flow never changes.
+export function RegenerateNutritionButton({
+  enrollmentId,
+  variant = "outline",
+  size = "sm",
+  label,
+}: {
+  enrollmentId: string;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
+  size?: "default" | "sm" | "lg" | "xs" | "icon";
+  label?: string;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
@@ -32,8 +45,8 @@ export function RegenerateNutritionButton({ enrollmentId }: { enrollmentId: stri
   }
 
   return (
-    <Button size="sm" variant="outline" onClick={handle} disabled={busy}>
-      {busy ? t("subscribers.regenerate.updating") : t("subscribers.regenerate.button")}
+    <Button size={size} variant={variant} onClick={handle} disabled={busy}>
+      {busy ? t("subscribers.regenerate.updating") : (label ?? t("subscribers.regenerate.button"))}
     </Button>
   );
 }

@@ -225,7 +225,7 @@ export function AiProposalCard({
     <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="flex items-center gap-2 text-label-sm uppercase tracking-wider text-faint">
             <Icon className="size-4" />
             {kind === "workout" ? t("subscribers.ai.proposal.workoutTitle") : t("subscribers.ai.proposal.nutritionTitle")}
           </p>
@@ -248,7 +248,7 @@ export function AiProposalCard({
       </div>
 
       <div className="rounded-md border bg-background p-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <p className="text-label-sm uppercase tracking-wider text-faint">
           {t("subscribers.ai.proposal.rationale")}
         </p>
         <p className="mt-1 text-sm">{proposal.rationale}</p>
