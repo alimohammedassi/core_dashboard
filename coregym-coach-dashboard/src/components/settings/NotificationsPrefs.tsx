@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { Moon } from "lucide-react";
 
 // Real notification preferences from the existing `notification_preferences`
 // table (own-row RLS). Only settings the backend supports are shown — the
@@ -86,25 +87,33 @@ export function NotificationsPrefs() {
   return (
     <div className="space-y-4">
       {ROWS.map((row) => (
-        <div key={row.key} className="flex items-center justify-between gap-4 rounded-lg border p-3">
-          <div>
-            <p className="text-sm font-medium">{t(`settings.notifications.${row.labelKey}`)}</p>
-            <p className="text-xs text-muted-foreground">{t(`settings.notifications.${row.labelKey}Desc`)}</p>
+        <div key={row.key} className="flex items-center justify-between gap-4 rounded-lg bg-secondary p-3">
+          <div className="min-w-0">
+            <p className="text-label-lg text-foreground">{t(`settings.notifications.${row.labelKey}`)}</p>
+            <p className="text-body-sm text-faint">{t(`settings.notifications.${row.labelKey}Desc`)}</p>
           </div>
           <Switch
             checked={Boolean(prefs[row.key])}
             onCheckedChange={(v: boolean) => void save({ ...prefs, [row.key]: v })}
             disabled={saving}
             aria-label={t(`settings.notifications.${row.labelKey}`)}
+            className="scale-110"
           />
         </div>
       ))}
-      <div className="rounded-lg border p-3 space-y-3">
-        <p className="text-sm font-medium">{t("settings.notifications.quietTitle")}</p>
-        <p className="text-xs text-muted-foreground">{t("settings.notifications.quietDesc")}</p>
+      {/* Quiet hours — one functional row; times are stored as HH:MM, no
+          fixed-timezone display is faked. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-lg bg-background p-4 shadow-inner">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-label-lg text-foreground">
+            <Moon className="size-4 text-primary" aria-hidden="true" />
+            {t("settings.notifications.quietTitle")}
+          </p>
+          <p className="text-body-sm text-faint">{t("settings.notifications.quietDesc")}</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="qh-start" className="text-xs">{t("settings.notifications.from")}</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="qh-start" className="text-label-sm">{t("settings.notifications.from")}</Label>
             <Input
               id="qh-start"
               type="time"
@@ -114,11 +123,11 @@ export function NotificationsPrefs() {
                 setPrefs({ ...prefs, quiet_hours_start: v });
                 if (v === "" || timeRe.test(v)) void save({ ...prefs, quiet_hours_start: v || null });
               }}
-              className="w-32"
+              className="w-32 bg-transparent px-2 text-body-md"
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="qh-end" className="text-xs">{t("settings.notifications.to")}</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="qh-end" className="text-label-sm">{t("settings.notifications.to")}</Label>
             <Input
               id="qh-end"
               type="time"
@@ -128,12 +137,12 @@ export function NotificationsPrefs() {
                 setPrefs({ ...prefs, quiet_hours_end: v });
                 if (v === "" || timeRe.test(v)) void save({ ...prefs, quiet_hours_end: v || null });
               }}
-              className="w-32"
+              className="w-32 bg-transparent px-2 text-body-md"
             />
           </div>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-body-sm text-muted-foreground">
         {t("settings.notifications.futureHint")}
       </p>
     </div>

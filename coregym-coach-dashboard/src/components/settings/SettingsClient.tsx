@@ -36,11 +36,11 @@ export function SettingsClient({ stripeAccountId }: { stripeAccountId: string | 
   }
 
   return (
-    <div className="flex gap-2">
-      <Button onClick={handleConnect} disabled={loading}>
+    <div className="flex flex-wrap gap-2">
+      <Button className="glow-volt" onClick={handleConnect} disabled={loading}>
         {loading ? t("settings.payouts.connecting") : stripeAccountId ? t("settings.payouts.manage") : t("settings.payouts.connect")}
       </Button>
-      <Button variant="outline" onClick={() => toast.info(t("settings.payouts.dashToast"))}>
+      <Button variant="secondary" onClick={() => toast.info(t("settings.payouts.dashToast"))}>
         {t("settings.payouts.openDash")}
       </Button>
     </div>

@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { getI18n } from "@/lib/i18n/server";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/core/PageHeader";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { User, BadgeCheck, Bell, Palette, ShieldCheck, CreditCard, Lock } from "lucide-react";
 import { SettingsClient } from "@/components/settings/SettingsClient";
 import { CoachProfileForm } from "@/components/settings/CoachProfileForm";
 import { CredentialsManager } from "@/components/settings/CredentialsManager";
@@ -11,6 +12,36 @@ import { NotificationsPrefs } from "@/components/settings/NotificationsPrefs";
 import { AvatarUpload, EmailChange, SecurityControls } from "@/components/settings/SettingsSections";
 import { AccountNameForm, AppearancePrefs } from "@/components/settings/SettingsExtras";
 import { SettingsShell } from "@/components/settings/SettingsShell";
+
+/** Stitch card anatomy: leading volt icon + title, description below, honest
+    status badge in the action slot. Shared by every settings card. */
+function SectionCard({
+  icon: Icon,
+  title,
+  description,
+  action,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="[--card-spacing:--spacing(5)]">
+      <CardHeader>
+        <div className="flex items-center gap-2.5">
+          <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
+          <CardTitle>{title}</CardTitle>
+        </div>
+        <CardDescription>{description}</CardDescription>
+        {action ? <CardAction>{action}</CardAction> : null}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
 
 export default async function SettingsPage() {
   const { t } = await getI18n();
@@ -33,153 +64,123 @@ export default async function SettingsPage() {
   // identities data only — never the email domain, never user_metadata.
   const hasEmailIdentity = user.identities?.some((identity) => identity.provider === "email") ?? true;
 
-  const payouts = (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("settings.payouts.cardTitle")}</CardTitle>
-        <CardDescription>
-          {t("settings.payouts.cardDescA")}{" "}
-          <code className="font-mono">stripe_account_id</code>{" "}
-          {t("settings.payouts.cardDescB")}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">{t("settings.payouts.statusLabel")}</span>
-          {stripeAccountId ? (
-            <Badge>{t("settings.payouts.connected", { id: stripeAccountId.slice(0, 12) })}</Badge>
-          ) : (
-            <Badge variant="secondary">{t("settings.payouts.notConnected")}</Badge>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t("settings.payouts.flowA")}{" "}
-          <code className="font-mono">application_fee_amount</code>{" "}
-          {t("settings.payouts.flowB")}{" "}
-          <code className="font-mono">transfer_data.destination = stripe_account_id</code>.{" "}
-          {t("settings.payouts.flowC")}{" "}
-          <code className="font-mono">/api/webhooks/stripe</code>{" "}
-          {t("settings.payouts.flowD")} <code>payment_intent.succeeded</code>,{" "}
-          <code>account.updated</code> {t("settings.payouts.flowE")}
-        </p>
-        <SettingsClient stripeAccountId={stripeAccountId} />
-      </CardContent>
-    </Card>
+  // Payout status badge — mint + pulse only when actually connected.
+  const payoutsBadge = stripeAccountId ? (
+    <span className="inline-flex items-center gap-1.5 rounded bg-mint/15 px-2 py-0.5 text-label-sm text-mint">
+      <span className="size-1.5 rounded-full bg-mint animate-pulse" aria-hidden="true" />
+      {t("settings.payouts.connectedBadge")}
+    </span>
+  ) : (
+    <span className="inline-flex items-center rounded bg-secondary px-2 py-0.5 text-label-sm text-muted-foreground">
+      {t("settings.payouts.notConnected")}
+    </span>
   );
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-headline-lg tracking-tight">{t("settings.page.title")}</h1>
-        <p className="mt-1 text-body-md text-muted-foreground">{t("settings.page.subtitle")}</p>
-      </div>
+      <PageHeader
+        title={t("settings.page.title")}
+        chip={t("settings.page.kicker")}
+        description={t("settings.page.subtitle")}
+        meta={<span>{t("settings.page.coachIdMeta", { id: coachId.slice(-6) })}</span>}
+      />
 
       <SettingsShell
+        stripeConnected={Boolean(stripeAccountId)}
         sections={{
           account: (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t("settings.account.photoTitle")}</CardTitle>
-                  <CardDescription>{t("settings.account.photoDesc")}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <AvatarUpload initialUrl={avatarUrl} userId={user.id} />
+            <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2">
+              <SectionCard icon={User} title={t("settings.account.photoTitle")} description={t("settings.account.photoDesc")}>
+                <div className="space-y-6">
+                  <AvatarUpload initialUrl={avatarUrl} userId={user.id} name={displayName} />
                   <AccountNameForm initialName={displayName} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t("settings.account.emailTitle")}</CardTitle>
-                  <CardDescription>{t("settings.account.emailDesc")}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <EmailChange currentEmail={email} />
-                </CardContent>
-              </Card>
-            </>
+                </div>
+              </SectionCard>
+              <SectionCard icon={BadgeCheck} title={t("settings.account.emailTitle")} description={t("settings.account.emailDesc")}>
+                <EmailChange currentEmail={email} />
+              </SectionCard>
+            </div>
           ),
           professional: (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t("settings.professional.title")}</CardTitle>
-                  <CardDescription>
-                    {t("settings.professional.desc")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CoachProfileForm />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t("settings.professional.achievements.title")}</CardTitle>
-                  <CardDescription>
-                    {t("settings.professional.achievements.desc")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CredentialsManager
-                    coachId={coachId}
-                    userId={user.id}
-                    type="achievement"
-                    accept="image/jpeg,image/png,image/webp"
-                    emptyText={t("settings.professional.achievements.empty")}
-                  />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t("settings.professional.certificates.title")}</CardTitle>
-                  <CardDescription>{t("settings.professional.certificates.desc")}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CredentialsManager
-                    coachId={coachId}
-                    userId={user.id}
-                    type="certificate"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    emptyText={t("settings.professional.certificates.empty")}
-                  />
-                </CardContent>
-              </Card>
-            </>
+            <div className="flex flex-col gap-5">
+              <SectionCard icon={BadgeCheck} title={t("settings.professional.title")} description={t("settings.professional.desc")}>
+                <CoachProfileForm />
+              </SectionCard>
+              <SectionCard
+                icon={BadgeCheck}
+                title={t("settings.professional.achievements.title")}
+                description={t("settings.professional.achievements.desc")}
+              >
+                <CredentialsManager
+                  coachId={coachId}
+                  userId={user.id}
+                  type="achievement"
+                  accept="image/jpeg,image/png,image/webp"
+                  emptyText={t("settings.professional.achievements.empty")}
+                />
+              </SectionCard>
+              <SectionCard
+                icon={BadgeCheck}
+                title={t("settings.professional.certificates.title")}
+                description={t("settings.professional.certificates.desc")}
+              >
+                <CredentialsManager
+                  coachId={coachId}
+                  userId={user.id}
+                  type="certificate"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  emptyText={t("settings.professional.certificates.empty")}
+                />
+              </SectionCard>
+            </div>
           ),
           notifications: (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t("settings.notifications.title")}</CardTitle>
-                <CardDescription>{t("settings.notifications.desc")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <NotificationsPrefs />
-              </CardContent>
-            </Card>
+            <SectionCard
+              icon={Bell}
+              title={t("settings.notifications.title")}
+              description={t("settings.notifications.desc")}
+            >
+              <NotificationsPrefs />
+            </SectionCard>
           ),
           appearance: (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t("settings.appearance.title")}</CardTitle>
-                <CardDescription>{t("settings.appearance.desc")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AppearancePrefs />
-              </CardContent>
-            </Card>
+            <SectionCard
+              icon={Palette}
+              title={t("settings.appearance.title")}
+              description={t("settings.appearance.desc")}
+            >
+              <AppearancePrefs />
+            </SectionCard>
           ),
           security: (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t("settings.security.title")}</CardTitle>
-                <CardDescription>{t("settings.security.desc")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SecurityControls hasEmailIdentity={hasEmailIdentity} />
-              </CardContent>
-            </Card>
+            <SectionCard
+              icon={ShieldCheck}
+              title={t("settings.security.title")}
+              description={t("settings.security.desc")}
+            >
+              <SecurityControls hasEmailIdentity={hasEmailIdentity} />
+            </SectionCard>
           ),
-          payouts,
+          payouts: (
+            <SectionCard
+              icon={CreditCard}
+              title={t("settings.payouts.cardTitle")}
+              description={t("settings.payouts.desc")}
+              action={payoutsBadge}
+            >
+              <div className="space-y-4">
+                {stripeAccountId && (
+                  <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
+                    <Lock className="size-3.5 shrink-0 text-faint" aria-hidden="true" />
+                    <span className="min-w-0 truncate font-mono">
+                      {t("settings.payouts.connectIdLabel", { id: stripeAccountId })}
+                    </span>
+                  </p>
+                )}
+                <SettingsClient stripeAccountId={stripeAccountId} />
+              </div>
+            </SectionCard>
+          ),
         }}
       />
     </div>

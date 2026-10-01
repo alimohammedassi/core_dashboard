@@ -7,6 +7,8 @@ export const settings = {
     page: {
       title: "Settings",
       subtitle: "Account, professional profile, notifications and security.",
+      kicker: "Coach operations",
+      coachIdMeta: "ID: …{id}",
     },
 
     nav: {
@@ -22,17 +24,11 @@ export const settings = {
 
     payouts: {
       cardTitle: "Stripe Connect (Express)",
-      cardDescA:
-        "Coach onboarding: creates an Express account and redirects through the Stripe Account Link flow. Stores",
-      cardDescB: "on your coach row.",
+      desc: "Connect a Stripe Express account to receive payouts.",
       statusLabel: "Status:",
-      connected: "Connected — {id}…",
+      connectedBadge: "Connected",
       notConnected: "Not connected",
-      flowA: "Payment flow (when live): PaymentIntents are created with",
-      flowB: "(platform commission) and",
-      flowC: "The webhook at",
-      flowD: "handles",
-      flowE: "and subscription events.",
+      connectIdLabel: "Stripe Connect ID: {id}",
       connect: "Connect payouts",
       manage: "Manage payouts",
       connecting: "Connecting…",
@@ -61,6 +57,7 @@ export const settings = {
         uploading: "Uploading…",
         replace: "Replace photo",
         upload: "Upload photo",
+        changeImage: "Change image",
         hint: "JPG, PNG or WebP · max 5 MB",
         uploadFailed: "Upload failed",
         removeFailed: "Remove failed",
@@ -79,6 +76,7 @@ export const settings = {
       email: {
         current: "Current email",
         new: "New email",
+        verified: "Verified",
         invalid: "Enter a valid email address",
         alreadyCurrent: "This is already your current email",
         confirmSent: "Confirmation sent to your new email — the change applies after you confirm it.",
@@ -126,6 +124,8 @@ export const settings = {
         save: "Save profile",
         saved: "Profile saved",
         saveFailed: "Save failed",
+        dirty: "Unsaved changes",
+        clean: "All changes saved",
       },
 
       credentials: {
@@ -145,9 +145,11 @@ export const settings = {
         moveDown: "Move down",
         replaceFile: "Replace file",
         removeAria: "Remove {title}",
+        openFile: "Open file",
+        pdf: "PDF",
         pdfDoc: "PDF document",
         image: "Image",
-        sizeKb: " · {n} KB",
+        sizeKb: "{n} KB",
         uploadFailed: "Upload failed",
         connectionFailed: "Upload failed — check your connection",
         removeFailed: "Remove failed",
@@ -203,6 +205,13 @@ export const settings = {
       newPw: "New password",
       newPwPlaceholder: "New password (min 8 chars)",
       confirmPlaceholder: "Confirm new password",
+      strength: {
+        label: "Password strength",
+        weak: "Weak",
+        fair: "Fair",
+        good: "Good",
+        strong: "Strong",
+      },
       googleNote:
         "Your account currently signs in with Google. Setting a password lets you sign in with your email and password as well — your Google sign-in keeps working.",
       updatePw: "Update password",
@@ -226,6 +235,8 @@ export const settings = {
     page: {
       title: "الإعدادات",
       subtitle: "الحساب، الملف المهني، الإشعارات، والأمان.",
+      kicker: "عمليات الكوتش",
+      coachIdMeta: "المعرّف: …{id}",
     },
 
     nav: {
@@ -241,17 +252,11 @@ export const settings = {
 
     payouts: {
       cardTitle: "Stripe Connect (Express)",
-      cardDescA:
-        "تسجيل الكوتش: بيتعمل حساب Express وبيتم التوجيه خلال خطوة Stripe Account Link. بيتخزن",
-      cardDescB: "على صف الكوتش بتاعك.",
+      desc: "اربط حساب Stripe Express عشان تستلم التحويلات.",
       statusLabel: "الحالة:",
-      connected: "متصل — {id}…",
+      connectedBadge: "متصل",
       notConnected: "غير متصل",
-      flowA: "مسار الدفع (لما يبقى شغال): الـ PaymentIntents بتتعمل مع",
-      flowB: "(عمولة المنصة) و",
-      flowC: "الـ webhook عند",
-      flowD: "بيتعامل مع",
-      flowE: "وأحداث الاشتراكات.",
+      connectIdLabel: "معرّف Stripe Connect: {id}",
       connect: "اربط التحويلات",
       manage: "إدارة التحويلات",
       connecting: "بيتصل…",
@@ -280,6 +285,7 @@ export const settings = {
         uploading: "بيرفع…",
         replace: "غيّر الصورة",
         upload: "ارفع صورة",
+        changeImage: "غيّر الصورة",
         hint: "JPG أو PNG أو WebP · بحد أقصى 5 ميجا",
         uploadFailed: "الرفع فشل",
         removeFailed: "الإزالة فشلت",
@@ -298,6 +304,7 @@ export const settings = {
       email: {
         current: "الإيميل الحالي",
         new: "الإيميل الجديد",
+        verified: "موثّق",
         invalid: "اكتب إيميل صحيح",
         alreadyCurrent: "ده إيميلك الحالي بالفعل",
         confirmSent: "بعتنا تأكيد على إيميلك الجديد — التغيير هيشتغل بعد ما تأكده.",
@@ -345,6 +352,8 @@ export const settings = {
         save: "احفظ الملف",
         saved: "الملف اتحفظ",
         saveFailed: "الحفظ فشل",
+        dirty: "في تعديلات مش محفوظة",
+        clean: "كل التعديلات محفوظة",
       },
 
       credentials: {
@@ -364,9 +373,11 @@ export const settings = {
         moveDown: "انقل لتحت",
         replaceFile: "استبدل الملف",
         removeAria: "شيل {title}",
+        openFile: "افتح الملف",
+        pdf: "PDF",
         pdfDoc: "ملف PDF",
         image: "صورة",
-        sizeKb: " · {n} KB",
+        sizeKb: "{n} KB",
         uploadFailed: "الرفع فشل",
         connectionFailed: "الرفع فشل — شيك على اتصالك",
         removeFailed: "الإزالة فشلت",
@@ -422,6 +433,13 @@ export const settings = {
       newPw: "كلمة السر الجديدة",
       newPwPlaceholder: "كلمة سر جديدة (8 حروف على الأقل)",
       confirmPlaceholder: "أكد كلمة السر الجديدة",
+      strength: {
+        label: "قوة كلمة السر",
+        weak: "ضعيفة",
+        fair: "مقبولة",
+        good: "جيدة",
+        strong: "قوية",
+      },
       googleNote:
         "حسابك حاليًا بيدخل بجوجل. لو حددت كلمة سر هتقدر كمان تدخل بالإيميل وكلمة السر — ودخول جوجل هيفضل شغال زي ما هو.",
       updatePw: "حدّث كلمة السر",

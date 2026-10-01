@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowDown, ArrowUp, FileText, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, FileText, Trash2, Upload } from "lucide-react";
 
 export type CredentialType = "achievement" | "certificate";
 
@@ -232,6 +232,7 @@ export function CredentialsManager({
               ? "settings.professional.credentials.titlePlaceholderAchievement"
               : "settings.professional.credentials.titlePlaceholderCertificate"
           )}
+          className="h-10 bg-background px-3 text-body-md"
         />
       </div>
       <input
@@ -276,27 +277,45 @@ export function CredentialsManager({
           {items.map((item, i) => {
             const isPdf = item.file_url.toLowerCase().includes(".pdf");
             return (
-              <li key={item.id} className="flex items-center gap-3 rounded-lg border p-2.5">
+              <li
+                key={item.id}
+                className="flex items-center gap-3 rounded-lg bg-secondary p-3 transition-colors hover:bg-accent"
+              >
                 {isPdf ? (
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-muted">
-                    <FileText className="size-5 text-muted-foreground" />
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded bg-accent">
+                    <FileText className="size-4 text-primary" aria-hidden="true" />
                   </span>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element -- dynamic public user-upload URL
                   <img
                     src={item.file_url}
                     alt={item.title}
-                    className="size-12 shrink-0 rounded-md object-cover"
+                    className="size-8 shrink-0 rounded object-cover"
                   />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{item.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isPdf ? t("settings.professional.credentials.pdfDoc") : t("settings.professional.credentials.image")}
+                  <p className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-label-lg text-foreground">{item.title}</span>
+                    <span className="inline-flex shrink-0 rounded bg-mint/15 px-2 py-0.5 text-label-sm text-mint">
+                      {isPdf ? t("settings.professional.credentials.pdf") : t("settings.professional.credentials.image")}
+                    </span>
+                  </p>
+                  <p className="truncate text-body-sm text-faint">
                     {item.file_size_kb ? t("settings.professional.credentials.sizeKb", { n: fmt.num(item.file_size_kb) }) : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5">
+                  {/* Honest visibility check: the file really opens at its public URL */}
+                  <a
+                    href={item.file_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={t("settings.professional.credentials.openFile")}
+                    title={t("settings.professional.credentials.openFile")}
+                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <Eye className="size-3.5" aria-hidden="true" />
+                  </a>
                   <Button
                     type="button"
                     variant="ghost"

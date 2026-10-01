@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Save, X } from "lucide-react";
+import { Check, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,36 +156,50 @@ export function CoachProfileForm() {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="cp-bio">{t("settings.professional.form.bio")}</Label>
-          <Textarea id="cp-bio" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} className={inputCls} placeholder={t("settings.professional.form.bioPlaceholder")} />
+          <Textarea
+            id="cp-bio"
+            rows={3}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={1000}
+            className="resize-none bg-background p-3 text-body-md"
+            placeholder={t("settings.professional.form.bioPlaceholder")}
+          />
           <p className="text-xs text-muted-foreground">{t("settings.professional.form.charCount", { count: fmt.num(bio.length) })}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="cp-exp">{t("settings.professional.form.experience")}</Label>
-          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={inputCls} placeholder={t("settings.professional.form.experiencePlaceholder")} />
+          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={`h-10 px-3 text-body-md ${inputCls}`} placeholder={t("settings.professional.form.experiencePlaceholder")} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="cp-price">{t("settings.professional.form.price")}</Label>
-          <Input id="cp-price" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={inputCls} />
+          <Input id="cp-price" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={`h-10 px-3 text-body-md ${inputCls}`} />
         </div>
         </div>
         <div className="space-y-2">
           <Label>{t("settings.professional.form.specializations")}</Label>
           <div className="flex flex-wrap gap-2">
-            {[...new Set([...SUGGESTED_SPECIALIZATIONS, ...specializations])].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => toggleSpec(s)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                  specializations.includes(s)
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted " + inputCls
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+            {[...new Set([...SUGGESTED_SPECIALIZATIONS, ...specializations])].map((s) => {
+              const selected = specializations.includes(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => toggleSpec(s)}
+                  className={
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-label-sm transition-colors " +
+                    (selected
+                      ? "bg-primary font-bold text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:text-foreground")
+                  }
+                >
+                  {selected && <Check className="size-3.5" aria-hidden="true" />}
+                  {s}
+                </button>
+              );
+            })}
           </div>
           <div className="flex gap-2">
             <Input
@@ -198,60 +212,84 @@ export function CoachProfileForm() {
                 }
               }}
               placeholder={t("settings.professional.form.customPlaceholder")}
-              className={`h-8 text-sm ${inputCls}`}
+              className={`h-10 px-3 text-body-md ${inputCls}`}
             />
-            <Button type="button" variant="outline" size="sm" className="h-8" onClick={addCustomSpec}>
+            <Button type="button" variant="outline" className="h-10" onClick={addCustomSpec}>
               {t("common.actions.add")}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Policy */}
-      <div className="space-y-4 rounded-xl border p-4">
+      {/* Policy — one tile per rule */}
+      <div className="space-y-4">
         <div>
-          <p className="text-sm font-semibold">{t("settings.professional.form.policyTitle")}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label-lg text-foreground">{t("settings.professional.form.policyTitle")}</p>
+          <p className="text-body-sm text-faint">
             {t("settings.professional.form.policyDesc")}
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="space-y-2 rounded-lg bg-secondary p-3">
             <Label htmlFor="cp-notice">{t("settings.professional.form.notice")}</Label>
-            <Input id="cp-notice" type="number" min="0" max="365" value={noticeDays} onChange={(e) => setNoticeDays(e.target.value)} className={inputCls} placeholder={t("settings.professional.form.noticePlaceholder")} />
+            <Input
+              id="cp-notice"
+              type="number"
+              min="0"
+              max="365"
+              value={noticeDays}
+              onChange={(e) => setNoticeDays(e.target.value)}
+              className="h-10 bg-background px-3 font-display text-headline-md tabular-nums"
+              placeholder={t("settings.professional.form.noticePlaceholder")}
+            />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-lg bg-secondary p-3">
             <Label htmlFor="cp-fee">{t("settings.professional.form.lateFee")}</Label>
-            <Input id="cp-fee" type="number" min="0" step="0.5" value={lateFee} onChange={(e) => setLateFee(e.target.value)} className={inputCls} placeholder={t("settings.professional.form.lateFeePlaceholder")} />
+            <Input
+              id="cp-fee"
+              type="number"
+              min="0"
+              step="0.5"
+              value={lateFee}
+              onChange={(e) => setLateFee(e.target.value)}
+              className="h-10 bg-background px-3 font-display text-headline-md tabular-nums"
+              placeholder={t("settings.professional.form.lateFeePlaceholder")}
+            />
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="cp-refund">{t("settings.professional.form.refund")}</Label>
-          <Textarea
-            id="cp-refund"
-            rows={3}
-            value={refundPolicy}
-            onChange={(e) => setRefundPolicy(e.target.value)}
-            maxLength={2000}
-            className={inputCls}
-            placeholder={t("settings.professional.form.refundPlaceholder")}
-          />
+          <div className="space-y-2 rounded-lg bg-secondary p-3">
+            <Label htmlFor="cp-refund">{t("settings.professional.form.refund")}</Label>
+            <Textarea
+              id="cp-refund"
+              rows={3}
+              value={refundPolicy}
+              onChange={(e) => setRefundPolicy(e.target.value)}
+              maxLength={2000}
+              className="resize-none bg-background p-3 text-body-md"
+              placeholder={t("settings.professional.form.refundPlaceholder")}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button type="button" onClick={handleSave} disabled={saving || !dirty}>
-          <Save className="me-1 size-3.5" />
-          {saving ? t("common.actions.saving") : t("settings.professional.form.save")}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={saving}
-          onClick={() => window.location.reload()}
-        >
-          <X className="me-1 size-3.5" /> {t("common.actions.reset")}
-        </Button>
+      {/* Footer save bar — reads the same dirty snapshot as the Save gate */}
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3">
+        <p className="text-body-sm text-muted-foreground">
+          {dirty ? t("settings.professional.form.dirty") : t("settings.professional.form.clean")}
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={saving}
+            onClick={() => window.location.reload()}
+          >
+            <X className="me-1 size-3.5" /> {t("common.actions.reset")}
+          </Button>
+          <Button type="button" className="glow-volt" onClick={handleSave} disabled={saving || !dirty}>
+            <Save className="me-1 size-3.5" />
+            {saving ? t("common.actions.saving") : t("settings.professional.form.save")}
+          </Button>
+        </div>
       </div>
     </div>
   );

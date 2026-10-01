@@ -3,6 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,16 +42,23 @@ export function AccountNameForm({ initialName }: { initialName: string }) {
   }
 
   return (
-    <div className="max-w-sm space-y-2">
+    <div className="space-y-2">
       <Label htmlFor="acc-name">{t("settings.account.name.label")}</Label>
       <div className="flex gap-2">
-        <Input id="acc-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={t("settings.account.name.placeholder")} />
-        <Button type="button" onClick={handleSave} disabled={saving || !name.trim() || name.trim() === savedName}>
+        <Input
+          id="acc-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={80}
+          placeholder={t("settings.account.name.placeholder")}
+          className="h-10 bg-background px-3 text-body-md"
+        />
+        <Button type="button" className="h-10" onClick={handleSave} disabled={saving || !name.trim() || name.trim() === savedName}>
           {saving ? <Spinner size="sm" className="me-1" /> : null}
           {t("common.actions.save")}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">{t("settings.account.name.hint")}</p>
+      <p className="text-body-sm text-muted-foreground">{t("settings.account.name.hint")}</p>
     </div>
   );
 }
@@ -70,36 +78,40 @@ export function AppearancePrefs() {
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <p className="text-sm font-medium">{t("settings.appearance.theme")}</p>
-        <p className="text-xs text-muted-foreground">{t("settings.appearance.themeDesc")}</p>
+        <p className="text-label-lg text-foreground">{t("settings.appearance.theme")}</p>
+        <p className="text-body-sm text-muted-foreground">{t("settings.appearance.themeDesc")}</p>
         <div className="flex flex-wrap gap-2">
-          {opts.map((o) => (
-            <button
-              key={o.key}
-              type="button"
-              onClick={() => setTheme(o.key)}
-              aria-pressed={theme === o.key}
-              className={
-                "rounded-lg border px-3 py-1.5 text-sm transition-colors " +
-                (theme === o.key
-                  ? "border-primary/30 bg-primary/10 font-semibold text-primary"
-                  : "text-muted-foreground hover:bg-muted")
-              }
-            >
-              {o.label}
-            </button>
-          ))}
+          {opts.map((o) => {
+            const active = theme === o.key;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => setTheme(o.key)}
+                aria-pressed={active}
+                className={
+                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-label-sm transition-colors " +
+                  (active
+                    ? "bg-primary font-bold text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground")
+                }
+              >
+                {active && <Check className="size-3.5" aria-hidden="true" />}
+                {o.label}
+              </button>
+            );
+          })}
         </div>
       </div>
-      <div className="space-y-2 rounded-lg border p-3">
-        <p className="text-sm font-medium">{t("settings.appearance.language")}</p>
-        <p className="text-sm text-muted-foreground">
+      <div className="space-y-2 rounded-lg bg-secondary p-3">
+        <p className="text-label-lg text-foreground">{t("settings.appearance.language")}</p>
+        <p className="text-body-sm text-muted-foreground">
           {t("settings.appearance.languageDesc")}
         </p>
       </div>
-      <div className="space-y-2 rounded-lg border p-3">
-        <p className="text-sm font-medium">{t("settings.appearance.density")}</p>
-        <p className="text-sm text-muted-foreground">{t("settings.appearance.densityDesc")}</p>
+      <div className="space-y-2 rounded-lg bg-secondary p-3">
+        <p className="text-label-lg text-foreground">{t("settings.appearance.density")}</p>
+        <p className="text-body-sm text-muted-foreground">{t("settings.appearance.densityDesc")}</p>
       </div>
     </div>
   );

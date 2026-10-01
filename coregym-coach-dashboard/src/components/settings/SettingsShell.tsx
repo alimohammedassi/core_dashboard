@@ -1,14 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { User, BadgeCheck, Bell, Palette, ShieldCheck, CreditCard } from "lucide-react";
+import { User, BadgeCheck, Bell, Palette, ShieldCheck, CreditCard, CheckCircle2 } from "lucide-react";
 import { cn } from "cn";
-import { CardTitle, CardDescription } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/client";
 
 export type SettingsSection = "account" | "professional" | "notifications" | "appearance" | "security" | "payouts";
 
-export function SettingsShell({ sections }: { sections: Record<SettingsSection, React.ReactNode> }) {
+/**
+ * Stitch "Configuration" shell: a boxed rail (sticky on desktop, horizontal
+ * scroller on mobile) plus ALL sections stacked in one column — rail items
+ * smooth-scroll to their section instead of swapping it in.
+ */
+export function SettingsShell({
+  sections,
+  stripeConnected = false,
+}: {
+  sections: Record<SettingsSection, React.ReactNode>;
+  stripeConnected?: boolean;
+}) {
   const { t } = useI18n();
   const [section, setSection] = React.useState<SettingsSection>("account");
 
@@ -21,57 +31,69 @@ export function SettingsShell({ sections }: { sections: Record<SettingsSection, 
     { key: "payouts", label: t("settings.nav.payouts.label"), icon: CreditCard, hint: t("settings.nav.payouts.hint") },
   ];
 
-  // Sectioned settings layout: Stitch "Configuration" rail (numbered, sticky),
-  // content stacks on mobile.
+  function goTo(key: SettingsSection) {
+    setSection(key);
+    document.getElementById(`settings-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-      {/* Side nav */}
-      <nav className="min-w-0 lg:sticky lg:top-[4.75rem] lg:self-start" aria-label={t("settings.nav.aria")}>
-        <div className="mb-2 hidden px-3 text-label-sm uppercase tracking-wider text-faint lg:block">
-          {t("settings.nav.config")}
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      {/* Side rail */}
+      <nav className="min-w-0 lg:col-span-3 lg:sticky lg:top-20 lg:self-start" aria-label={t("settings.nav.aria")}>
+        <div className="rounded-xl bg-sidebar p-2">
+          <p className="hidden px-3 py-2 text-label-sm uppercase tracking-wider text-faint lg:block">
+            {t("settings.nav.config")}
+          </p>
+          <ul className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+            {NAV.map((item) => {
+              const active = section === item.key;
+              // Honest status marker: the mint check only appears once Stripe
+              // is actually connected; otherwise the active glow dot leads.
+              const connected = item.key === "payouts" && stripeConnected;
+              return (
+                <li key={item.key} className="shrink-0 lg:w-full">
+                  <button
+                    type="button"
+                    onClick={() => goTo(item.key)}
+                    aria-current={active ? "page" : undefined}
+                    title={item.hint}
+                    className={cn(
+                      "group flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-start text-label-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                      active && "bg-sidebar-accent font-semibold text-primary"
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <item.icon
+                        className={cn(
+                          "size-[18px] shrink-0 text-faint transition-colors group-hover:text-primary",
+                          active && "text-primary"
+                        )}
+                      />
+                      <span className="truncate lg:whitespace-normal">{item.label}</span>
+                    </span>
+                    {connected ? (
+                      <CheckCircle2 className="size-3.5 shrink-0 text-mint" aria-hidden="true" />
+                    ) : (
+                      active && (
+                        <span className="size-2 shrink-0 rounded-full bg-primary shadow-[0_0_8px_rgba(205,244,92,0.9)]" aria-hidden="true" />
+                      )
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        <ul className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-          {NAV.map((item, i) => {
-            const active = section === item.key;
-            return (
-              <li key={item.key} className="shrink-0 lg:w-full">
-                <button
-                  type="button"
-                  onClick={() => setSection(item.key)}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative flex w-full items-center gap-3 rounded-e-lg border-s-2 px-3 py-2 text-start text-sm transition-colors",
-                    active
-                      ? "border-primary bg-sidebar-accent font-semibold text-foreground"
-                      : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <item.icon className={cn("size-4 shrink-0", active ? "text-primary" : "text-faint")} />
-                  <span className="min-w-0 whitespace-nowrap lg:whitespace-normal">
-                    <span className="me-1.5 text-faint">{i + 1}.</span>
-                    {item.label}
-                    <span className="hidden text-xs font-normal text-muted-foreground lg:block">{item.hint}</span>
-                  </span>
-                  {active && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-primary" />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
       </nav>
 
-      {/* Content */}
-      <div className="min-w-0 space-y-6">{sections[section]}</div>
+      {/* Content — every section stacked; rail anchors scroll between them */}
+      <div className="min-w-0 flex flex-col gap-5 lg:col-span-9">
+        {(Object.keys(sections) as SettingsSection[]).map((key) => (
+          <section key={key} id={`settings-${key}`} className="scroll-mt-24">
+            {sections[key]}
+          </section>
+        ))}
+      </div>
     </div>
-  );
-}
-
-// Shared header for a settings card
-export function SettingsCardHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <>
-      <CardTitle className="text-base">{title}</CardTitle>
-      <CardDescription>{description}</CardDescription>
-    </>
   );
 }
