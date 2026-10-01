@@ -36,8 +36,9 @@ export default async function PlansPage({
       supabase.from("subscription_plans").select("id", { count: "exact", head: true }).eq("coach_id", coachId),
       // Roster KPI: coaches' active subscriptions (head-count only)
       supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("coach_id", coachId).eq("status", "active"),
-      // Price list for the real average (plans are a small bounded set)
-      supabase.from("subscription_plans").select("price_usd").eq("coach_id", coachId),
+      // Price list for the real average (plans are a small bounded set —
+      // capped defensively so a data anomaly can never unbounded-scan here)
+      supabase.from("subscription_plans").select("price_usd").eq("coach_id", coachId).limit(500),
     ]);
     total = count ?? 0;
     activeSubs = activeRes.count ?? 0;

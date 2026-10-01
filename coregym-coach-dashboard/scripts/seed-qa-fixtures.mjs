@@ -11,7 +11,6 @@
 // ============================================================================
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
 
 const env = readFileSync(".env.local", "utf8");
 const get = (k) => (env.match(new RegExp(`^${k}=(.*)$`, "m")) ?? [])[1]?.trim();
@@ -34,6 +33,23 @@ function log(step, msg) {
   console.log(`[seed] ${step}: ${msg}`);
 }
 
+
+// PostgREST URL length caps break giant .in() lists — chunk every large delete.
+async function deleteInChunks(table, column, ids, extra) {
+  let removed = 0;
+  const list = ids ?? [];
+  for (let i = 0; i < list.length; i += 50) {
+    const slice = list.slice(i, i + 50);
+    let q = sb.from(table).delete();
+    if (extra) q = q.eq(extra.col, extra.val).like(extra.like.col, extra.like.pat);
+    const { data, error } = await q.in(column, slice);
+    if (error) throw new Error(`${table} chunk delete failed: ${error.message}`);
+    removed += data?.length ?? 0;
+  }
+  return removed;
+}
+
+
 // ── 0) Wipe previous tagged fixtures (idempotency) ──────────────────────────
 log("wipe", "removing previously tagged QA rows…");
 {
@@ -41,7 +57,6 @@ log("wipe", "removing previously tagged QA rows…");
   const ids = (oldClients ?? []).map((c) => c.id);
   if (ids.length > 0) {
     // child-first deletes scoped to this fixture set
-    const NOID = "00000000-0000-0000-0000-000000000000";
     const convIds = (await sb.from("conversations").select("id").in("client_id", ids)).data?.map((r) => r.id) ?? [];
     if (convIds.length) await sb.from("messages").delete().in("conversation_id", convIds);
     await sb.from("conversations").delete().in("client_id", ids);
@@ -60,37 +75,44 @@ log("wipe", "removing previously tagged QA rows…");
     await sb.from("subscriptions").delete().in("client_id", ids);
     await sb.from("payment_intents").delete().in("client_id", ids);
   }
-  // coach-scoped fixture rows from earlier manual runs
-  const { data: coach } = await sb.from("profiles").select("id").eq("email", "loadtest+uiqa@coregym.test").maybeSingle();
-  if (coach) {
-    const { data: cRow } = await sb.from("coaches").select("id").eq("user_id", coach.id).maybeSingle();
+  // coach-scoped fixture rows (programs BEFORE their templates — FK order)
+  const { data: coachProf } = await sb.from("profiles").select("id").eq("email", "loadtest+uiqa@coregym.test").maybeSingle();
+  if (coachProf) {
+    const { data: cRow } = await sb.from("coaches").select("id").eq("user_id", coachProf.id).maybeSingle();
     if (cRow) {
-      await sb.from("nutrition_program_foods").delete().in("meal_id",
-        (await sb.from("nutrition_program_meals").select("id").in("day_id",
-          (await sb.from("nutrition_program_days").select("id").in("program_id",
-            (await sb.from("nutrition_programs").select("id").eq("coach_id", cRow.id)).data?.map((r) => r.id) ?? ["x"])).data?.map((r) => r.id) ?? ["x"])).data?.map((r) => r.id) ?? ["x"]);
-      await sb.from("nutrition_program_meals").delete().in("day_id",
-        (await sb.from("nutrition_program_days").select("id").in("program_id",
-          (await sb.from("nutrition_programs").select("id").eq("coach_id", cRow.id)).data?.map((r) => r.id) ?? ["x"])).data?.map((r) => r.id) ?? ["x"]);
-      await sb.from("nutrition_program_days").delete().in("program_id",
-        (await sb.from("nutrition_programs").select("id").eq("coach_id", cRow.id)).data?.map((r) => r.id) ?? ["x"]);
-      await sb.from("nutrition_programs").delete().eq("coach_id", cRow.id).like("name", "[LOADTEST]%");
-      await sb.from("workout_template_exercises").delete().in("template_id",
-        (await sb.from("workout_templates").select("id").eq("coach_id", cRow.id).like("name", "[LOADTEST]%")).data?.map((r) => r.id) ?? ["x"]);
-      await sb.from("workout_templates").delete().eq("coach_id", cRow.id).like("name", "[LOADTEST]%");
-      await sb.from("coach_program_days").delete().in("program_id",
-        (await sb.from("coach_programs").select("id").eq("coach_id", cRow.id).like("name", "[LOADTEST]%")).data?.map((r) => r.id) ?? ["x"]);
-      await sb.from("coach_programs").delete().eq("coach_id", cRow.id).like("name", "[LOADTEST]%");
+      const nutriProgIds = [
+        ...((await sb.from("nutrition_programs").select("id").eq("coach_id", cRow.id).like("name", "[LOADTEST]%")).data ?? []),
+        ...((await sb.from("nutrition_programs").select("id").eq("coach_id", cRow.id).like("name", "[QA]%")).data ?? []),
+      ].map((r) => r.id);
+      const dayIds = nutriProgIds.length ? (await sb.from("nutrition_program_days").select("id").in("program_id", nutriProgIds)).data?.map((r) => r.id) ?? [] : [];
+      const mealIds = dayIds.length ? (await sb.from("nutrition_program_meals").select("id").in("day_id", dayIds)).data?.map((r) => r.id) ?? [] : [];
+      if (mealIds.length) await sb.from("nutrition_program_foods").delete().in("meal_id", mealIds);
+      if (dayIds.length) await sb.from("nutrition_program_meals").delete().in("day_id", dayIds);
+      if (nutriProgIds.length) await sb.from("nutrition_program_days").delete().in("program_id", nutriProgIds);
+      if (nutriProgIds.length) await sb.from("nutrition_programs").delete().in("id", nutriProgIds);
+
+      const progIds = [
+        ...((await sb.from("coach_programs").select("id").eq("coach_id", cRow.id).like("name", "[LOADTEST]%")).data ?? []),
+        ...((await sb.from("coach_programs").select("id").eq("coach_id", cRow.id).like("name", "[QA]%")).data ?? []),
+      ].map((r) => r.id);
+      if (progIds.length) await sb.from("coach_program_days").delete().in("program_id", progIds);
+      if (progIds.length) await sb.from("coach_programs").delete().in("id", progIds);
+
+      const tplIds = [
+        ...((await sb.from("workout_templates").select("id").eq("coach_id", cRow.id).like("name", "[LOADTEST]%")).data ?? []),
+        ...((await sb.from("workout_templates").select("id").eq("coach_id", cRow.id).like("name", "[QA]%")).data ?? []),
+      ].map((r) => r.id);
+      await deleteInChunks("workout_template_exercises", "template_id", tplIds);
+      await deleteInChunks("workout_templates", "id", tplIds);
+
+      await sb.from("subscription_plans").delete().eq("coach_id", cRow.id).like("name", "[QA]%");
       await sb.from("subscription_plans").delete().eq("coach_id", cRow.id).like("name", "[LOADTEST]%");
     }
   }
-  // auth users last (profile rows are trigger-created)
+  // auth users last (profile rows are trigger-created from auth users)
   const { data: authList } = await sb.auth.admin.listUsers({ perPage: 500, page: 1 });
   for (const u of authList.users ?? []) {
-    if ((u.email ?? "").startsWith("qa.client.") || u.email === "loadtest+uiqa@coregym.test") {
-      // keep the QA coach auth user (we log into it); only remove old clients
-      if ((u.email ?? "").startsWith("qa.client.")) await sb.auth.admin.deleteUser(u.id);
-    }
+    if ((u.email ?? "").startsWith("qa.client.")) await sb.auth.admin.deleteUser(u.id);
   }
   log("wipe", "done");
 }
@@ -134,9 +156,9 @@ const { data: planElite } = await sb.from("subscription_plans").insert({
 const { data: planStrength } = await sb.from("subscription_plans").insert({
   coach_id: coachId, name: "[QA] Strength & Conditioning Pro", price_usd: 290, duration_days: 30, max_clients: 20,
 }).select("id").single();
-const { data: planNutri } = await sb.from("subscription_plans").insert({
+await sb.from("subscription_plans").insert({
   coach_id: coachId, name: "[QA] Nutrition & Recomp Protocol", price_usd: 220, duration_days: 30, max_clients: 15,
-}).select("id").single();
+});
 log("plans", "3 tagged plans");
 
 // ── 4) Workout templates ────────────────────────────────────────────────────
@@ -165,9 +187,9 @@ for (const spec of templateSpecs) {
   }).select("id").single();
   templateIds.push(t.id);
   await sb.from("workout_template_exercises").insert(
-    spec.exercises.map(([exercise_name, sets, reps, weight, rest], idx) => ({
+    spec.exercises.map(([exercise_name, sets, reps, weight, rest], exerciseIndex) => ({
       template_id: t.id, exercise_name, target_sets: sets, target_reps: reps,
-      target_weight_kg: weight, rest_sec: rest, order_index: idx,
+      target_weight_kg: weight, rest_sec: rest, order_index: exerciseIndex,
     }))
   );
 }
@@ -232,7 +254,7 @@ function datesForWeeks(weeks, start) {
   return out;
 }
 const enrolledDates = datesForWeeks(4, daysAgo(21));
-const assignRows = enrolledDates.map((slot, idx) => ({
+const assignRows = enrolledDates.map((slot) => ({
   template_id: templateIds[slot.dow === 1 ? 0 : slot.dow === 3 ? 2 : 1],
   coach_id: coachId, client_id: clients[0].id, program_id: program.id, enrollment_id: enrollment.id,
   scheduled_date: slot.date, week_number: slot.week,
@@ -389,13 +411,13 @@ log("chat", `10 conversations, unread badges on 2`);
 
 // ── 11) Payment intents (revenue ledger) ────────────────────────────────────
 const payRows = clients.slice(0, 10).map((c, i) => ({
-  id: `pi_qa_${randomUUID().slice(0, 18)}`,
+  stripe_payment_id: `pi_qa_${String(i).padStart(3, "0")}`,
   coach_id: coachId, client_id: c.id,
   amount: [35000, 29000, 35000, 22000, 29000, 35000, 22000, 29000, 35000, 29000][i],
   currency: "usd", status: i === 9 ? "pending" : "succeeded",
   created_at: ts(daysAgo(i * 3)),
 }));
-await sb.from("payment_intents").insert(payRows);
+{ const { error: payErr } = await sb.from("payment_intents").insert(payRows); if (payErr) throw payErr; }
 log("payments", `${payRows.length} intents (9 succeeded / 1 pending)`);
 
 console.log("\n[seed] DONE — fixtures tagged [QA]/[LOADTEST] and owned by CoreGym QA Coach.");

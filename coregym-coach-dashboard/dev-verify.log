@@ -265,3 +265,169 @@ React will never use eval() in production mode
   digest: '1487743219'
 }
  GET /dashboard/plans 200 in 6.2s (next.js: 634ms, application-code: 5.6s)
+✓ Compiled in 1096ms
+ GET /dashboard/plans 200 in 230ms (next.js: 21ms, application-code: 209ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 10.0s (next.js: 80ms, application-code: 9.9s)
+ GET /dashboard/plans 200 in 11.7s (next.js: 16ms, application-code: 11.7s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/plans 200 in 1528ms (next.js: 12ms, application-code: 1517ms)
+ POST /api/plans 200 in 3.6s (next.js: 1235ms, application-code: 2.3s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/programs 200 in 2.9s (next.js: 87ms, application-code: 2.8s)
+ POST /api/coach-programs 200 in 3.3s (next.js: 881ms, application-code: 2.4s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/nutrition 200 in 3.5s (next.js: 110ms, application-code: 3.4s)
+ GET /api/foods/search?q= 200 in 2.9s (next.js: 832ms, application-code: 2.1s)
+ GET /api/foods/search?q=chicken%20breast 200 in 1465ms (next.js: 8ms, application-code: 1457ms)
+ POST /api/nutrition-programs 400 in 1499ms (next.js: 574ms, application-code: 925ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/programs 200 in 6.6s (next.js: 7ms, application-code: 6.6s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/nutrition 200 in 8.1s (next.js: 6ms, application-code: 8.1s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/plans 200 in 5.0s (next.js: 26ms, application-code: 5.0s)
+Error [AuthApiError]: Invalid Refresh Token: Already Used
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_already_used'
+}
+Error [AuthApiError]: Invalid Refresh Token: Already Used
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_already_used'
+}
+ GET /dashboard/revenue 307 in 3.9s (next.js: 23ms, application-code: 3.8s)
+ GET /login 200 in 126ms (next.js: 13ms, application-code: 114ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard 200 in 7.1s (next.js: 15ms, application-code: 7.1s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at DashboardOverviewPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+ GET /dashboard 200 in 8.2s (next.js: 23ms, application-code: 8.1s)
+ GET /dashboard/workouts 200 in 8.0s (next.js: 27ms, application-code: 8.0s)
+ GET /dashboard/programs 200 in 6.8s (next.js: 8ms, application-code: 6.8s)
+ GET /dashboard/nutrition 200 in 6.5s (next.js: 9ms, application-code: 6.5s)
+ GET /dashboard/chat 200 in 4.8s (next.js: 105ms, application-code: 4.7s)
+ POST /api/chat/attachments 200 in 5.0s (next.js: 56ms, application-code: 4.9s)
+ POST /api/chat/attachments 200 in 5.0s (next.js: 84ms, application-code: 4.9s)
+ POST /api/chat/attachments 200 in 5.0s (next.js: 88ms, application-code: 4.9s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/workouts 200 in 1836ms (next.js: 8ms, application-code: 1828ms)
+ GET /dashboard/subscribers 200 in 1375ms (next.js: 278ms, application-code: 1097ms)
+ GET /dashboard/plans 200 in 4.8s (next.js: 9ms, application-code: 4.8s)
+ GET /dashboard/revenue 200 in 8.2s (next.js: 11ms, application-code: 8.1s)
+ GET /dashboard/settings 200 in 5.1s (next.js: 120ms, application-code: 5.0s)
+ GET /dashboard/subscribers 200 in 6.9s (next.js: 11ms, application-code: 6.9s)
+ GET /dashboard 200 in 10.7s (next.js: 10ms, application-code: 10.7s)
+ POST /api/plans 200 in 880ms (next.js: 8ms, application-code: 872ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/settings 200 in 3.2s (next.js: 9ms, application-code: 3.2s)
+ GET /dashboard/workouts 200 in 5.3s (next.js: 7ms, application-code: 5.3s)
+(node:16060) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET /dashboard/subscribers/450aaaba-caf6-4ad8-b290-905e11ad715c 200 in 5.4s (next.js: 202ms, application-code: 5.2s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at SubscriberDetailPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+ POST /api/ai/analysis 200 in 38.9s (next.js: 19ms, application-code: 38.8s)
+ GET /dashboard/subscribers 200 in 4.1s (next.js: 8ms, application-code: 4.1s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/chat 200 in 4.2s (next.js: 27ms, application-code: 4.2s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 6.0s (next.js: 32ms, application-code: 6.0s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard 200 in 7.8s (next.js: 45ms, application-code: 7.8s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at DashboardOverviewPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/workouts 200 in 4.9s (next.js: 24ms, application-code: 4.9s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/subscribers 200 in 3.1s (next.js: 15ms, application-code: 3.1s)
+ GET /dashboard/chat 200 in 3.7s (next.js: 23ms, application-code: 3.7s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard 200 in 10.7s (next.js: 25ms, application-code: 10.7s)
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '2755192641'
+}
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard 200 in 6.9s (next.js: 9ms, application-code: 6.8s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at DashboardOverviewPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+ GET /dashboard/workouts 200 in 2.9s (next.js: 10ms, application-code: 2.9s)
+ GET /dashboard/programs 200 in 1895ms (next.js: 27ms, application-code: 1868ms)
+ GET /dashboard/nutrition 200 in 1682ms (next.js: 18ms, application-code: 1665ms)
+ GET /dashboard/chat 200 in 555ms (next.js: 7ms, application-code: 549ms)
+ POST /api/chat/attachments 200 in 1610ms (next.js: 26ms, application-code: 1583ms)
+ POST /api/chat/attachments 200 in 1573ms (next.js: 5ms, application-code: 1568ms)
+ POST /api/chat/attachments 200 in 1619ms (next.js: 13ms, application-code: 1606ms)
+ GET /dashboard/subscribers 200 in 3.9s (next.js: 8ms, application-code: 3.9s)
+(node:16060) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET /dashboard/subscribers/450aaaba-caf6-4ad8-b290-905e11ad715c 200 in 18.1s (next.js: 35ms, application-code: 18.0s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at SubscriberDetailPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/subscribers/9e0d8164-e6f1-4e25-8e0a-6800a10ad1d8 200 in 7.8s (next.js: 22ms, application-code: 7.8s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at SubscriberDetailPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 4.5s (next.js: 24ms, application-code: 4.5s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/programs 200 in 6.4s (next.js: 13ms, application-code: 6.4s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/nutrition 200 in 3.4s (next.js: 21ms, application-code: 3.4s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/settings 200 in 4.5s (next.js: 22ms, application-code: 4.5s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard 200 in 9.6s (next.js: 29ms, application-code: 9.6s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at DashboardOverviewPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/subscribers 200 in 5.7s (next.js: 14ms, application-code: 5.7s)
+ GET /dashboard/chat 200 in 3.3s (next.js: 16ms, application-code: 3.3s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/subscribers 200 in 5.5s (next.js: 9ms, application-code: 5.5s)
+ POST /api/ai/analysis 200 in 27.3s (next.js: 19ms, application-code: 27.2s)
+ GET /dashboard/plans 200 in 7.7s (next.js: 28ms, application-code: 7.6s)
+ GET /dashboard/subscribers 200 in 4.3s (next.js: 9ms, application-code: 4.3s)
+ GET /dashboard/subscribers 200 in 6.7s (next.js: 20ms, application-code: 6.6s)
+ GET /dashboard/subscribers 200 in 7.8s (next.js: 9ms, application-code: 7.8s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/workouts?page=2 200 in 5.6s (next.js: 12ms, application-code: 5.6s)
