@@ -4,13 +4,25 @@ import { resolveCoachId } from "@/lib/coach";
 import { getStripe } from "@/lib/stripe/server";
 import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { clampPage, parsePageParam, pageRange, pageCount } from "@/lib/pagination";
 import { PageHeader } from "@/components/core/PageHeader";
-import { StatCard } from "@/components/core/StatCard";
-import { StatusBadge, statusTone } from "@/components/core/StatusBadge";
-import { Landmark, Receipt, Wallet } from "lucide-react";
+import { StatCard, StatCardChip } from "@/components/core/StatCard";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlobalLink } from "@/components/shared/link";
+import { RevenueRangeSelector, resolveRevRange } from "@/components/revenue/RevenueRangeSelector";
+import { RevenueVelocityChart, type VelocityWeek } from "@/components/revenue/RevenueVelocityChart";
+import { TransactionsLedger, type LedgerRow } from "@/components/revenue/TransactionsLedger";
+import { PayoutCards, type PayoutCardData } from "@/components/revenue/PayoutCards";
+import { Download, ExternalLink, Landmark } from "lucide-react";
+
+const DAY = 86_400_000;
+// 15% platform commission — the constant every local estimate here, on
+// /api/revenue/export and in the plans payout preview must agree with.
+const PLATFORM_FEE = 0.15;
+// Bounded-read guardrail: aggregate reads never scan past 2000 rows
+// (remediation P1 rule — the ledger count surfaces truncation honestly).
+const MAX_ROWS = 2000;
 
 const STATUS_LABELS: Record<string, TKey> = {
   succeeded: "revenue.status.succeeded",
@@ -23,87 +35,175 @@ const STATUS_LABELS: Record<string, TKey> = {
   processing: "revenue.status.processing",
 };
 
-export default async function RevenuePage() {
+type TxRow = {
+  id: string;
+  amount: number | null;
+  currency: string | null;
+  status: string | null;
+  created_at: string;
+  client_id: string | null;
+  stripe_payment_id: string | null;
+};
+
+type PayoutRow = {
+  id: string;
+  amount: number;
+  currency: string;
+  arrival_date: number;
+  status: string;
+  method: string | null;
+};
+
+export default async function RevenuePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ range?: string; page?: string }>;
+}) {
   const { t, fmt } = await getI18n();
+  const params = (await searchParams) ?? {};
+  const range = resolveRevRange(params.range);
+  const now = new Date();
+  const nowMs = now.getTime();
+  const windowDays = range === "90d" ? 90 : 30;
+  const start = range === "all" ? null : new Date(nowMs - windowDays * DAY);
+  const prevStart = start ? new Date(start.getTime() - windowDays * DAY) : null;
+
   const statusLabel = (status: string | null) =>
     (status && STATUS_LABELS[status] ? t(STATUS_LABELS[status]) : status) ?? t("common.state.unknown");
+
   const supabase = await createClient();
   const user = await getCurrentUser();
 
   let gross = 0;
   let commission = 0;
   let net = 0;
-  let payouts: Array<{ id: string; amount: number; currency: string; arrival_date: number; status: string }> = [];
-  let transactions: Array<{ id: string; amount: number; currency: string | null; status: string | null; created_at: string; client_id: string | null; client?: { full_name: string | null; email: string | null } | null }> = [];
+  let prevGross = 0;
+  let txTotal = 0;
+  let page = 1;
+  let payouts: PayoutRow[] = [];
+  let transactions: TxRow[] = [];
+  let ledgerRows: LedgerRow[] = [];
   let isStripe = false;
-  // Error NOTE flags — the raw internal messages stay server-side; the coach
-  // only sees a concise actionable line (remediation-log error-masking rule).
+  let acctId: string | null = null;
+  // Live Stripe balance (settlement routing card) — null = unavailable.
+  let balance: { available: number; pending: number } | null = null;
+  // Real fee per Stripe payment id, matched into the ledger (bt.source).
+  const feeBySource = new Map<string, number>();
+  // Weekly velocity rows — live bt payments (real fees) or db rows (15% est.).
+  let velocityRows: { ts: number; amount: number; fee: number }[] = [];
+  let velocityLive = false;
+  // Error NOTE flags — raw internals stay server-side (error-masking rule).
   let stripeNote = false;
   let dbNote = false;
 
   if (user) {
     const coachId = await resolveCoachId(supabase, user.id);
 
-    // P2: the transactions query and the coach Stripe-account lookup are
-    // independent — run them concurrently instead of stacking round trips.
-    // payment_intents.client_id references auth.users (NOT profiles), so there is
-    // no PostgREST-joinable relationship to profiles: fetch the rows and the
-    // client names separately, then map in memory (profiles.id = auth.uid, so
-    // the id values match one-to-one).
-    const [txRes, coachRes] = await Promise.all([
-      supabase
-        .from("payment_intents")
-        .select("id, amount, currency, status, created_at, client_id")
-        .eq("coach_id", coachId)
-        .order("created_at", { ascending: false })
-        .limit(20),
+    // Round 1 — independent bounded reads. `start` scopes every read to the
+    // selected range (?range=30d|90d|all); "all" has no lower bound.
+    const [countRes, coachRes, chartRes, prevRes] = await Promise.all([
+      (async () => {
+        let q = supabase
+          .from("payment_intents")
+          .select("id", { count: "exact", head: true })
+          .eq("coach_id", coachId);
+        if (start) q = q.gte("created_at", start.toISOString());
+        return q;
+      })(),
       // stripe_account_id lives on the coaches row (canonical), not profiles
       supabase.from("coaches").select("stripe_account_id").eq("id", coachId).single(),
+      (async () => {
+        let q = supabase
+          .from("payment_intents")
+          .select("amount, created_at")
+          .eq("coach_id", coachId)
+          .eq("status", "succeeded");
+        if (start) q = q.gte("created_at", start.toISOString());
+        return q.order("created_at", { ascending: true }).limit(MAX_ROWS);
+      })(),
+      prevStart && start
+        ? supabase
+            .from("payment_intents")
+            .select("amount")
+            .eq("coach_id", coachId)
+            .eq("status", "succeeded")
+            .gte("created_at", prevStart.toISOString())
+            .lt("created_at", start.toISOString())
+            .limit(MAX_ROWS)
+        : Promise.resolve({ data: [] as unknown[] }),
     ]);
-    const { data: txData, error: txErr } = txRes;
+    txTotal = countRes.count ?? 0;
+    const succeededRows = (chartRes.data ?? []) as unknown as Array<{ amount: number | null; created_at: string }>;
+    prevGross = ((prevRes.data ?? []) as unknown as Array<{ amount: number | null }>).reduce(
+      (s, r) => s + (r.amount ?? 0),
+      0,
+    );
+
+    // Gross/net precedence (unchanged): live Stripe balanceTransactions win →
+    // succeeded payment_intents (bounded at MAX_ROWS) → 0. The db aggregate
+    // also feeds the weekly chart when Stripe isn't live.
+    gross = succeededRows.reduce((s, r) => s + (r.amount ?? 0), 0);
+
+    page = clampPage(parsePageParam(params.page), txTotal);
+    const { from, to } = pageRange(page);
+
+    // Round 2 — the ledger page slice (range-scoped, newest first).
+    let txQuery = supabase
+      .from("payment_intents")
+      .select("id, amount, currency, status, created_at, client_id, stripe_payment_id")
+      .eq("coach_id", coachId);
+    if (start) txQuery = txQuery.gte("created_at", start.toISOString());
+    const { data: txData, error: txErr } = await txQuery
+      .order("created_at", { ascending: false })
+      .range(from, to);
     if (txErr) {
       dbNote = true;
     } else {
-      const txRows = (txData ?? []) as unknown as Array<{
+      transactions = (txData ?? []) as unknown as TxRow[];
+    }
+
+    // Round 3 — athlete identities + plan tiers for the page rows.
+    // payment_intents.client_id references auth.users (NOT profiles), so rows
+    // and profiles are fetched separately and mapped in memory (ids match 1:1).
+    const clientIds = [...new Set(transactions.map((x) => x.client_id).filter(Boolean))] as string[];
+    const txIds = transactions.map((x) => x.id);
+    const [profilesRes, tiersRes] = await Promise.all([
+      clientIds.length
+        ? supabase.from("profiles").select("id, full_name, name, email, avatar_url").in("id", clientIds)
+        : Promise.resolve({ data: [] as unknown[] }),
+      // tier is a newer column — a legacy schema without it must only hide the
+      // chip, never blank the ledger, so this lookup degrades silently.
+      txIds.length
+        ? supabase.from("payment_intents").select("id, tier").in("id", txIds).limit(100)
+        : Promise.resolve({ data: [] as unknown[], error: null as unknown }),
+    ]);
+    const profileById = new Map(
+      ((profilesRes.data ?? []) as unknown as Array<{
         id: string;
-        amount: number;
-        currency: string;
-        status: string;
-        created_at: string;
-        client_id: string | null;
-      }>;
-      const clientIds = [...new Set(txRows.map((t) => t.client_id).filter(Boolean))] as string[];
-      const { data: clientRows } = clientIds.length
-        ? await supabase.from("profiles").select("id, full_name, email").in("id", clientIds)
-        : { data: [] as unknown[] };
-      const nameById = new Map(
-        ((clientRows ?? []) as unknown as Array<{ id: string; full_name: string | null; email: string | null }>).map(
-          (p) => [p.id, { full_name: p.full_name, email: p.email }]
-        )
-      );
-      transactions = txRows.map((t) => ({
-        ...t,
-        client: t.client_id ? nameById.get(t.client_id) ?? null : null,
-      }));
-      // Gross from real succeeded rows if Stripe not overriding
-      const succeeded = transactions.filter((t) => t.status === "succeeded");
-      if (succeeded.length > 0) {
-        gross = succeeded.reduce((s, r) => s + (r.amount ?? 0), 0);
+        full_name: string | null;
+        name: string | null;
+        email: string | null;
+        avatar_url: string | null;
+      }>).map((p) => [p.id, p]),
+    );
+    const tierById = new Map<string, string>();
+    if (!tiersRes.error) {
+      for (const r of (tiersRes.data ?? []) as unknown as Array<{ id: string; tier: string | null }>) {
+        if (r.tier) tierById.set(r.id, r.tier);
       }
     }
 
-    // Try Stripe payouts if account is connected (real Stripe data)
+    // Live Stripe reads — every call .catch()-guarded so a Stripe failure can
+    // never throw into render; the masked note tells the coach instead.
     try {
-      const { data: coach } = coachRes;
-      const acct = (coach as { stripe_account_id?: string } | null)?.stripe_account_id;
+      const acct = (coachRes.data as { stripe_account_id?: string } | null)?.stripe_account_id ?? null;
       if (acct && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
+        acctId = acct;
         const stripe = getStripe();
-        // Both calls in parallel — independent external round trips that used
-        // to stack during render (audit item #2). limit 100 kept: these rows
-        // feed the gross sum below.
-        const [payoutList, bt] = await Promise.all([
+        const [payoutList, bt, bal] = await Promise.all([
           stripe.payouts.list({ limit: 10 }, { stripeAccount: acct }).catch(() => null),
           stripe.balanceTransactions.list({ limit: 100 }, { stripeAccount: acct }).catch(() => null),
+          stripe.balance.retrieve({}, { stripeAccount: acct }).catch(() => null),
         ]);
         if (payoutList) {
           payouts = payoutList.data.map((p) => ({
@@ -112,72 +212,174 @@ export default async function RevenuePage() {
             currency: p.currency,
             arrival_date: p.arrival_date,
             status: p.status,
+            method: typeof p.method === "string" ? p.method : null,
           }));
           isStripe = true;
         }
+        if (bal) {
+          balance = {
+            available: bal.available.reduce((s, x) => s + x.amount, 0),
+            pending: bal.pending.reduce((s, x) => s + x.amount, 0),
+          };
+        }
         if (bt) {
           // Honest accounting from real balance transactions:
-          //   gross  = Σ amount   net = Σ net (Stripe fees already deducted)
-          //   platform commission shown as the actual amount − net delta
-          const payments = bt.data.filter((t) => t.type === "payment");
-          const stripeGross = payments.reduce((s, t) => s + t.amount, 0);
-          const stripeNet = payments.reduce((s, t) => s + t.net, 0);
+          //   gross = Σ amount, net = Σ net (Stripe fees already deducted),
+          //   platform commission = the actual amount − net delta.
+          const startMs = start ? start.getTime() : null;
+          const payments = bt.data.filter(
+            (x) => x.type === "payment" && (startMs == null || x.created * 1000 >= startMs),
+          );
+          for (const x of bt.data) {
+            feeBySource.set(String(x.source), x.amount - x.net);
+          }
+          const stripeGross = payments.reduce((s, x) => s + x.amount, 0);
+          const stripeNet = payments.reduce((s, x) => s + x.net, 0);
           if (stripeGross > 0) {
             gross = stripeGross;
             net = stripeNet;
             commission = stripeGross - stripeNet;
           }
+          velocityRows = payments.map((x) => ({
+            ts: x.created * 1000,
+            amount: x.amount,
+            fee: x.amount - x.net,
+          }));
+          velocityLive = true;
         }
       }
     } catch {
       stripeNote = true;
     }
 
-    // Local commission estimate only when Stripe not live — based on real gross
     if (!isStripe) {
-      // If gross still 0 and we have transactions, recompute already done; ensure gross from succeeded
-      if (gross === 0 && transactions.length > 0) {
-        gross = transactions.filter((t) => t.status === "succeeded").reduce((s, r) => s + (r.amount ?? 0), 0);
-      }
-      // Fallback query if transactions empty (e.g., RLS or no join).
-      // P1 bound: never scan the whole table into memory — 2000 capped rows
-      // is a guardrail, and the note below tells the coach when it engages.
-      if (gross === 0) {
-        const { data: allPayments } = await supabase
-          .from("payment_intents")
-          .select("amount")
-          .eq("coach_id", coachId)
-          .eq("status", "succeeded")
-          .limit(2000);
-        gross = (allPayments ?? []).reduce((s: number, r: { amount: number }) => s + (r.amount ?? 0), 0);
-      }
-      commission = Math.round(gross * 0.15);
+      // Local commission estimate only when Stripe isn't live — 15% of real gross
+      commission = Math.round(gross * PLATFORM_FEE);
       net = gross - commission;
     }
+    if (!velocityLive) {
+      velocityRows = succeededRows.map((r) => ({
+        ts: new Date(r.created_at).getTime(),
+        amount: r.amount ?? 0,
+        fee: Math.round((r.amount ?? 0) * PLATFORM_FEE),
+      }));
+    }
+
+    // Ledger rows — fees matched to real Stripe balance transactions by
+    // bt.source → payment_intents.stripe_payment_id, else the 15% estimate
+    // (labelled "est." in the UI; never presented as an actual Stripe fee).
+    ledgerRows = transactions.map((tx) => {
+      const profile = tx.client_id ? profileById.get(tx.client_id) : undefined;
+      const matchedFee = tx.stripe_payment_id ? feeBySource.get(tx.stripe_payment_id) : undefined;
+      const fee = matchedFee != null ? matchedFee : Math.round((tx.amount ?? 0) * PLATFORM_FEE);
+      return {
+        id: tx.id,
+        name:
+          profile?.full_name ?? profile?.name ?? profile?.email ?? (tx.client_id ? tx.client_id.slice(0, 8) : null),
+        email: profile?.email ?? null,
+        avatarUrl: profile?.avatar_url ?? null,
+        tier: tierById.get(tx.id) ?? null,
+        grossLabel: fmt.money(tx.amount ?? 0),
+        feeLabel: `−${fmt.money(fee)}`,
+        feeEst: matchedFee == null,
+        netLabel: fmt.money((tx.amount ?? 0) - fee),
+        whenLabel: fmt.dateTime(tx.created_at),
+        status: tx.status,
+        statusLabel: statusLabel(tx.status),
+      };
+    });
   } else {
-    commission = Math.round(gross * 0.15);
+    commission = Math.round(gross * PLATFORM_FEE);
     net = gross - commission;
   }
 
+  // Weekly buckets — 7-day steps from the window start ("all" starts at the
+  // earliest loaded payment) to now; the last bucket holds the current week.
+  const firstTs = velocityRows.length > 0 ? Math.min(...velocityRows.map((r) => r.ts)) : nowMs - DAY;
+  const chartStartMs = start ? start.getTime() : Math.min(firstTs, nowMs);
+  const weeks: VelocityWeek[] = [];
+  {
+    let cursor = chartStartMs;
+    // Practical ceiling (260 weeks ≈ 5y) — rows are bounded at MAX_ROWS anyway.
+    while (cursor < nowMs && weeks.length < 260) {
+      const end = Math.min(cursor + 7 * DAY, nowMs);
+      const inWeek = velocityRows.filter((r) => r.ts >= cursor && r.ts < end);
+      const grossW = inWeek.reduce((s, r) => s + r.amount, 0);
+      const feeW = inWeek.reduce((s, r) => s + r.fee, 0);
+      const netW = Math.max(0, grossW - feeW);
+      weeks.push({
+        key: cursor,
+        label: fmt.date(cursor, { month: "short", day: "numeric" }),
+        netCents: netW,
+        platformCents: grossW - netW,
+        netLabel: fmt.money(netW),
+        current: end >= nowMs,
+      });
+      cursor = end;
+    }
+  }
+  const velocityGross = velocityRows.reduce((s, r) => s + r.amount, 0);
+  const daysInRange = start ? windowDays : Math.max(1, Math.ceil((nowMs - chartStartMs) / DAY));
+  const avgDaily = velocityGross > 0 ? fmt.money(Math.round(velocityGross / daysInRange)) : null;
+  const chartFooter = avgDaily
+    ? {
+        avgDaily: t("revenue.chart.avgDaily", { money: avgDaily }),
+        txCount: t("revenue.chart.txInRange", { n: velocityRows.length }),
+      }
+    : null;
+
   const nextPayout = payouts.find((p) => p.status !== "paid") ?? null;
+  const liquidityTotal = balance ? balance.available + balance.pending : 0;
+  const liquidityPct =
+    balance && liquidityTotal > 0 ? Math.round((balance.available / liquidityTotal) * 100) : 0;
+
+  const netRetainedPct = gross > 0 ? Math.round((net / gross) * 100) : null;
+  const commissionPct = gross > 0 ? ((commission / gross) * 100).toFixed(1) : null;
+  const grossPct = prevGross > 0 ? Math.round(((gross - prevGross) / prevGross) * 100) : null;
+
+  const rangeLabel =
+    range === "all" || !start
+      ? t("revenue.range.all")
+      : `${fmt.date(start, { month: "short", day: "numeric" })} – ${fmt.date(now, { month: "short", day: "numeric" })} · ${t(range === "90d" ? "revenue.range.90d" : "revenue.range.30d")}`;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title={t("revenue.page.title")}
         description={isStripe ? t("revenue.page.subtitleLive") : t("revenue.page.subtitleLocal")}
-        actions={
-          isStripe ? (
-            <Badge className="h-7 gap-1.5 rounded-full px-2.5">
-              <span className="size-1.5 rounded-full bg-current" />
-              {t("revenue.page.badgeLive")}
-            </Badge>
+        meta={
+          isStripe && acctId ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-label-sm text-primary">
+              <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+              {t("revenue.page.connectedAcct", { acct: acctId.slice(-6) })}
+            </span>
           ) : (
-            <Badge variant="outline" className="h-7 gap-1.5 rounded-full px-2.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-label-sm text-muted-foreground">
               <span className="size-1.5 rounded-full bg-current" />
               {t("revenue.page.badgeLocal")}
-            </Badge>
+            </span>
           )
+        }
+        actions={
+          <>
+            <RevenueRangeSelector current={range} rangeLabel={rangeLabel} />
+            {transactions.length > 0 && (
+              <Button render={<a href={`/api/revenue/export?range=${range}`} download />} variant="secondary">
+                <Download className="size-4" />
+                {t("common.actions.export")}
+              </Button>
+            )}
+            {isStripe && (
+              <Button
+                render={<a href="https://dashboard.stripe.com/" target="_blank" rel="noopener noreferrer" />}
+                className="shadow-md shadow-primary/20"
+              >
+                <Landmark className="size-4" />
+                {t("revenue.page.portal")}
+                <ExternalLink className="size-4" />
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -196,75 +398,138 @@ export default async function RevenuePage() {
       <div className={`grid gap-4 sm:grid-cols-2 ${nextPayout ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
         <StatCard
           label={t("revenue.kpi.gross.title")}
-          icon={Landmark}
           value={fmt.money(gross)}
-          footer={<span>{isStripe ? t("revenue.kpi.gross.desc") : t("revenue.kpi.gross.desc")}</span>}
+          trend={grossPct != null ? (grossPct > 0 ? "up" : grossPct < 0 ? "down" : "flat") : undefined}
+          trendLabel={grossPct != null ? `${grossPct > 0 ? "+" : "−"}${Math.abs(grossPct)}%` : undefined}
+          footer={
+            <>
+              <span>
+                {prevGross > 0
+                  ? t("revenue.kpi.gross.prev", { money: fmt.money(prevGross) })
+                  : t("revenue.kpi.gross.desc")}
+              </span>
+              <span className="tabular-nums">{t("revenue.kpi.gross.billings", { n: txTotal })}</span>
+            </>
+          }
         />
         <StatCard
           label={t("revenue.kpi.commission.title")}
-          icon={Receipt}
-          value={fmt.money(commission)}
-          valueClassName="text-foreground/80"
-          footer={<span>{isStripe ? t("revenue.kpi.commission.descLive") : t("revenue.kpi.commission.descEstimate")}</span>}
+          value={`−${fmt.money(commission)}`}
+          valueClassName="text-muted-foreground"
+          badge={
+            <StatCardChip>
+              {isStripe && commissionPct != null
+                ? t("revenue.kpi.commission.actualLive", { p: commissionPct })
+                : t("revenue.kpi.commission.fixed")}
+            </StatCardChip>
+          }
+          footer={
+            <span>
+              {isStripe ? t("revenue.kpi.commission.descLive") : t("revenue.kpi.commission.descEstimate")}
+            </span>
+          }
         />
         <StatCard
           label={t("revenue.kpi.net.title")}
-          icon={Wallet}
           value={fmt.money(net)}
-          footer={<span>{t("revenue.kpi.net.desc")}</span>}
+          valueClassName="text-primary"
+          footer={
+            <span>
+              {netRetainedPct != null
+                ? t("revenue.kpi.net.retained", { p: netRetainedPct })
+                : t("revenue.kpi.net.desc")}
+            </span>
+          }
         />
         {nextPayout && (
           <StatCard
-            label={t("revenue.kpi.next.title")}
-            icon={Landmark}
+            label={<span className="text-primary">{t("revenue.kpi.next.title")}</span>}
             value={fmt.money(nextPayout.amount)}
+            className="bg-secondary shadow-md ring-primary/20"
             badge={
-              <span className="rounded bg-primary/15 px-1.5 py-0.5 text-label-sm uppercase tracking-wide text-primary">
-                {statusLabel(nextPayout.status)}
-              </span>
+              <StatCardChip>
+                {nextPayout.method === "instant"
+                  ? t("revenue.kpi.next.methodInstant")
+                  : nextPayout.method === "standard"
+                    ? t("revenue.kpi.next.methodStandard")
+                    : statusLabel(nextPayout.status)}
+              </StatCardChip>
             }
             footer={
               <span className="flex items-center gap-1.5">
-                {t("revenue.kpi.next.arrival", { date: fmt.date(nextPayout.arrival_date * 1000) })}
+                {t("revenue.kpi.next.arrival", { date: fmt.dateTime(nextPayout.arrival_date * 1000) })}
               </span>
             }
           />
         )}
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-headline-md">{t("revenue.tx.title")}</CardTitle>
-          <CardDescription>{t("revenue.tx.desc", { n: transactions.length })}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.tx.id")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.tx.client")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.amount")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.date")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.status")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="max-w-[120px] truncate font-mono text-xs text-faint">{tx.id.slice(0, 8)}</TableCell>
-                  <TableCell className="max-w-[160px] truncate text-body-md">{tx.client?.full_name ?? tx.client?.email ?? tx.client_id?.slice(0, 8) ?? "—"}</TableCell>
-                  <TableCell className="text-body-md font-medium tabular-nums">{fmt.money(tx.amount)} <span className="text-xs text-faint">{(tx.currency ?? "usd").toUpperCase()}</span></TableCell>
-                  <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(tx.created_at)}</TableCell>
-                  <TableCell><StatusBadge tone={statusTone(tx.status)}>{statusLabel(tx.status)}</StatusBadge></TableCell>
-                </TableRow>
-              ))}
-              {transactions.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="py-8 text-center text-body-md text-muted-foreground">{t("revenue.tx.empty")}</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Weekly velocity bento — chart + settlement routing */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="rounded-xl bg-card p-5 ring-1 ring-border lg:col-span-8">
+          <RevenueVelocityChart
+            weeks={weeks}
+            title={t("revenue.chart.title")}
+            subtitle={t("revenue.chart.subtitle")}
+            legendNet={t("revenue.chart.legendNet")}
+            legendPlatform={t("revenue.chart.legendPlatform")}
+            emptyLabel={t("revenue.chart.empty")}
+            footer={chartFooter}
+          />
+        </div>
+        <div className="flex flex-col gap-4 rounded-xl bg-card p-5 ring-1 ring-border lg:col-span-4">
+          <div>
+            <h2 className="font-display text-headline-sm text-foreground">{t("revenue.routing.title")}</h2>
+            <p className="mt-0.5 text-body-sm text-faint">
+              {isStripe ? t("revenue.routing.subtitle") : t("revenue.routing.connectHint")}
+            </p>
+          </div>
+          {isStripe ? (
+            balance ? (
+              <div className="flex flex-1 flex-col justify-center gap-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-body-sm text-muted-foreground">{t("revenue.routing.available")}</span>
+                  <span className="font-display text-headline-sm font-bold tabular-nums text-primary">
+                    {fmt.money(balance.available)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-body-sm text-muted-foreground">{t("revenue.routing.pending")}</span>
+                  <span className="font-semibold tabular-nums text-foreground">{fmt.money(balance.pending)}</span>
+                </div>
+                <div className="h-2 rounded-full bg-primary/20">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${liquidityPct}%` }}
+                  />
+                </div>
+                <p className="text-label-sm text-faint">{t("revenue.routing.liquidity", { p: liquidityPct })}</p>
+              </div>
+            ) : (
+              <p className="flex flex-1 items-center text-body-sm text-muted-foreground">
+                {t("revenue.routing.unavailable")}
+              </p>
+            )
+          ) : (
+            <div className="flex flex-1 items-start justify-center">
+              <GlobalLink
+                href="/dashboard/settings"
+                className={buttonVariants({ className: "shadow-md shadow-primary/20" })}
+              >
+                {t("revenue.routing.connectCta")}
+              </GlobalLink>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <TransactionsLedger
+        rows={ledgerRows}
+        total={txTotal}
+        page={page}
+        totalPages={pageCount(txTotal)}
+        range={range}
+      />
 
       <Card>
         <CardHeader className="pb-2">
@@ -273,30 +538,30 @@ export default async function RevenuePage() {
             {isStripe ? t("revenue.payouts.descLive") : t("revenue.payouts.descLocal")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.tx.id")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.amount")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.payouts.arrival")}</TableHead>
-                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.status")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payouts.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs text-faint">{p.id}</TableCell>
-                  <TableCell className="tabular-nums">{fmt.money(p.amount)} {p.currency.toUpperCase()}</TableCell>
-                  <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(p.arrival_date * 1000)}</TableCell>
-                  <TableCell><StatusBadge tone={statusTone(p.status)}>{statusLabel(p.status)}</StatusBadge></TableCell>
-                </TableRow>
-              ))}
-              {payouts.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="py-8 text-center text-body-md text-muted-foreground">{t("revenue.payouts.empty")}</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <CardContent>
+          {payouts.length > 0 ? (
+            <PayoutCards
+              payouts={payouts.map<PayoutCardData>((p) => ({
+                id: p.id,
+                amountLabel: fmt.money(p.amount),
+                destinationLabel: t("revenue.payouts.destination", { v: p.currency.toUpperCase() }),
+                statusLabel: statusLabel(p.status),
+                status: p.status,
+                methodLabel:
+                  p.method === "instant"
+                    ? t("revenue.kpi.next.methodInstant")
+                    : p.method === "standard"
+                      ? t("revenue.kpi.next.methodStandard")
+                      : null,
+                whenLabel:
+                  p.status === "paid"
+                    ? t("revenue.payouts.settled", { date: fmt.date(p.arrival_date * 1000) })
+                    : t("revenue.payouts.estimated", { date: fmt.date(p.arrival_date * 1000) }),
+              }))}
+            />
+          ) : (
+            <p className="py-8 text-center text-body-md text-muted-foreground">{t("revenue.payouts.empty")}</p>
+          )}
         </CardContent>
       </Card>
     </div>

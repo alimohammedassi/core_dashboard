@@ -4,10 +4,8 @@ import { resolveCoachId } from "@/lib/coach";
 import { clampPage, LIB_PAGE_SIZE, pageCount, pageRange, parsePageParam } from "@/lib/pagination";
 import { Pager } from "@/components/dashboard/Pager";
 import { PlansClient } from "@/components/plans/PlansClient";
-import { Badge } from "@/components/ui/badge";
 import { getI18n } from "@/lib/i18n/server";
 import { StatCard } from "@/components/core/StatCard";
-import { CreditCard, Users, Wallet } from "lucide-react";
 import type { SubscriptionPlan } from "@/lib/supabase/types";
 
 export default async function PlansPage({
@@ -26,25 +24,43 @@ export default async function PlansPage({
   let total = 0;
   let activeSubs = 0;
   let avgPrice: number | null = null;
+  let avgPlans = 0;
+  // Capacity ceiling = Σ max_clients, known only when EVERY loaded plan is
+  // capped (one unlimited plan makes the fleet cap meaningless → omit rail).
+  let capTotal: number | null = null;
+  // Active subscriptions per plan id (roster-load meters + "Most popular").
+  const counts: Record<string, number> = {};
 
   if (user) {
     // subscription_plans.coach_id references coaches.id, not the auth uid
     coachId = await resolveCoachId(supabase, user.id);
     // P3: exact total first (for clamp + pager), then the bounded page slice.
-    const [{ count }, activeRes, pricesRes] = await Promise.all([
+    const [{ count }, activeRes, pricesRes, planSubsRes] = await Promise.all([
       supabase.from("subscription_plans").select("id", { count: "exact", head: true }).eq("coach_id", coachId),
       // Roster KPI: coaches' active subscriptions (head-count only)
       supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("coach_id", coachId).eq("status", "active"),
       // Price list for the real average (plans are a small bounded set —
       // capped defensively so a data anomaly can never unbounded-scan here)
-      supabase.from("subscription_plans").select("price_usd").eq("coach_id", coachId).limit(500),
+      supabase.from("subscription_plans").select("price_usd, max_clients").eq("coach_id", coachId).limit(500),
+      // Per-plan distribution for the roster-load meters — head-count rows only,
+      // reduced in JS (bounded at 2000 like every aggregate read here)
+      supabase.from("subscriptions").select("plan_id").eq("coach_id", coachId).eq("status", "active").limit(2000),
     ]);
     total = count ?? 0;
     activeSubs = activeRes.count ?? 0;
-    const prices = ((pricesRes.data ?? []) as unknown as Array<{ price_usd: number | null }>)
+    const priceRows = (pricesRes.data ?? []) as unknown as Array<{ price_usd: number | null; max_clients: number | null }>;
+    const prices = priceRows
       .map((r) => Number(r.price_usd ?? 0))
       .filter((v) => !Number.isNaN(v));
+    avgPlans = prices.length;
     avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
+    if (priceRows.length > 0 && priceRows.every((r) => r.max_clients != null)) {
+      capTotal = priceRows.reduce((s, r) => s + (r.max_clients ?? 0), 0);
+    }
+    for (const row of (planSubsRes.data ?? []) as unknown as Array<{ plan_id: string | null }>) {
+      if (!row.plan_id) continue;
+      counts[row.plan_id] = (counts[row.plan_id] ?? 0) + 1;
+    }
 
     page = clampPage(parsePageParam((await searchParams)?.page), total);
     const { from, to } = pageRange(page);
@@ -62,38 +78,57 @@ export default async function PlansPage({
     }
   }
 
+  const loadPct = capTotal && capTotal > 0 ? Math.round((activeSubs / capTotal) * 100) : null;
+  const seatsLeft = capTotal != null ? Math.max(0, capTotal - activeSubs) : null;
+
   const kpis = (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         label={t("plans.kpi.published")}
-        icon={CreditCard}
         value={fmt.num(total)}
-        footer={<span>{t("plans.page.subtitleShort")}</span>}
-      />
-      <StatCard
-        label={t("plans.kpi.subscribed")}
-        icon={Users}
-        value={fmt.num(activeSubs)}
-        footer={<span>{t("plans.kpi.subscribedHint")}</span>}
+        footer={<span>{t("plans.kpi.activeSubsFooter", { n: activeSubs })}</span>}
       />
       <StatCard
         label={t("plans.kpi.avgPrice")}
-        icon={Wallet}
         value={avgPrice != null ? fmt.money(Math.round(avgPrice * 100)) : "—"}
-        footer={<span>{t("plans.kpi.avgPriceHint")}</span>}
+        footer={<span>{t("plans.kpi.avgAcross", { n: avgPlans })}</span>}
+      />
+      <StatCard
+        label={t("plans.kpi.subscribed")}
+        value={fmt.num(activeSubs)}
+        suffix={capTotal != null ? t("plans.kpi.capSuffix", { n: capTotal }) : undefined}
+        progress={loadPct ?? undefined}
+        footer={
+          <span>{loadPct != null ? t("plans.kpi.loaded", { p: loadPct }) : t("plans.kpi.subscribedHint")}</span>
+        }
+      />
+      <StatCard
+        label={t("plans.kpi.availableSeats")}
+        value={seatsLeft != null ? fmt.num(seatsLeft) : "—"}
+        valueClassName="text-primary"
+        suffix={seatsLeft != null ? t("plans.kpi.seatsLeft") : undefined}
       />
     </div>
   );
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {error && (
-        <Badge variant="destructive" className="w-fit">
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-body-sm text-destructive"
+        >
           {t("plans.page.loadError")}
-        </Badge>
+        </div>
       )}
 
-      <PlansClient initialPlans={plans} coachId={coachId} kpis={kpis} />
+      <PlansClient
+        initialPlans={plans}
+        coachId={coachId}
+        kpis={kpis}
+        counts={counts}
+        section={{ count: total, activeSubs }}
+      />
       <Pager basePath="/dashboard/plans" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />
     </div>
   );
