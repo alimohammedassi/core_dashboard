@@ -10,8 +10,8 @@ import { scaleFood, roundMacros, sumMacros, type MacroSet } from "@/lib/nutritio
 import { useI18n } from "@/lib/i18n/client";
 import type { TFn } from "@/lib/i18n/dictionary";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/core/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -309,25 +309,23 @@ export function NutritionClient({
     <>
       <div className="flex justify-end">
         <Button
+          size="lg"
           onClick={() => {
             setBuilderSeed(seedForCreate(t("nutrition.builder.defaultMeal")));
             setBuilderNonce((n) => n + 1);
           }}
         >
+          <Plus className="size-4" />
           {t("nutrition.createProgram")}
         </Button>
       </div>
 
       {programs.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <Apple className="size-8 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="font-medium">{t("nutrition.empty.title")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("nutrition.empty.hint")}
-              </p>
-            </div>
+        <EmptyState
+          icon={Apple}
+          title={t("nutrition.empty.title")}
+          hint={t("nutrition.empty.hint")}
+          action={
             <Button
               onClick={() => {
                 setBuilderSeed(seedForCreate(t("nutrition.builder.defaultMeal")));
@@ -336,64 +334,82 @@ export function NutritionClient({
             >
               {t("nutrition.createProgram")}
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {programs.map((p) => (
-            <Card key={p.id}>
-              <CardHeader className="flex flex-row items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <CardTitle className="truncate">{p.name}</CardTitle>
-                  {p.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{p.description}</p>
-                  )}
-                </div>
-                <div className="flex gap-1 shrink-0">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {programs.map((p) => {
+            // Stitch day strip: 7 fixed slots — assigned days volt-tinted with
+            // meal counts, rest slots dimmed.
+            const byDay = new Map<number, number>();
+            for (const d of p.days) byDay.set(d.day_of_week, d.meals.length);
+            return (
+              <Card key={p.id} className="flex flex-col">
+                <CardContent className="flex flex-1 flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-display text-headline-sm text-foreground">{p.name}</h3>
+                      {p.description && (
+                        <p className="mt-1 line-clamp-2 text-body-sm text-muted-foreground">{p.description}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("common.actions.edit")}
+                        disabled={busyId === p.id}
+                        onClick={() => {
+                          setBuilderSeed(seedForEdit(p));
+                          setBuilderNonce((n) => n + 1);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" aria-label={t("common.actions.duplicate")} disabled={busyId === p.id} onClick={() => handleDuplicate(p)}>
+                        <Copy className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" aria-label={t("common.actions.delete")} disabled={busyId === p.id} onClick={() => handleDelete(p)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {weekdays.map((w, i) => {
+                      const meals = byDay.get(i + 1);
+                      const rest = meals == null;
+                      return (
+                        <div
+                          key={w.short}
+                          title={rest ? t("nutrition.card.rest") : t("nutrition.card.mealsTitle", { n: meals })}
+                          className={`rounded-md border p-1.5 text-center ${
+                            rest ? "border-border/60 bg-background/40" : "border-primary/25 bg-primary/10"
+                          }`}
+                        >
+                          <p className={`text-[10px] font-bold uppercase tracking-wide ${rest ? "text-faint" : "text-primary"}`}>
+                            {w.short}
+                          </p>
+                          <p className={`mt-0.5 text-[11px] font-semibold tabular-nums leading-tight ${rest ? "text-faint/70" : "text-foreground"}`}>
+                            {rest ? "—" : meals}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t("common.actions.edit")}
-                    disabled={busyId === p.id}
-                    onClick={() => {
-                      setBuilderSeed(seedForEdit(p));
-                      setBuilderNonce((n) => n + 1);
-                    }}
+                    className="mt-auto w-full"
+                    disabled={clients.length === 0}
+                    onClick={() => setEnrollSeed(p)}
                   >
-                    <Pencil className="size-4" />
+                    <UserPlus className="size-4" />
+                    {clients.length === 0 ? t("nutrition.card.noSubscribers") : t("nutrition.card.assign")}
                   </Button>
-                  <Button variant="ghost" size="icon" aria-label={t("common.actions.duplicate")} disabled={busyId === p.id} onClick={() => handleDuplicate(p)}>
-                    <Copy className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" aria-label={t("common.actions.delete")} disabled={busyId === p.id} onClick={() => handleDelete(p)}>
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-1">
-                  {weekdays.map((w, i) => {
-                    const day = p.days.find((d) => d.day_of_week === i + 1);
-                    const meals = day ? day.meals.length : 0;
-                    return (
-                      <Badge key={w.short} variant={day ? "default" : "outline"} title={day ? t("nutrition.card.mealsTitle", { n: meals }) : t("nutrition.card.rest")}>
-                        {w.short}{day ? ` ·${meals}` : ""}
-                      </Badge>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={clients.length === 0}
-                  onClick={() => setEnrollSeed(p)}
-                >
-                  <UserPlus className="size-4 ms-2" />
-                  {clients.length === 0 ? t("nutrition.card.noSubscribers") : t("nutrition.card.assign")}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

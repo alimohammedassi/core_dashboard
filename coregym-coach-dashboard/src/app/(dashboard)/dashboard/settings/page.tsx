@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
+import { getI18n } from "@/lib/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingsClient } from "@/components/settings/SettingsClient";
@@ -12,6 +13,7 @@ import { AccountNameForm, AppearancePrefs } from "@/components/settings/Settings
 import { SettingsShell } from "@/components/settings/SettingsShell";
 
 export default async function SettingsPage() {
+  const { t } = await getI18n();
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return null;
@@ -34,27 +36,31 @@ export default async function SettingsPage() {
   const payouts = (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Stripe Connect (Express)</CardTitle>
+        <CardTitle className="text-base">{t("settings.payouts.cardTitle")}</CardTitle>
         <CardDescription>
-          Coach onboarding: creates an Express account and redirects through the Stripe Account Link flow. Stores{" "}
-          <code className="font-mono">stripe_account_id</code> on your coach row.
+          {t("settings.payouts.cardDescA")}{" "}
+          <code className="font-mono">stripe_account_id</code>{" "}
+          {t("settings.payouts.cardDescB")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm">Status:</span>
+          <span className="text-sm">{t("settings.payouts.statusLabel")}</span>
           {stripeAccountId ? (
-            <Badge>Connected — {stripeAccountId.slice(0, 12)}…</Badge>
+            <Badge>{t("settings.payouts.connected", { id: stripeAccountId.slice(0, 12) })}</Badge>
           ) : (
-            <Badge variant="secondary">Not connected</Badge>
+            <Badge variant="secondary">{t("settings.payouts.notConnected")}</Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Payment flow (when live): PaymentIntents are created with{" "}
-          <code className="font-mono">application_fee_amount</code> (platform commission) and{" "}
-          <code className="font-mono">transfer_data.destination = stripe_account_id</code>. The webhook at{" "}
-          <code className="font-mono">/api/webhooks/stripe</code> handles <code>payment_intent.succeeded</code>,{" "}
-          <code>account.updated</code> and subscription events.
+          {t("settings.payouts.flowA")}{" "}
+          <code className="font-mono">application_fee_amount</code>{" "}
+          {t("settings.payouts.flowB")}{" "}
+          <code className="font-mono">transfer_data.destination = stripe_account_id</code>.{" "}
+          {t("settings.payouts.flowC")}{" "}
+          <code className="font-mono">/api/webhooks/stripe</code>{" "}
+          {t("settings.payouts.flowD")} <code>payment_intent.succeeded</code>,{" "}
+          <code>account.updated</code> {t("settings.payouts.flowE")}
         </p>
         <SettingsClient stripeAccountId={stripeAccountId} />
       </CardContent>
@@ -62,10 +68,10 @@ export default async function SettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">Account, professional profile, notifications and security.</p>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("settings.page.title")}</h1>
+        <p className="mt-1 text-body-md text-muted-foreground">{t("settings.page.subtitle")}</p>
       </div>
 
       <SettingsShell
@@ -74,8 +80,8 @@ export default async function SettingsPage() {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Profile photo & name</CardTitle>
-                  <CardDescription>How you appear to clients across the CoreGym apps.</CardDescription>
+                  <CardTitle className="text-base">{t("settings.account.photoTitle")}</CardTitle>
+                  <CardDescription>{t("settings.account.photoDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <AvatarUpload initialUrl={avatarUrl} userId={user.id} />
@@ -84,8 +90,8 @@ export default async function SettingsPage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Email</CardTitle>
-                  <CardDescription>The address you sign in with.</CardDescription>
+                  <CardTitle className="text-base">{t("settings.account.emailTitle")}</CardTitle>
+                  <CardDescription>{t("settings.account.emailDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <EmailChange currentEmail={email} />
@@ -97,9 +103,9 @@ export default async function SettingsPage() {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Professional profile</CardTitle>
+                  <CardTitle className="text-base">{t("settings.professional.title")}</CardTitle>
                   <CardDescription>
-                    Your public coaching profile — bio, pricing, specializations, experience and training policy.
+                    {t("settings.professional.desc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -108,9 +114,9 @@ export default async function SettingsPage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Achievements</CardTitle>
+                  <CardTitle className="text-base">{t("settings.professional.achievements.title")}</CardTitle>
                   <CardDescription>
-                    Competition results, milestones and before/after photos. Shown on your public coach profile.
+                    {t("settings.professional.achievements.desc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -119,14 +125,14 @@ export default async function SettingsPage() {
                     userId={user.id}
                     type="achievement"
                     accept="image/jpeg,image/png,image/webp"
-                    emptyText="No achievements uploaded yet — add photos of competitions, milestones or client transformations."
+                    emptyText={t("settings.professional.achievements.empty")}
                   />
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Certificates</CardTitle>
-                  <CardDescription>Certifications and professional qualifications (image or PDF).</CardDescription>
+                  <CardTitle className="text-base">{t("settings.professional.certificates.title")}</CardTitle>
+                  <CardDescription>{t("settings.professional.certificates.desc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <CredentialsManager
@@ -134,7 +140,7 @@ export default async function SettingsPage() {
                     userId={user.id}
                     type="certificate"
                     accept="image/jpeg,image/png,image/webp,application/pdf"
-                    emptyText="No certificates uploaded yet — add your certifications and qualifications."
+                    emptyText={t("settings.professional.certificates.empty")}
                   />
                 </CardContent>
               </Card>
@@ -143,8 +149,8 @@ export default async function SettingsPage() {
           notifications: (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Notifications</CardTitle>
-                <CardDescription>Reminder and alert preferences for your account.</CardDescription>
+                <CardTitle className="text-base">{t("settings.notifications.title")}</CardTitle>
+                <CardDescription>{t("settings.notifications.desc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <NotificationsPrefs />
@@ -154,8 +160,8 @@ export default async function SettingsPage() {
           appearance: (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Appearance</CardTitle>
-                <CardDescription>Theme and display preferences.</CardDescription>
+                <CardTitle className="text-base">{t("settings.appearance.title")}</CardTitle>
+                <CardDescription>{t("settings.appearance.desc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <AppearancePrefs />
@@ -165,8 +171,8 @@ export default async function SettingsPage() {
           security: (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Security</CardTitle>
-                <CardDescription>Password and session controls.</CardDescription>
+                <CardTitle className="text-base">{t("settings.security.title")}</CardTitle>
+                <CardDescription>{t("settings.security.desc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <SecurityControls hasEmailIdentity={hasEmailIdentity} />

@@ -23,7 +23,7 @@ export default async function NutritionPage({
   if (coachId === user.id) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-semibold">{t("common.nav.nutrition")}</h1>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("common.nav.nutrition")}</h1>
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             {t("nutrition.page.coachMissing")}
@@ -49,10 +49,10 @@ export default async function NutritionPage({
   ]);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-xl font-semibold">{t("common.nav.nutrition")}</h1>
-        <p className="text-sm text-muted-foreground">{t("nutrition.page.subtitle")}</p>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("nutrition.page.title")}</h1>
+        <p className="mt-1 text-body-md text-muted-foreground">{t("nutrition.page.subtitle")}</p>
       </div>
       <NutritionClient initialPrograms={programs} clients={clients} />
       <Pager basePath="/dashboard/nutrition" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />

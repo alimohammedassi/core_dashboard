@@ -3,21 +3,21 @@
    runtime when an Arabic key is missing (enforced separately by the key-parity
    check in tests/i18n-parity.test.ts). */
 
-import { common } from "./domains/common";
-import { auth } from "./domains/auth";
-import { overview } from "./domains/overview";
-import { subscribers } from "./domains/subscribers";
-import { workouts } from "./domains/workouts";
-import { programs } from "./domains/programs";
-import { nutrition } from "./domains/nutrition";
-import { plans } from "./domains/plans";
-import { revenue } from "./domains/revenue";
-import { settings } from "./domains/settings";
-import { chat } from "./domains/chat";
-import { misc } from "./domains/misc";
-import { makeT } from "./translate";
-import type { DeepKeys, Vars } from "./translate";
-import type { Lang } from "./config";
+import { common } from "./domains/common.ts";
+import { auth } from "./domains/auth.ts";
+import { overview } from "./domains/overview.ts";
+import { subscribers } from "./domains/subscribers.ts";
+import { workouts } from "./domains/workouts.ts";
+import { programs } from "./domains/programs.ts";
+import { nutrition } from "./domains/nutrition.ts";
+import { plans } from "./domains/plans.ts";
+import { revenue } from "./domains/revenue.ts";
+import { settings } from "./domains/settings.ts";
+import { chat } from "./domains/chat.ts";
+import { misc } from "./domains/misc.ts";
+import { makeT } from "./translate.ts";
+import type { DeepKeys, Vars } from "./translate.ts";
+import type { Lang } from "./config.ts";
 
 /** Raw per-domain pairs, kept so tests can diff en vs ar keys per domain. */
 export const dictionary = {

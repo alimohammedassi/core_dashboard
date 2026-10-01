@@ -5,15 +5,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 // the page's own layout (KPI cards, chart row, client table).
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
+      {/* activity strip */}
+      <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-border">
+        <Skeleton className="h-6 w-24 rounded-md" />
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="hidden h-4 w-40 md:block" />
+      </div>
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-56" />
           <Skeleton className="h-4 w-72" />
         </div>
         <div className="hidden items-center gap-2 md:flex">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-10 w-40 rounded-lg" />
+          <Skeleton className="h-10 w-28 rounded-lg" />
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-4">

@@ -5,8 +5,18 @@
 export const plans = {
   en: {
     page: {
-      title: "Subscription plans",
-      subtitle: "Create and edit your coaching plans. Writes go to",
+      title: "Coaching Plans & Tiers",
+      subtitle: "Configure subscription packages, athlete capacities, and pricing.",
+      subtitleShort: "Published coaching packages",
+      loadError: "Couldn't load plans. Please try again.",
+    },
+
+    kpi: {
+      published: "Published plans",
+      subscribed: "Subscribed athletes",
+      subscribedHint: "Active subscriptions across all tiers",
+      avgPrice: "Average plan price",
+      avgPriceHint: "Across your published plans",
     },
 
     createAction: "Create plan",
@@ -23,8 +33,10 @@ export const plans = {
     },
 
     card: {
+      tier: "Plan",
       perDays: "/ {n} days",
       upToClients: "Up to {n} clients",
+      unlimitedClients: "Unlimited clients",
     },
 
     empty: "No plans yet. Create your first plan.",
@@ -39,8 +51,18 @@ export const plans = {
 
   ar: {
     page: {
-      title: "خطط الاشتراك",
-      subtitle: "اعمل وعدّل خطط الكوتشينج بتاعتك. الكتابة بتتم في",
+      title: "خطط الكوتشينج والباقات",
+      subtitleShort: "الباقات المنشورة",
+      loadError: "معرفناش نجيب الخطط. جرب تاني.",
+      subtitle: "ظبط باقات الاشتراك، أعداد العملاء، والأسعار.",
+    },
+
+    kpi: {
+      published: "الخطط المنشورة",
+      subscribed: "الرياضيين المشتركين",
+      subscribedHint: "اشتراكات نشطة على كل الباقات",
+      avgPrice: "متوسط سعر الخطة",
+      avgPriceHint: "على كل خططك المنشورة",
     },
 
     createAction: "اعمل خطة",
@@ -57,8 +79,10 @@ export const plans = {
     },
 
     card: {
+      tier: "خطة",
       perDays: "/ {n} يوم",
       upToClients: "لحد {n} عميل",
+      unlimitedClients: "عملاء بلا حدود",
     },
 
     empty: "مفيش خطط لسه. اعمل أول خطة ليك.",

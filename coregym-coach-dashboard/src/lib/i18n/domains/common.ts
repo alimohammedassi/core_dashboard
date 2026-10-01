@@ -122,6 +122,8 @@ export const common = {
       coach: "Coach",
       signOut: "Sign out",
       toggleTheme: "Toggle theme",
+      portal: "Portal",
+      openMenu: "Open navigation menu",
       accessDenied: "Access denied",
       notCoach: "Your account role is {role}. Only coaches can access this dashboard.",
       notVerified:
@@ -248,6 +250,8 @@ export const common = {
       coach: "كوتش",
       signOut: "تسجيل الخروج",
       toggleTheme: "تغيير المظهر",
+      portal: "البوابة",
+      openMenu: "افتح قائمة التنقل",
       accessDenied: "مش مسموح لك بالدخول",
       notCoach: "حسابك نوعه {role}. الداشبورد ده للكوتشات بس.",
       notVerified: "مش قادرين نتأكد إن حسابك حساب كوتش. سجّل خروج وجرب تاني، أو كلمنا.",

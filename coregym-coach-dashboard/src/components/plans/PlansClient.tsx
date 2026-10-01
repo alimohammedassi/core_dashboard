@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import type { SubscriptionPlan } from "@/lib/supabase/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Pencil, Users, CreditCard } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
+import { EmptyState } from "@/components/core/EmptyState";
 
 export function PlansClient({
   initialPlans,
@@ -140,28 +142,48 @@ export function PlansClient({
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((p) => (
-          <Card key={p.id}>
-            <CardHeader>
-              <CardTitle className="text-base">{p.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <span className="text-2xl font-bold">{fmt.money(Number(p.price_usd) * 100)}</span>
-                <span className="text-sm text-muted-foreground"> {t("plans.card.perDays", { n: p.duration_days })}</span>
+          <Card key={p.id} className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="rounded bg-secondary px-2 py-0.5 text-label-sm uppercase tracking-wider text-faint">
+                  {t("plans.card.tier")}
+                </span>
+                <span className="truncate font-mono text-[11px] text-faint">{p.id}</span>
               </div>
-              {p.max_clients != null && (
-                <p className="text-xs text-muted-foreground">{t("plans.card.upToClients", { n: p.max_clients })}</p>
-              )}
-              <Button variant="outline" size="sm" className="w-full" onClick={() => startEdit(p)}>
-                {t("common.actions.edit")}
-              </Button>
-              <p className="text-xs text-muted-foreground font-mono truncate">{p.id}</p>
+              <h3 className="font-display text-headline-sm text-foreground">{p.name}</h3>
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-display text-metric-display tabular-nums tracking-tight text-foreground">
+                  {fmt.money(Number(p.price_usd) * 100)}
+                </span>
+                <span className="text-body-sm text-muted-foreground"> {t("plans.card.perDays", { n: p.duration_days })}</span>
+              </div>
+              <p className="flex items-center gap-1.5 text-body-sm text-muted-foreground">
+                <Users className="size-3.5 text-faint" />
+                {p.max_clients != null
+                  ? t("plans.card.upToClients", { n: p.max_clients })
+                  : t("plans.card.unlimitedClients")}
+              </p>
+              <div className="mt-auto flex items-center gap-2 border-t border-border/60 pt-3">
+                <Button variant="secondary" size="sm" className="flex-1" onClick={() => startEdit(p)}>
+                  <Pencil className="size-3.5" />
+                  {t("common.actions.edit")}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
-        {plans.length === 0 && <p className="text-sm text-muted-foreground">{t("plans.empty")}</p>}
+        {plans.length === 0 && (
+          <EmptyState
+            icon={CreditCard}
+            className="md:col-span-2 xl:col-span-3"
+            title={t("plans.empty")}
+            action={
+              <Button onClick={startCreate}>{t("plans.createAction")}</Button>
+            }
+          />
+        )}
       </div>
     </>
   );

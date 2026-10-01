@@ -1,7 +1,7 @@
 /* Locale-aware date/number/currency formatting shared by server and client.
    Arabic uses ar-EG month names with Latin digits (see intlLocale). */
 
-import { intlLocale, type Lang } from "./config";
+import { intlLocale, type Lang } from "./config.ts";
 
 type DateLike = Date | string | number;
 

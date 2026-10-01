@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { GlobalLink } from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   CreditCard,
   Settings,
   Apple,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,13 +26,15 @@ const ICONS: Record<string, LucideIcon> = {
   CreditCard,
   Settings,
   Apple,
+  TrendingUp,
 };
 
 export type NavItem = { href: string; label: string; icon: string };
 
-// Active item: lime tint background + lime left indicator (spec §97).
-// Inactive items keep muted icons so the current route reads instantly.
-export function SidebarNav({ items, layout = "sidebar" }: { items: NavItem[]; layout?: "sidebar" | "topbar" }) {
+// Stitch rail: active items get the container-high graphite slab, a 2px volt
+// inline-start edge and a volt icon; inactive items stay muted until hover.
+// The right-edge rounding keeps the slab flush against the rail border.
+export function SidebarNav({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -39,50 +42,30 @@ export function SidebarNav({ items, layout = "sidebar" }: { items: NavItem[]; la
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  if (layout === "topbar") {
-    return (
-      <nav className="ms-auto flex gap-1 overflow-x-auto">
-        {items.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`rounded px-2 py-1 text-xs transition-colors ${
-                active
-                  ? "bg-primary/10 font-semibold text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-    );
-  }
-
   return (
-    <nav className="flex-1 space-y-1 p-3">
+    <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
       {items.map((item) => {
         const active = isActive(item.href);
         const Icon = ICONS[item.icon] ?? LayoutDashboard;
         return (
-          <Link
+          <GlobalLink
             key={item.href}
             href={item.href}
-            className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={`group flex items-center gap-3 rounded-e-lg border-s-2 px-3 py-2 text-label-lg transition-colors ${
               active
-                ? "bg-primary/10 font-semibold text-foreground"
-                : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "border-primary bg-sidebar-accent text-foreground"
+                : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
-            {active && (
-              <span className="absolute start-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
-            )}
-            <Icon className={`size-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
+            <Icon
+              className={`size-5 shrink-0 transition-colors ${
+                active ? "text-primary" : "text-faint group-hover:text-foreground"
+              }`}
+            />
             {item.label}
-          </Link>
+          </GlobalLink>
         );
       })}
     </nav>

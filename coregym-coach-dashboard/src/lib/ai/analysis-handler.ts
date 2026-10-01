@@ -30,6 +30,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildAnalysisPayload, inferMissingInformation, AI_BOUNDS, type AiDataBundle } from "./payload.ts";
 import { validateAnalysisResult } from "./contract.ts";
+import { buildAnalysisMetrics } from "./metrics.ts";
 import { generateAnalysisText, isGeminiConfigured, parseGeminiJson } from "./gemini.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -213,8 +214,11 @@ export async function handleAnalysisRequest(
     return failResponse(502, GENERIC_FAILURE);
   }
 
-  // Success — results are returned, never persisted (§1.1).
-  return { status: 200, body: { analysis: validated.value } };
+  // Success — results are returned, never persisted (§1.1). `metrics` is
+  // deterministic application code over the same payload the model saw (so no
+  // AI-generated numbers ever reach the UI); `analysis` is the qualitative
+  // contract-validated model output.
+  return { status: 200, body: { analysis: validated.value, metrics: buildAnalysisMetrics(payload) } };
 }
 
 // Conservative instruction-like content screen. Deliberately narrow to avoid

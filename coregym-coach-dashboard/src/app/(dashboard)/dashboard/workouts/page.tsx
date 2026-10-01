@@ -58,7 +58,7 @@ export default async function WorkoutsPage({
   if (!hasCoachRow) {
     return (
       <div className="max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.workouts")}</h1>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("common.nav.workouts")}</h1>
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("workouts.page.coachProfileMissing")}</CardTitle>
@@ -70,10 +70,10 @@ export default async function WorkoutsPage({
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.workouts")}</h1>
-        <p className="text-sm text-muted-foreground">{t("workouts.page.subtitle")}</p>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("workouts.page.title")}</h1>
+        <p className="mt-1 text-body-md text-muted-foreground">{t("workouts.page.subtitle")}</p>
       </div>
       <WorkoutsClient initialTemplates={templates} clients={clients} catalog={catalog} />
       <Pager basePath="/dashboard/workouts" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />

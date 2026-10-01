@@ -4,10 +4,11 @@ import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { describeError } from "@/lib/user-error";
+import { useI18n } from "@/lib/i18n/client";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // Real notification preferences from the existing `notification_preferences`
 // table (own-row RLS). Only settings the backend supports are shown — the
@@ -22,14 +23,15 @@ type Prefs = {
   quiet_hours_end: string | null;
 };
 
-const ROWS: { key: keyof Prefs; label: string; description: string }[] = [
-  { key: "meal_reminders_enabled", label: "Meal reminders", description: "Reminders to log meals in the CoreGym app." },
-  { key: "water_reminders_enabled", label: "Water reminders", description: "Periodic hydration reminders for clients." },
-  { key: "calorie_alerts_enabled", label: "Calorie alerts", description: "Alerts when a client goes over or under their calorie goal." },
-  { key: "chat_notifications_enabled", label: "Client messages", description: "Notify when a client sends a chat message." },
+const ROWS: { key: keyof Prefs; labelKey: "meals" | "water" | "calories" | "messages" }[] = [
+  { key: "meal_reminders_enabled", labelKey: "meals" },
+  { key: "water_reminders_enabled", labelKey: "water" },
+  { key: "calorie_alerts_enabled", labelKey: "calories" },
+  { key: "chat_notifications_enabled", labelKey: "messages" },
 ];
 
 export function NotificationsPrefs() {
+  const { t } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [prefs, setPrefs] = React.useState<Prefs | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -42,7 +44,7 @@ export function NotificationsPrefs() {
         .select("*")
         .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
         .maybeSingle();
-      if (error) toast.error(describeError(error, "Something went wrong. Please try again."));
+      if (error) toast.error(describeError(error, t("settings.notifications.genericError")));
       setPrefs(
         (data as unknown as Prefs) ?? {
           meal_reminders_enabled: true,
@@ -55,7 +57,7 @@ export function NotificationsPrefs() {
       );
       setLoading(false);
     })();
-  }, [supabase]);
+  }, [supabase, t]);
 
   async function save(next: Prefs) {
     const prev = prefs;
@@ -66,18 +68,18 @@ export function NotificationsPrefs() {
       const { error } = await supabase
         .from("notification_preferences")
         .upsert({ user_id: uid, ...next, updated_at: new Date().toISOString() });
-      if (error) throw new Error(describeError(error, "Request failed — please try again."));
-      toast.success("Notification preferences saved");
+      if (error) throw new Error(describeError(error, t("settings.notifications.requestFailed")));
+      toast.success(t("settings.notifications.saved"));
     } catch (err: unknown) {
       if (prev) setPrefs(prev); // roll back the optimistic toggle
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("settings.notifications.saveFailed"));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Loading preferences…</p>;
-  if (!prefs) return <p className="text-sm text-muted-foreground">Could not load preferences.</p>;
+  if (loading) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Spinner size="sm" /> {t("settings.notifications.loading")}</p>;
+  if (!prefs) return <p className="text-sm text-muted-foreground">{t("settings.notifications.loadFailed")}</p>;
 
   const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -86,23 +88,23 @@ export function NotificationsPrefs() {
       {ROWS.map((row) => (
         <div key={row.key} className="flex items-center justify-between gap-4 rounded-lg border p-3">
           <div>
-            <p className="text-sm font-medium">{row.label}</p>
-            <p className="text-xs text-muted-foreground">{row.description}</p>
+            <p className="text-sm font-medium">{t(`settings.notifications.${row.labelKey}`)}</p>
+            <p className="text-xs text-muted-foreground">{t(`settings.notifications.${row.labelKey}Desc`)}</p>
           </div>
           <Switch
             checked={Boolean(prefs[row.key])}
             onCheckedChange={(v: boolean) => void save({ ...prefs, [row.key]: v })}
             disabled={saving}
-            aria-label={row.label}
+            aria-label={t(`settings.notifications.${row.labelKey}`)}
           />
         </div>
       ))}
       <div className="rounded-lg border p-3 space-y-3">
-        <p className="text-sm font-medium">Quiet hours</p>
-        <p className="text-xs text-muted-foreground">No reminders during this window.</p>
+        <p className="text-sm font-medium">{t("settings.notifications.quietTitle")}</p>
+        <p className="text-xs text-muted-foreground">{t("settings.notifications.quietDesc")}</p>
         <div className="flex flex-wrap items-center gap-3">
           <div className="space-y-1">
-            <Label htmlFor="qh-start" className="text-xs">From</Label>
+            <Label htmlFor="qh-start" className="text-xs">{t("settings.notifications.from")}</Label>
             <Input
               id="qh-start"
               type="time"
@@ -116,7 +118,7 @@ export function NotificationsPrefs() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="qh-end" className="text-xs">To</Label>
+            <Label htmlFor="qh-end" className="text-xs">{t("settings.notifications.to")}</Label>
             <Input
               id="qh-end"
               type="time"
@@ -132,7 +134,7 @@ export function NotificationsPrefs() {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Email digests and workout-activity alerts are not available yet — they will appear here when the app adds them.
+        {t("settings.notifications.futureHint")}
       </p>
     </div>
   );

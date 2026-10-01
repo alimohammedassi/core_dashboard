@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { GlobalLink } from "@/components/shared/link";
 import { useI18n } from "@/lib/i18n/client";
 
 // S8: dashboard-segment boundary — a failing widget/page shows this instead
@@ -29,12 +29,12 @@ export default function DashboardError({
         >
           {t("common.actions.retry")}
         </button>
-        <Link
+        <GlobalLink
           href="/dashboard"
           className="inline-flex h-9 items-center rounded-md border px-4 text-sm font-medium"
         >
           {t("common.nav.overview")}
-        </Link>
+        </GlobalLink>
       </div>
     </div>
   );

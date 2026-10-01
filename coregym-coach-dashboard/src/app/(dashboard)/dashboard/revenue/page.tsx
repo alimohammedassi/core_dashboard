@@ -2,15 +2,30 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { getStripe } from "@/lib/stripe/server";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getI18n } from "@/lib/i18n/server";
+import type { TKey } from "@/lib/i18n/dictionary";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageHeader } from "@/components/core/PageHeader";
+import { StatCard } from "@/components/core/StatCard";
+import { Landmark, Receipt, Wallet } from "lucide-react";
 
-function cents(c: number) {
-  return `$${(c / 100).toFixed(2)}`;
-}
+const STATUS_LABELS: Record<string, TKey> = {
+  succeeded: "revenue.status.succeeded",
+  pending: "revenue.status.pending",
+  failed: "revenue.status.failed",
+  paid: "revenue.status.paid",
+  in_transit: "revenue.status.inTransit",
+  canceled: "revenue.status.canceled",
+  cancelled: "revenue.status.canceled",
+  processing: "revenue.status.processing",
+};
 
 export default async function RevenuePage() {
+  const { t, fmt } = await getI18n();
+  const statusLabel = (status: string | null) =>
+    (status && STATUS_LABELS[status] ? t(STATUS_LABELS[status]) : status) ?? t("common.state.unknown");
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -20,8 +35,10 @@ export default async function RevenuePage() {
   let payouts: Array<{ id: string; amount: number; currency: string; arrival_date: number; status: string }> = [];
   let transactions: Array<{ id: string; amount: number; currency: string | null; status: string | null; created_at: string; client_id: string | null; client?: { full_name: string | null; email: string | null } | null }> = [];
   let isStripe = false;
-  let errorNote: string | null = null;
-  let dbError: string | null = null;
+  // Error NOTE flags — the raw internal messages stay server-side; the coach
+  // only sees a concise actionable line (remediation-log error-masking rule).
+  let stripeNote = false;
+  let dbNote = false;
 
   if (user) {
     const coachId = await resolveCoachId(supabase, user.id);
@@ -44,7 +61,7 @@ export default async function RevenuePage() {
     ]);
     const { data: txData, error: txErr } = txRes;
     if (txErr) {
-      dbError = txErr.message;
+      dbNote = true;
     } else {
       const txRows = (txData ?? []) as unknown as Array<{
         id: string;
@@ -111,8 +128,8 @@ export default async function RevenuePage() {
           }
         }
       }
-    } catch (e: unknown) {
-      errorNote = e instanceof Error ? e.message : String(e);
+    } catch {
+      stripeNote = true;
     }
 
     // Local commission estimate only when Stripe not live — based on real gross
@@ -141,75 +158,106 @@ export default async function RevenuePage() {
     net = gross - commission;
   }
 
+  const nextPayout = payouts.find((p) => p.status !== "paid") ?? null;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Revenue & Payments</h1>
-          <p className="text-sm text-muted-foreground">
-            {isStripe
-              ? "Live Stripe payouts plus your local payment_intents transactions — all real data for this coach."
-              : "Your real transactions from payment_intents (Supabase). Payouts appear once Stripe Connect is active."}
-          </p>
-        </div>
-        {isStripe ? <Badge>Live Stripe data</Badge> : <Badge variant="outline">Real data — payment_intents</Badge>}
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={t("revenue.page.title")}
+        description={isStripe ? t("revenue.page.subtitleLive") : t("revenue.page.subtitleLocal")}
+        actions={
+          isStripe ? (
+            <Badge className="h-7 gap-1.5 rounded-full px-2.5">
+              <span className="size-1.5 rounded-full bg-current" />
+              {t("revenue.page.badgeLive")}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="h-7 gap-1.5 rounded-full px-2.5">
+              <span className="size-1.5 rounded-full bg-current" />
+              {t("revenue.page.badgeLocal")}
+            </Badge>
+          )
+        }
+      />
 
-      {errorNote && <p className="text-xs text-amber-600">Stripe note: {errorNote}</p>}
-      {dbError && <p className="text-xs text-red-600">Database note: {dbError}</p>}
+      {stripeNote && (
+        <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-body-sm text-warning">
+          {t("revenue.notes.stripeMasked")}
+        </p>
+      )}
+      {dbNote && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-body-sm text-destructive">
+          {t("revenue.notes.dbMasked")}
+        </p>
+      )}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Gross revenue</CardTitle>
-            <CardDescription>From succeeded payment_intents</CardDescription>
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{cents(gross)}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Platform commission</CardTitle>
-            <CardDescription>{isStripe ? "Stripe fees (live)" : "15% estimate"}</CardDescription>
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{cents(commission)}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Net payout</CardTitle>
-            <CardDescription>To coach</CardDescription>
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{cents(net)}</div></CardContent>
-        </Card>
+      {/* KPI row — the 4th slot is the next real Stripe settlement when one exists */}
+      <div className={`grid gap-4 sm:grid-cols-2 ${nextPayout ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
+        <StatCard
+          label={t("revenue.kpi.gross.title")}
+          icon={Landmark}
+          value={fmt.money(gross)}
+          footer={<span>{isStripe ? t("revenue.kpi.gross.desc") : t("revenue.kpi.gross.desc")}</span>}
+        />
+        <StatCard
+          label={t("revenue.kpi.commission.title")}
+          icon={Receipt}
+          value={`−${fmt.money(commission)}`}
+          footer={<span>{isStripe ? t("revenue.kpi.commission.descLive") : t("revenue.kpi.commission.descEstimate")}</span>}
+        />
+        <StatCard
+          label={t("revenue.kpi.net.title")}
+          icon={Wallet}
+          value={fmt.money(net)}
+          footer={<span>{t("revenue.kpi.net.desc")}</span>}
+        />
+        {nextPayout && (
+          <StatCard
+            label={t("revenue.kpi.next.title")}
+            icon={Landmark}
+            value={fmt.money(nextPayout.amount)}
+            badge={
+              <span className="rounded bg-primary/15 px-1.5 py-0.5 text-label-sm uppercase tracking-wide text-primary">
+                {statusLabel(nextPayout.status)}
+              </span>
+            }
+            footer={
+              <span className="flex items-center gap-1.5">
+                {t("revenue.kpi.next.arrival", { date: fmt.date(nextPayout.arrival_date * 1000) })}
+              </span>
+            }
+          />
+        )}
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Transactions</CardTitle>
-          <CardDescription>Real payment_intents rows for your coach ({transactions.length} shown). Source: Supabase payment_intents table.</CardDescription>
+        <CardHeader className="pb-2">
+          <CardTitle className="font-display text-headline-md">{t("revenue.tx.title")}</CardTitle>
+          <CardDescription>{t("revenue.tx.desc", { n: transactions.length })}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.tx.id")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.tx.client")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.amount")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.date")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs truncate max-w-[120px]">{t.id.slice(0, 8)}</TableCell>
-                  <TableCell className="text-sm truncate max-w-[160px]">{t.client?.full_name ?? t.client?.email ?? t.client_id?.slice(0, 8) ?? "—"}</TableCell>
-                  <TableCell className="font-medium">{cents(t.amount)} <span className="text-xs text-muted-foreground">{(t.currency ?? "usd").toUpperCase()}</span></TableCell>
-                  <TableCell className="text-sm">{new Date(t.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell><Badge variant={t.status === "succeeded" ? "default" : t.status === "pending" ? "secondary" : "outline"}>{t.status ?? "unknown"}</Badge></TableCell>
+              {transactions.map((tx) => (
+                <TableRow key={tx.id}>
+                  <TableCell className="max-w-[120px] truncate font-mono text-xs text-faint">{tx.id.slice(0, 8)}</TableCell>
+                  <TableCell className="max-w-[160px] truncate text-body-md">{tx.client?.full_name ?? tx.client?.email ?? tx.client_id?.slice(0, 8) ?? "—"}</TableCell>
+                  <TableCell className="text-body-md font-medium tabular-nums">{fmt.money(tx.amount)} <span className="text-xs text-faint">{(tx.currency ?? "usd").toUpperCase()}</span></TableCell>
+                  <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(tx.created_at)}</TableCell>
+                  <TableCell><Badge variant={tx.status === "succeeded" ? "default" : tx.status === "pending" ? "secondary" : "outline"}>{statusLabel(tx.status)}</Badge></TableCell>
                 </TableRow>
               ))}
               {transactions.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">No transactions yet — real data will appear here when clients pay.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="py-8 text-center text-body-md text-muted-foreground">{t("revenue.tx.empty")}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -217,33 +265,33 @@ export default async function RevenuePage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Payouts</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="font-display text-headline-md">{t("revenue.payouts.title")}</CardTitle>
           <CardDescription>
-            {isStripe ? "Real Stripe payouts for your connected account." : "Connect Stripe in Settings to see real payouts. No mock data shown."}
+            {isStripe ? t("revenue.payouts.descLive") : t("revenue.payouts.descLocal")}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Arrival</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.tx.id")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.amount")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("revenue.payouts.arrival")}</TableHead>
+                <TableHead className="text-label-sm uppercase tracking-wider text-faint">{t("common.table.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {payouts.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs">{p.id}</TableCell>
-                  <TableCell>{cents(p.amount)} {p.currency.toUpperCase()}</TableCell>
-                  <TableCell>{new Date(p.arrival_date * 1000).toLocaleDateString()}</TableCell>
-                  <TableCell><Badge variant={p.status === "paid" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
+                  <TableCell className="font-mono text-xs text-faint">{p.id}</TableCell>
+                  <TableCell className="tabular-nums">{fmt.money(p.amount)} {p.currency.toUpperCase()}</TableCell>
+                  <TableCell className="text-body-sm tabular-nums text-muted-foreground">{fmt.date(p.arrival_date * 1000)}</TableCell>
+                  <TableCell><Badge variant={p.status === "paid" ? "default" : "secondary"}>{statusLabel(p.status)}</Badge></TableCell>
                 </TableRow>
               ))}
               {payouts.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-sm text-muted-foreground">No payouts yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="py-8 text-center text-body-md text-muted-foreground">{t("revenue.payouts.empty")}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

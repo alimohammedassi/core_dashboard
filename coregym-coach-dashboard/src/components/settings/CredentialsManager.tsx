@@ -4,10 +4,12 @@ import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { describeError } from "@/lib/user-error";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowDown, ArrowUp, FileText, Loader2, Trash2, Upload } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { ArrowDown, ArrowUp, FileText, Trash2, Upload } from "lucide-react";
 
 export type CredentialType = "achievement" | "certificate";
 
@@ -41,6 +43,7 @@ export function CredentialsManager({
   accept: string;
   emptyText: string;
 }) {
+  const { t, fmt } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [items, setItems] = React.useState<CredentialItem[]>([]);
   const [loading, setLoading] = React.useState(true); // initial load
@@ -58,10 +61,10 @@ export function CredentialsManager({
       .eq("type", type)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
-    if (error) toast.error(describeError(error, "Something went wrong. Please try again."));
+    if (error) toast.error(describeError(error, t("settings.professional.credentials.genericError")));
     setItems((data ?? []) as CredentialItem[]);
     setLoading(false);
-  }, [supabase, coachId, type]);
+  }, [supabase, coachId, type, t]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -74,7 +77,7 @@ export function CredentialsManager({
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
       if (!cancelled) {
-        if (error) toast.error(describeError(error, "Something went wrong. Please try again."));
+        if (error) toast.error(describeError(error, t("settings.professional.credentials.genericError")));
         setItems((data ?? []) as CredentialItem[]);
         setLoading(false);
       }
@@ -82,7 +85,7 @@ export function CredentialsManager({
     return () => {
       cancelled = true;
     };
-  }, [supabase, coachId, type]);
+  }, [supabase, coachId, type, t]);
 
   function uploadWithProgress(
     path: string,
@@ -105,14 +108,14 @@ export function CredentialsManager({
             const { data } = supabase.storage.from("coach-media").getPublicUrl(path);
             resolve({ publicUrl: data.publicUrl, sizeKb: Math.round(file.size / 1024) });
           } else {
-            let msg = "Upload failed";
+            let msg = t("settings.professional.credentials.uploadFailed");
             try {
               msg = JSON.parse(xhr.responseText)?.message ?? msg;
             } catch {}
             reject(new Error(msg));
           }
         };
-        xhr.onerror = () => reject(new Error("Upload failed — check your connection"));
+        xhr.onerror = () => reject(new Error(t("settings.professional.credentials.connectionFailed")));
         xhr.send(file);
       }).catch(reject);
     });
@@ -122,11 +125,11 @@ export function CredentialsManager({
     const isPdf = file.type === "application/pdf";
     const isImage = ["image/jpeg", "image/png", "image/webp"].includes(file.type);
     if (!isPdf && !isImage) {
-      toast.error("Use an image (JPG, PNG, WebP) or a PDF file.");
+      toast.error(t("settings.professional.credentials.wrongType"));
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      toast.error("File is too large — the limit is 50 MB.");
+      toast.error(t("settings.professional.credentials.tooLarge"));
       return;
     }
     setUploading(true);
@@ -144,12 +147,12 @@ export function CredentialsManager({
         file_size_kb: sizeKb,
         sort_order: items.length,
       });
-      if (error) throw new Error(describeError(error, "Request failed — please try again."));
-      toast.success("Uploaded");
+      if (error) throw new Error(describeError(error, t("settings.professional.credentials.requestFailed")));
+      toast.success(t("settings.professional.credentials.uploaded"));
       setNewTitle("");
       await load();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
+      toast.error(err instanceof Error ? err.message : t("settings.professional.credentials.uploadFailed"));
     } finally {
       setUploading(false);
       setProgress(0);
@@ -158,17 +161,17 @@ export function CredentialsManager({
   }
 
   async function handleRemove(item: CredentialItem) {
-    if (!window.confirm(`Remove "${item.title}"? This cannot be undone.`)) return;
+    if (!window.confirm(t("settings.professional.credentials.removeConfirm", { title: item.title }))) return;
     setBusyId(item.id);
     try {
       const marker = item.file_url.split("?")[0].split("/coach-media/")[1];
       if (marker) await supabase.storage.from("coach-media").remove([decodeURIComponent(marker)]);
       const { error } = await supabase.from("coach_content").delete().eq("id", item.id);
-      if (error) throw new Error(describeError(error, "Request failed — please try again."));
+      if (error) throw new Error(describeError(error, t("settings.professional.credentials.requestFailed")));
       setItems((prev) => prev.filter((i) => i.id !== item.id));
-      toast.success("Removed");
+      toast.success(t("settings.professional.credentials.removed"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Remove failed");
+      toast.error(err instanceof Error ? err.message : t("settings.professional.credentials.removeFailed"));
     } finally {
       setBusyId(null);
     }
@@ -185,11 +188,11 @@ export function CredentialsManager({
         .from("coach_content")
         .update({ file_url: publicUrl, file_size_kb: Math.round(file.size / 1024) })
         .eq("id", item.id);
-      if (error) throw new Error(describeError(error, "Request failed — please try again."));
+      if (error) throw new Error(describeError(error, t("settings.professional.credentials.requestFailed")));
       await load();
-      toast.success("Replaced");
+      toast.success(t("settings.professional.credentials.replaced"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Replace failed");
+      toast.error(err instanceof Error ? err.message : t("settings.professional.credentials.replaceFailed"));
     } finally {
       setBusyId(null);
     }
@@ -210,7 +213,7 @@ export function CredentialsManager({
       );
       await load();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Reorder failed");
+      toast.error(err instanceof Error ? err.message : t("settings.professional.credentials.reorderFailed"));
     } finally {
       setBusyId(null);
     }
@@ -219,12 +222,16 @@ export function CredentialsManager({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={`cm-title-${type}`}>Title (optional)</Label>
+        <Label htmlFor={`cm-title-${type}`}>{t("settings.professional.credentials.title")}</Label>
         <Input
           id={`cm-title-${type}`}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
-          placeholder={type === "achievement" ? "e.g. Regional bodybuilding champion 2025" : "e.g. NASM Certified Personal Trainer"}
+          placeholder={t(
+            type === "achievement"
+              ? "settings.professional.credentials.titlePlaceholderAchievement"
+              : "settings.professional.credentials.titlePlaceholderCertificate"
+          )}
         />
       </div>
       <input
@@ -246,11 +253,11 @@ export function CredentialsManager({
       >
         {uploading ? (
           <>
-            <Loader2 className="mr-1 size-3.5 animate-spin" /> Uploading… {progress}%
+            <Spinner size="sm" className="me-1" /> {t("settings.professional.credentials.uploading", { n: progress })}
           </>
         ) : (
           <>
-            <Upload className="mr-1 size-3.5" /> {`Upload ${type === "achievement" ? "achievement photo" : "certificate (image or PDF)"}`}
+            <Upload className="me-1 size-3.5" /> {t(type === "achievement" ? "settings.professional.credentials.uploadAchievement" : "settings.professional.credentials.uploadCertificate")}
           </>
         )}
       </Button>
@@ -261,7 +268,7 @@ export function CredentialsManager({
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("common.state.loading")}</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyText}</p>
       ) : (
@@ -285,8 +292,8 @@ export function CredentialsManager({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {isPdf ? "PDF document" : "Image"}
-                    {item.file_size_kb ? ` · ${item.file_size_kb} KB` : ""}
+                    {isPdf ? t("settings.professional.credentials.pdfDoc") : t("settings.professional.credentials.image")}
+                    {item.file_size_kb ? t("settings.professional.credentials.sizeKb", { n: fmt.num(item.file_size_kb) }) : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5">
@@ -295,7 +302,7 @@ export function CredentialsManager({
                     variant="ghost"
                     size="icon"
                     className="size-7"
-                    aria-label="Move up"
+                    aria-label={t("settings.professional.credentials.moveUp")}
                     disabled={i === 0 || busyId !== null}
                     onClick={() => move(i, -1)}
                   >
@@ -306,13 +313,13 @@ export function CredentialsManager({
                     variant="ghost"
                     size="icon"
                     className="size-7"
-                    aria-label="Move down"
+                    aria-label={t("settings.professional.credentials.moveDown")}
                     disabled={i === items.length - 1 || busyId !== null}
                     onClick={() => move(i, 1)}
                   >
                     <ArrowDown className="size-3.5" />
                   </Button>
-                  <label className="cursor-pointer" title="Replace file">
+                  <label className="cursor-pointer" title={t("settings.professional.credentials.replaceFile")}>
                     <input
                       type="file"
                       accept={accept}
@@ -323,7 +330,7 @@ export function CredentialsManager({
                       }}
                     />
                     <span className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
-                      {busyId === item.id ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                      {busyId === item.id ? <Spinner size="sm" /> : <Upload className="size-3.5" />}
                     </span>
                   </label>
                   <Button
@@ -331,7 +338,7 @@ export function CredentialsManager({
                     variant="ghost"
                     size="icon"
                     className="size-7 text-destructive"
-                    aria-label={`Remove ${item.title}`}
+                    aria-label={t("settings.professional.credentials.removeAria", { title: item.title })}
                     disabled={busyId !== null}
                     onClick={() => handleRemove(item)}
                   >

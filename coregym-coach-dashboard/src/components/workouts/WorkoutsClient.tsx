@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Copy, Pencil, Send, Trash2, Layers } from "lucide-react";
+import { Copy, Dumbbell, Layers, Pencil, PlusCircle, Send, Trash2 } from "lucide-react";
 import type { WorkoutTemplate } from "@/lib/supabase/types";
 import type { ActiveClient } from "@/lib/workouts";
 import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/core/EmptyState";
 import { TemplateBuilder, seedForCreate, seedForEdit, type BuilderSeed } from "@/components/workouts/TemplateBuilder";
 import { AssignDialog, type AssignSeed } from "@/components/workouts/AssignDialog";
 
@@ -17,6 +17,22 @@ function tomorrowLocal(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Muscle chips use the biomechanical palette (spec: data-viz emphasis only).
+// Known groups get their anatomical color; everything else stays graphite.
+const MUSCLE_CHIP: Record<string, string> = {
+  chest: "bg-[#ea7a72]/15 text-[#ea7a72] border-[#ea7a72]/30",
+  arms: "bg-[#54c7be]/15 text-[#54c7be] border-[#54c7be]/30",
+  legs: "bg-[#7e71e0]/15 text-[#7e71e0] border-[#7e71e0]/30",
+  core: "bg-[#e87fa2]/15 text-[#e87fa2] border-[#e87fa2]/30",
+};
+
+function MuscleChip({ label }: { label: string }) {
+  const cls = MUSCLE_CHIP[label.toLowerCase()] ?? "bg-secondary text-muted-foreground border-border";
+  return (
+    <span className={`rounded-[6px] border px-2 py-0.5 text-label-md capitalize ${cls}`}>{label}</span>
+  );
 }
 
 export function WorkoutsClient({
@@ -34,6 +50,11 @@ export function WorkoutsClient({
   const [builderNonce, setBuilderNonce] = React.useState(0);
   const [assign, setAssign] = React.useState<AssignSeed | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  function openCreate() {
+    setBuilderSeed(seedForCreate());
+    setBuilderNonce((n) => n + 1);
+  }
 
   function upsertSaved(t: WorkoutTemplate) {
     setTemplates((prev) => {
@@ -77,65 +98,78 @@ export function WorkoutsClient({
   return (
     <>
       <div className="flex justify-end">
-        <Button
-          onClick={() => {
-            setBuilderSeed(seedForCreate());
-            setBuilderNonce((n) => n + 1);
-          }}
-        >
+        <Button size="lg" onClick={openCreate}>
+          <PlusCircle className="size-4" />
           {t("workouts.list.createTemplate")}
         </Button>
       </div>
 
       {templates.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <Layers className="size-8 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="font-medium">{t("workouts.list.emptyTitle")}</p>
-              <p className="text-sm text-muted-foreground">{t("workouts.list.emptyBody")}</p>
-            </div>
-            <Button
-              onClick={() => {
-                setBuilderSeed(seedForCreate());
-                setBuilderNonce((n) => n + 1);
-              }}
-            >
-              {t("workouts.list.createTemplate")}
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Layers}
+          title={t("workouts.list.emptyTitle")}
+          hint={t("workouts.list.emptyBody")}
+          action={
+            <Button onClick={openCreate}>{t("workouts.list.createTemplate")}</Button>
+          }
+        />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {templates.map((tpl) => (
             <Card key={tpl.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-base">{tpl.name}</CardTitle>
-                {(tpl.target_muscles?.length ?? 0) > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {tpl.target_muscles.map((m) => (
-                      <Badge key={m} variant="secondary" className="rounded-full">
-                        {m}
-                      </Badge>
+              <CardContent className="flex flex-1 flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {(tpl.target_muscles ?? []).map((m) => (
+                      <MuscleChip key={m} label={m} />
                     ))}
                   </div>
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-display text-headline-sm text-foreground">{tpl.name}</h3>
+                  <p className="flex items-center gap-1.5 text-body-sm text-faint">
+                    <Dumbbell className="size-3.5" />
+                    {(tpl.exercises?.length ?? 0) === 1
+                      ? t("workouts.list.exercisesOne")
+                      : t("workouts.list.exercisesMany", { n: tpl.exercises?.length ?? 0 })}
+                  </p>
+                </div>
+
+                {(tpl.exercises?.length ?? 0) > 0 && (
+                  <div className="rounded-lg bg-secondary/70 p-3">
+                    <p className="pb-1.5 text-label-sm uppercase tracking-wider text-faint">
+                      {t("workouts.list.blueprint")}
+                    </p>
+                    <ol className="space-y-1">
+                      {(tpl.exercises ?? []).slice(0, 5).map((e, i) => (
+                        <li key={e.id} className="flex items-baseline justify-between gap-2 text-body-sm">
+                          <span className="truncate text-foreground">
+                            {i + 1}. {e.exercise_name}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-faint">
+                            {e.target_sets}
+                            {e.target_reps ? `×${e.target_reps}` : ""}
+                            {e.target_weight_kg ? ` @ ${e.target_weight_kg}kg` : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    {(tpl.exercises?.length ?? 0) > 5 && (
+                      <p className="pt-1.5 text-label-md text-faint">
+                        {t("workouts.list.moreExercises", { n: (tpl.exercises?.length ?? 0) - 5 })}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3">
-                <p className="text-sm text-muted-foreground">
-                  {(tpl.exercises?.length ?? 0) === 1
-                    ? t("workouts.list.exercisesOne")
-                    : t("workouts.list.exercisesMany", { n: tpl.exercises?.length ?? 0 })}
-                  {tpl.exercises && tpl.exercises.length > 0 && (
-                    <span className="truncate"> · {tpl.exercises.map((e) => e.exercise_name).join(", ")}</span>
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">
+
+                <p className="mt-auto flex items-center gap-1.5 text-body-sm text-faint">
+                  <span className="size-1.5 rounded-full bg-primary/60" />
                   {t("workouts.list.updated", { date: fmt.date(tpl.updated_at) })}
                 </p>
-                <div className="mt-auto grid grid-cols-2 gap-2">
+
+                <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     disabled={busyId === tpl.id}
                     onClick={() => {
@@ -143,40 +177,46 @@ export function WorkoutsClient({
                       setBuilderNonce((n) => n + 1);
                     }}
                   >
-                    <Pencil className="me-1 size-3.5" /> {t("common.actions.edit")}
+                    <Pencil className="size-3.5" /> {t("common.actions.edit")}
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     disabled={busyId === tpl.id}
                     onClick={() => handleDuplicate(tpl)}
                   >
-                    <Copy className="me-1 size-3.5" /> {t("common.actions.duplicate")}
+                    <Copy className="size-3.5" /> {t("common.actions.duplicate")}
                   </Button>
                   <Button
                     size="sm"
                     disabled={busyId === tpl.id}
                     onClick={() => setAssign({ template: tpl, mode: "assign", defaultDate: tomorrowLocal() })}
                   >
-                    <Send className="me-1 size-3.5" /> {t("workouts.list.assign")}
+                    <Send className="size-3.5" /> {t("workouts.list.assign")}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busyId === tpl.id}
-                    onClick={() => setAssign({ template: tpl, mode: "program", defaultDate: tomorrowLocal() })}
-                  >
-                    <Layers className="me-1 size-3.5" /> {t("workouts.list.program")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive col-span-2"
-                    disabled={busyId === tpl.id}
-                    onClick={() => handleDelete(tpl)}
-                  >
-                    <Trash2 className="me-1 size-3.5" /> {t("common.actions.delete")}
-                  </Button>
+                  <div className="ms-auto flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("workouts.list.program")}
+                      title={t("workouts.list.program")}
+                      disabled={busyId === tpl.id}
+                      onClick={() => setAssign({ template: tpl, mode: "program", defaultDate: tomorrowLocal() })}
+                    >
+                      <Layers className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("common.actions.delete")}
+                      title={t("common.actions.delete")}
+                      className="text-destructive hover:text-destructive"
+                      disabled={busyId === tpl.id}
+                      onClick={() => handleDelete(tpl)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

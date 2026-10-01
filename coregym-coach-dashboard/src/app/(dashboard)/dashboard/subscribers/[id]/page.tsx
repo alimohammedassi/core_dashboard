@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { GlobalLink } from "@/components/shared/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -11,10 +11,12 @@ import {
   loadRecentNutritionChanges,
   loadTodayNutrition,
 } from "@/lib/nutrition";
+import { getI18n } from "@/lib/i18n/server";
+import type { TKey } from "@/lib/i18n/dictionary";
 import { RegenerateNutritionButton } from "@/components/subscribers/RegenerateNutritionButton";
 import { EnrollmentActions } from "@/components/subscribers/EnrollmentActions";
 import { ExerciseResults } from "@/components/subscribers/ExerciseResults";
-import { AiAnalysisCard } from "@/components/subscribers/AiAnalysisCard";
+import { AiAnalysisCard } from "@/components/subscribers/ai/AiAnalysisCard";
 import { NutritionTrends } from "@/components/nutrition/NutritionTrends";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -22,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AvatarImage } from "@/components/ui/avatar";
+import { ChevronLeft, MessageSquare } from "lucide-react";
 
 type SubDetail = {
   id: string;
@@ -83,7 +87,28 @@ type Measurement = {
   waist_cm: number | null;
 };
 
+const SUB_STATUS: Record<string, TKey> = {
+  active: "subscribers.status.active",
+  paused: "subscribers.status.paused",
+  cancelled: "subscribers.status.cancelled",
+  canceled: "subscribers.status.canceled",
+  past_due: "subscribers.status.pastDue",
+  trialing: "subscribers.status.trialing",
+  expired: "subscribers.status.expired",
+  completed: "subscribers.status.completed",
+};
+
+const WORKOUT_STATUS: Record<string, TKey> = {
+  assigned: "subscribers.workoutStatus.assigned",
+  started: "subscribers.workoutStatus.started",
+  completed: "subscribers.workoutStatus.completed",
+  skipped: "subscribers.workoutStatus.skipped",
+};
+
 export default async function SubscriberDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t, fmt } = await getI18n();
+  const subLabel = (s: string) => (SUB_STATUS[s] ? t(SUB_STATUS[s]) : s);
+  const wsLabel = (s: string) => (WORKOUT_STATUS[s] ? t(WORKOUT_STATUS[s]) : s);
   const { id } = await params;
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -153,13 +178,6 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   const completed = assigned.filter((a) => a.status === "completed");
   const skipped = assigned.filter((a) => a.status === "skipped");
 
-  const statusLabel: Record<string, string> = {
-    assigned: "Assigned",
-    started: "In progress",
-    completed: "Completed",
-    skipped: "Skipped",
-  };
-
   // ── Customer logged data (shared DB; RLS lets a coach read subscribed clients)
   const since = daysAgoISO(14);
   const [goalsRes, summariesRes, nutritionRes, sessionsRes, measurementsRes] = await Promise.all([
@@ -221,7 +239,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   const weightDelta =
     latestWeight != null && firstWeight != null ? Math.round((latestWeight - firstWeight) * 10) / 10 : null;
 
-  const name = sub.client.full_name ?? sub.client.email ?? "Client";
+  const name = sub.client.full_name ?? sub.client.email ?? t("subscribers.detail.clientFallback");
 
   // ── Exercise Results visual data (working sets only; warmups excluded)
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
@@ -289,122 +307,167 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   const recentMeals = nutrition.slice(0, 3);
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/dashboard/subscribers" className="hover:text-foreground">← Subscribers</Link>
+    <div className="flex flex-col gap-5">
+      <div>
+        <Button render={<GlobalLink href="/dashboard/subscribers" />} variant="ghost" size="sm" className="-ms-2 text-muted-foreground">
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {t("subscribers.detail.back")}
+        </Button>
       </div>
-      <h1 className="-mt-4 text-2xl font-bold tracking-tight">Customer profile</h1>
 
-      {/* ── AI analysis (V1): coach-triggered, read-only, on demand ─────────── */}
-      <AiAnalysisCard subscriptionId={sub.id} />
-
-      {/* Identity + subscription */}
+      {/* ── Identity hero — Stitch client profile header ──────────────────── */}
       <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-          <Avatar className="size-12">
-            <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+        <CardContent className="flex flex-wrap items-center gap-4 py-5">
+          <Avatar className="size-16 ring-2 ring-primary/40">
+            {sub.client.avatar_url ? <AvatarImage src={sub.client.avatar_url} alt="" /> : null}
+            <AvatarFallback className="text-lg">{name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div>
-            <CardTitle className="text-lg">{name}</CardTitle>
-            <CardDescription>{sub.client.email ?? ""}</CardDescription>
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-headline-md tracking-tight text-foreground">{name}</h1>
+              <Badge variant={sub.status === "active" ? "default" : "secondary"} className="uppercase">
+                {subLabel(sub.status)}
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+              {sub.client.email && <span>{sub.client.email}</span>}
+              {sub.plan?.name && (
+                <span className="rounded bg-secondary px-2 py-0.5 text-label-md text-foreground">{sub.plan.name}</span>
+              )}
+              <span className="text-faint">
+                {t("subscribers.detail.since", { date: fmt.date(sub.start_date) })}
+              </span>
+            </div>
           </div>
-          <Badge className="ml-auto" variant={sub.status === "active" ? "default" : "secondary"}>
-            {sub.status}
-          </Badge>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className="ms-auto flex items-center gap-2">
+            <Button render={<GlobalLink href={`/dashboard/chat?client=${clientId}`} />} variant="secondary" size="lg">
+              <MessageSquare className="size-4 text-faint" />
+              {t("subscribers.detail.sendMessage")}
+            </Button>
+          </div>
+        </CardContent>
+        <CardContent className="grid gap-4 border-t border-border/60 pt-4 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <p className="text-xs text-muted-foreground">Plan</p>
-            <p className="font-medium">{sub.plan?.name ?? "—"}</p>
+            <p className="text-label-sm uppercase tracking-wider text-faint">{t("subscribers.detail.plan")}</p>
+            <p className="mt-0.5 font-medium">{sub.plan?.name ?? "—"}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Price</p>
-            <p className="font-medium">{sub.plan?.price_usd != null ? `$${sub.plan.price_usd.toFixed(2)}` : "—"}</p>
+            <p className="text-label-sm uppercase tracking-wider text-faint">{t("subscribers.detail.price")}</p>
+            <p className="mt-0.5 font-medium tabular-nums">
+              {sub.plan?.price_usd != null ? fmt.money(sub.plan.price_usd * 100) : "—"}
+            </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Start</p>
-            <p className="text-sm">{new Date(sub.start_date).toLocaleDateString()}</p>
+            <p className="text-label-sm uppercase tracking-wider text-faint">{t("subscribers.detail.start")}</p>
+            <p className="mt-0.5 text-sm tabular-nums">{fmt.date(sub.start_date)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">End</p>
-            <p className="text-sm">{sub.end_date ? new Date(sub.end_date).toLocaleDateString() : "—"}</p>
+            <p className="text-label-sm uppercase tracking-wider text-faint">{t("subscribers.detail.end")}</p>
+            <p className="mt-0.5 text-sm tabular-nums">{sub.end_date ? fmt.date(sub.end_date) : "—"}</p>
           </div>
         </CardContent>
       </Card>
 
+      {/* ── AI analysis (V1): coach-triggered, read-only, on demand ─────────── */}
+      <AiAnalysisCard subscriptionId={sub.id} />
+
       {/* ── PRIORITY 1: Client progress ─────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Progress</CardTitle>
-          <CardDescription>Goal progress, program status and recent achievements.</CardDescription>
+          <CardTitle className="text-base">{t("subscribers.progress.title")}</CardTitle>
+          <CardDescription>{t("subscribers.progress.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Weight</p>
-              <div className="text-2xl font-bold">{latestWeight != null ? `${latestWeight} kg` : "—"}</div>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">{t("subscribers.progress.weight")}</p>
+              <div className="font-display text-2xl font-bold tabular-nums">{latestWeight != null ? `${latestWeight} kg` : "—"}</div>
               <p className="text-xs text-muted-foreground">
-                {weightDelta != null ? `${weightDelta > 0 ? "+" : ""}${weightDelta} kg since first log` : "Need 2+ logs"}
-                {goals?.target_weight_kg ? ` · Target ${goals.target_weight_kg} kg` : ""}
+                {weightDelta != null
+                  ? t("subscribers.progress.weightDelta", { delta: `${weightDelta > 0 ? "+" : ""}${weightDelta}` })
+                  : t("subscribers.progress.weightNeedLogs")}
+                {goals?.target_weight_kg
+                  ? ` · ${t("subscribers.progress.weightTarget", { n: goals.target_weight_kg })}`
+                  : ""}
               </p>
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Calories (latest day)</p>
-              <div className="text-2xl font-bold">{today?.calories_consumed ?? 0}</div>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">{t("subscribers.progress.calories")}</p>
+              <div className="font-display text-2xl font-bold tabular-nums">{fmt.num(today?.calories_consumed ?? 0)}</div>
               <p className="text-xs text-muted-foreground">
-                {goals?.daily_calories ? `Goal ${goals.daily_calories} kcal` : "No goal set"}
-                {today ? ` · ${today.summary_date}` : ""}
+                {goals?.daily_calories
+                  ? t("subscribers.progress.goalKcal", { n: fmt.num(goals.daily_calories) })
+                  : t("subscribers.progress.noGoal")}
+                {today ? ` · ${fmt.date(today.summary_date)}` : ""}
               </p>
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Steps (latest day)</p>
-              <div className="text-2xl font-bold">{(today?.steps ?? 0).toLocaleString("en-US")}</div>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">{t("subscribers.progress.steps")}</p>
+              <div className="font-display text-2xl font-bold tabular-nums">{fmt.num(today?.steps ?? 0)}</div>
               <p className="text-xs text-muted-foreground">
-                {goals?.daily_steps ? `Goal ${goals.daily_steps.toLocaleString("en-US")}` : "No goal set"}
+                {goals?.daily_steps
+                  ? t("subscribers.progress.goalSteps", { n: fmt.num(goals.daily_steps) })
+                  : t("subscribers.progress.noGoal")}
               </p>
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Workouts (this week)</p>
-              <div className="text-2xl font-bold">{workoutsThisWeek}</div>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">{t("subscribers.progress.workouts")}</p>
+              <div className="font-display text-2xl font-bold tabular-nums">{workoutsThisWeek}</div>
               <p className="text-xs text-muted-foreground">
-                {goals?.weekly_workouts ? `Goal ${goals.weekly_workouts}/week` : "No goal set"}
+                {goals?.weekly_workouts
+                  ? t("subscribers.progress.goalPerWeek", { n: goals.weekly_workouts })
+                  : t("subscribers.progress.noGoal")}
                 {" · "}
-                {sessionsLast30} in 30d
+                {t("subscribers.progress.in30d", { n: sessionsLast30 })}
               </p>
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Current program</p>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                {t("subscribers.progress.program")}
+              </p>
               {activeEnrollment ? (
                 <>
                   <p className="mt-1 text-sm font-medium">{activeEnrollment.program_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    Week {programWeek} of {activeEnrollment.duration_weeks} · started {activeEnrollment.start_date}
+                    {t("subscribers.progress.programWeek", {
+                      week: programWeek ?? 1,
+                      total: activeEnrollment.duration_weeks,
+                      date: fmt.date(activeEnrollment.start_date),
+                    })}
                   </p>
                 </>
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">No active program</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("subscribers.progress.noProgram")}</p>
               )}
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Latest personal record</p>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                {t("subscribers.progress.pr")}
+              </p>
               {latestPR ? (
                 <>
                   <p className="mt-1 text-sm font-medium">
                     {latestPR.exercise_name} · {latestPR.max_weight != null ? `${Number(latestPR.max_weight)} kg` : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Achieved {latestPR.achieved_date}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {latestPR.achieved_date != null
+                      ? t("subscribers.progress.prAchieved", { date: fmt.date(latestPR.achieved_date) })
+                      : "—"}
+                  </p>
                 </>
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">No personal records yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("subscribers.progress.noPr")}</p>
               )}
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Volume trend (8 weeks)</p>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                {t("subscribers.progress.volumeTrend")}
+              </p>
               {weekly.every((w) => w.volume === 0) ? (
-                <p className="mt-1 text-sm text-muted-foreground">No logged volume yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("subscribers.progress.noVolume")}</p>
               ) : (
                 <div className="mt-2 flex h-14 items-end gap-1">
                   {weekly.map((w) => {
@@ -414,7 +477,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                         key={w.weekStart}
                         className="flex-1 rounded-t bg-primary/70"
                         style={{ height: `${Math.max((w.volume / max) * 100, w.volume > 0 ? 8 : 2)}%` }}
-                        title={`${w.weekStart}: ${w.volume.toLocaleString("en-US")} kg`}
+                        title={t("subscribers.progress.volumeTip", { date: w.weekStart, volume: fmt.num(w.volume) })}
                       />
                     );
                   })}
@@ -428,45 +491,65 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       {/* ── Assigned nutrition plan ─────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Assigned nutrition plan</CardTitle>
+          <CardTitle className="text-base">{t("subscribers.nutritionPlan.title")}</CardTitle>
           <CardDescription>
             {nutritionEnrollments.length === 0
-              ? "No nutrition program assigned yet."
-              : `${nutritionEnrollments.length} assignment${nutritionEnrollments.length === 1 ? "" : "s"} · prescribed vs client changes preserved.`}
+              ? t("subscribers.nutritionPlan.empty")
+              : t(
+                  nutritionEnrollments.length === 1
+                    ? "subscribers.nutritionPlan.countOne"
+                    : "subscribers.nutritionPlan.countMany",
+                  { n: nutritionEnrollments.length }
+                )}
           </CardDescription>
         </CardHeader>
         {nutritionEnrollments.length > 0 && (
           <CardContent className="space-y-4">
             {nutritionEnrollments.map((ne) => (
-              <div key={ne.id} className="rounded-lg border p-3 space-y-1">
+              <div key={ne.id} className="rounded-lg bg-secondary/50 p-3 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium text-sm">{ne.program_name}</p>
-                  <Badge variant={ne.status === "active" ? "default" : "outline"}>{ne.status}</Badge>
+                  <Badge variant={ne.status === "active" ? "default" : "outline"}>{subLabel(ne.status)}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {ne.start_date} · {ne.duration_weeks} weeks · adherence{" "}
-                  {ne.adherence.pct == null
-                    ? "— (no elapsed meals)"
-                    : `${ne.adherence.pct}% (${ne.adherence.completed}/${ne.adherence.planned} meals${ne.adherence.skipped > 0 ? `, ${ne.adherence.skipped} skipped` : ""})`}
+                  {t("subscribers.nutritionPlan.enrollmentMeta", {
+                    date: fmt.date(ne.start_date),
+                    weeks: ne.duration_weeks,
+                    detail:
+                      ne.adherence.pct == null
+                        ? t("subscribers.adherence.none")
+                        : ne.adherence.skipped > 0
+                          ? t("subscribers.adherence.pctSkipped", {
+                              pct: ne.adherence.pct,
+                              completed: ne.adherence.completed,
+                              planned: ne.adherence.planned,
+                              skipped: ne.adherence.skipped,
+                            })
+                          : t("subscribers.adherence.pct", {
+                              pct: ne.adherence.pct,
+                              completed: ne.adherence.completed,
+                              planned: ne.adherence.planned,
+                            }),
+                  })}
                 </p>
                 {ne.status === "active" && <RegenerateNutritionButton enrollmentId={ne.id} />}
-                <Link
+                <GlobalLink
                   href={`/dashboard/subscribers/${id}/nutrition/${ne.id}`}
                   className="inline-flex items-center text-xs font-medium text-primary hover:underline"
                 >
-                  View full program →
-                </Link>
+                  {t("subscribers.shared.viewFull")}
+                </GlobalLink>
               </div>
             ))}
 
             {todayNutrition.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Today&apos;s prescribed meals</p>
+                <p className="text-sm font-medium">{t("subscribers.nutritionPlan.todayMeals")}</p>
                 {todayNutrition.map((m) => (
-                  <div key={m.assignmentId} className="rounded-lg border px-3 py-2 text-sm space-y-1">
+                  <div key={m.assignmentId} className="rounded-lg bg-secondary/50 px-3 py-2 text-sm space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{m.meal_name}</span>
-                      <Badge variant={m.status === "completed" ? "default" : "outline"}>{m.status}</Badge>
+                      <Badge variant={m.status === "completed" ? "default" : "outline"}>{wsLabel(m.status)}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {m.totals.calories} kcal · {m.totals.protein_g}P / {m.totals.carbs_g}C / {m.totals.fat_g}F
@@ -480,7 +563,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                               {" — "}
                               {f.current_quantity} {f.serving_unit}{" "}
                               <Badge variant="secondary" className="text-[10px]">
-                                Swapped
+                                {t("subscribers.nutritionPlan.swapped")}
                               </Badge>{" "}
                               <span className="line-through">
                                 {f.food_name} — {f.prescribed_quantity} {f.serving_unit}
@@ -491,8 +574,13 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                               {f.food_name} — {f.prescribed_quantity} {f.serving_unit}
                               {f.change_type && (
                                 <span className="text-amber-600">
-                                  {" "}→ adjusted
-                                  {f.current_quantity != null ? ` to ${f.current_quantity} ${f.serving_unit}` : ""}
+                                  {" "}
+                                  {f.current_quantity != null
+                                    ? t("subscribers.nutritionPlan.adjustedTo", {
+                                        qty: f.current_quantity,
+                                        unit: f.serving_unit ?? "",
+                                      })
+                                    : t("subscribers.nutritionPlan.adjusted")}
                                 </span>
                               )}
                             </>
@@ -507,14 +595,17 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
 
             {nutritionChanges.length > 0 && (
               <CollapsibleSection
-                title="Client changes"
-                description={`Substitutions and quantity changes (${nutritionChanges.length} recent).`}
+                title={t("subscribers.nutritionPlan.clientChanges")}
+                description={t("subscribers.nutritionPlan.changesDesc", { n: nutritionChanges.length })}
               >
                 <ul className="space-y-1.5">
                   {nutritionChanges.map((c) => (
                     <li key={c.id} className="rounded-lg border px-3 py-2 text-xs">
-                      <span className="font-medium">{c.meal_name ?? "Meal"}</span>
-                      <span className="text-muted-foreground"> · {c.plan_date ?? "—"} · {c.change_type}</span>
+                      <span className="font-medium">{c.meal_name ?? t("subscribers.nutritionPlan.mealFallback")}</span>
+                      <span className="text-muted-foreground">
+                        {" · "}
+                        {c.plan_date ? fmt.date(c.plan_date) : "—"} · {c.change_type}
+                      </span>
                       <br />
                       <span>
                         {c.original_food_name ?? "—"} ({c.original_quantity ?? "—"}) →{" "}
@@ -532,33 +623,37 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       {/* ── PRIORITY 2: Nutrition ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Nutrition</CardTitle>
-          <CardDescription>Recent meals and today&apos;s macros, logged in the app.</CardDescription>
+          <CardTitle className="text-base">{t("subscribers.nutrition.title")}</CardTitle>
+          <CardDescription>{t("subscribers.nutrition.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-4">
             <div className="rounded-lg border bg-muted/30 p-3 text-center">
-              <p className="text-xs text-muted-foreground">Today&apos;s kcal</p>
-              <p className="text-xl font-bold">{macros.kcal.toLocaleString("en-US")}</p>
+              <p className="text-xs text-muted-foreground">{t("subscribers.nutrition.todayKcal")}</p>
+              <p className="font-display text-xl font-bold tabular-nums">{fmt.num(macros.kcal)}</p>
               {goals?.daily_calories ? (
                 <p className="text-xs text-muted-foreground">
-                  {macros.kcal > goals.daily_calories ? "Over" : macros.kcal > 0 ? "Within" : "No"} {goals.daily_calories} goal
+                  {macros.kcal > goals.daily_calories
+                    ? t("subscribers.nutrition.goalOver", { n: fmt.num(goals.daily_calories) })
+                    : macros.kcal > 0
+                      ? t("subscribers.nutrition.goalWithin", { n: fmt.num(goals.daily_calories) })
+                      : t("subscribers.nutrition.goalNone", { n: fmt.num(goals.daily_calories) })}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">No goal set</p>
+                <p className="text-xs text-muted-foreground">{t("subscribers.progress.noGoal")}</p>
               )}
             </div>
-            <div className="rounded-lg border p-3 text-center">
-              <p className="text-xs text-muted-foreground">Protein</p>
-              <p className="text-xl font-bold">{macros.p} g</p>
+            <div className="rounded-lg bg-secondary/50 p-3 text-center">
+              <p className="text-xs text-muted-foreground">{t("subscribers.nutrition.protein")}</p>
+              <p className="font-display text-xl font-bold tabular-nums">{macros.p} g</p>
             </div>
-            <div className="rounded-lg border p-3 text-center">
-              <p className="text-xs text-muted-foreground">Carbs</p>
-              <p className="text-xl font-bold">{macros.c} g</p>
+            <div className="rounded-lg bg-secondary/50 p-3 text-center">
+              <p className="text-xs text-muted-foreground">{t("subscribers.nutrition.carbs")}</p>
+              <p className="font-display text-xl font-bold tabular-nums">{macros.c} g</p>
             </div>
-            <div className="rounded-lg border p-3 text-center">
-              <p className="text-xs text-muted-foreground">Fat</p>
-              <p className="text-xl font-bold">{macros.f} g</p>
+            <div className="rounded-lg bg-secondary/50 p-3 text-center">
+              <p className="text-xs text-muted-foreground">{t("subscribers.nutrition.fat")}</p>
+              <p className="font-display text-xl font-bold tabular-nums">{macros.f} g</p>
             </div>
           </div>
 
@@ -567,8 +662,11 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               {recentMeals.map((n) => (
                 <li key={n.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
                   <span className="min-w-0 truncate">
-                    <span className="font-medium">{n.food_name ?? "Food"}</span>
-                    <span className="text-muted-foreground"> · {n.meal_type ?? "meal"} · {n.logged_date}</span>
+                    <span className="font-medium">{n.food_name ?? t("subscribers.nutrition.foodFallback")}</span>
+                    <span className="text-muted-foreground">
+                      {" · "}
+                      {n.meal_type ?? t("subscribers.nutrition.mealTypeFallback")} · {fmt.date(n.logged_date)}
+                    </span>
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {n.calories ?? 0} kcal · {n.protein_g ?? 0}/{n.carbs_g ?? 0}/{n.fat_g ?? 0}
@@ -578,21 +676,21 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
             </ul>
           )}
           {recentMeals.length === 0 && (
-            <p className="text-sm text-muted-foreground">No meals logged yet — meals appear here as the client logs food in the app.</p>
+            <p className="text-sm text-muted-foreground">{t("subscribers.nutrition.recentEmpty")}</p>
           )}
 
           <CollapsibleSection
-            title="View all meals"
-            description={`Full nutrition history (${nutrition.length} recent entries).`}
+            title={t("subscribers.nutrition.viewAll")}
+            description={t("subscribers.nutrition.historyDesc", { n: nutrition.length })}
           >
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Meal</TableHead>
-                    <TableHead>Food</TableHead>
-                    <TableHead>Qty</TableHead>
+                    <TableHead>{t("common.table.date")}</TableHead>
+                    <TableHead>{t("subscribers.nutrition.meal")}</TableHead>
+                    <TableHead>{t("subscribers.nutrition.food")}</TableHead>
+                    <TableHead>{t("subscribers.nutrition.qty")}</TableHead>
                     <TableHead>kcal</TableHead>
                     <TableHead>P / C / F</TableHead>
                   </TableRow>
@@ -600,7 +698,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                 <TableBody>
                   {nutrition.map((n) => (
                     <TableRow key={n.id}>
-                      <TableCell>{n.logged_date}</TableCell>
+                      <TableCell>{fmt.date(n.logged_date)}</TableCell>
                       <TableCell>{n.meal_type ?? "—"}</TableCell>
                       <TableCell>{n.food_name ?? "—"}</TableCell>
                       <TableCell>{n.quantity ?? "—"} {n.serving_unit ?? ""}</TableCell>
@@ -611,7 +709,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                   {nutrition.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                        No nutrition logs yet.
+                        {t("subscribers.nutrition.tableEmpty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -625,9 +723,13 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       {/* ── PRIORITY 3: Workout performance ───────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Workout performance</CardTitle>
+          <CardTitle className="text-base">{t("subscribers.workoutCard.title")}</CardTitle>
           <CardDescription>
-            {completed.length} completed · {workoutsThisWeek} this week · {sessionsLast30} in the last 30 days
+            {t("subscribers.workoutCard.desc", {
+              completed: completed.length,
+              thisWeek: workoutsThisWeek,
+              last30: sessionsLast30,
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -638,15 +740,15 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       {nutritionDetail && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Nutrition trends</CardTitle>
+            <CardTitle className="text-base">{t("subscribers.trends.title")}</CardTitle>
             <CardDescription>
-              {nutritionDetail.enrollment.program_name} · prescribed vs actual per week ·{" "}
-              <Link
+              {t("subscribers.trends.descDetail", { program: nutritionDetail.enrollment.program_name })}{" "}
+              <GlobalLink
                 href={`/dashboard/subscribers/${id}/nutrition/${nutritionDetail.enrollment.id}`}
                 className="text-primary hover:underline"
               >
-                View full program →
-              </Link>
+                {t("subscribers.shared.viewFull")}
+              </GlobalLink>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -656,32 +758,50 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       )}
 
       <CollapsibleSection
-        title="Session details"
-        description="Set-by-set log of recent sessions from the app."
+        title={t("subscribers.sessions.title")}
+        description={t("subscribers.sessions.desc")}
         summary={
           sessions.length > 0
-            ? `${sessions.length} recent session${sessions.length === 1 ? "" : "s"} · latest ${sessions[0]?.session_date ?? "—"}`
-            : "No sessions logged yet"
+            ? t(
+                sessions.length === 1 ? "subscribers.sessions.summaryOne" : "subscribers.sessions.summaryMany",
+                {
+                  n: sessions.length,
+                  date: sessions[0]?.session_date ? fmt.date(sessions[0].session_date) : "—",
+                }
+              )
+            : t("subscribers.sessions.none")
         }
       >
         <div className="space-y-3">
           {sessions.map((s) => {
             const sessionSets = sets.filter((st) => st.session_id === s.id);
             return (
-              <div key={s.id} className="rounded-lg border p-3">
+              <div key={s.id} className="rounded-lg bg-secondary/50 p-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-sm">{s.session_name ?? "Workout"}</p>
+                  <p className="font-medium text-sm">{s.session_name ?? t("subscribers.sessions.workoutFallback")}</p>
                   {s.muscle_group && <Badge variant="secondary">{s.muscle_group}</Badge>}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {s.session_date ? new Date(s.session_date).toLocaleDateString() : ""} · {s.duration_min ?? 0} min
+                  <span className="ms-auto text-xs text-muted-foreground">
+                    {s.session_date
+                      ? t("subscribers.sessions.meta", { date: fmt.date(s.session_date), n: s.duration_min ?? 0 })
+                      : t("subscribers.assignmentPage.duration", { n: s.duration_min ?? 0 })}
                   </span>
                 </div>
                 {sessionSets.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {sessionSets.map((st) => (
                       <li key={st.id} className="text-xs text-muted-foreground">
-                        {st.exercise_name ?? "Exercise"} — set {st.set_number ?? 1}: {st.reps ?? 0} reps
-                        {st.weight_kg != null ? ` @ ${st.weight_kg} kg` : ""}
+                        {st.weight_kg != null
+                          ? t("subscribers.sessions.setLine", {
+                              exercise: st.exercise_name ?? t("subscribers.sessions.exerciseFallback"),
+                              n: st.set_number ?? 1,
+                              reps: st.reps ?? 0,
+                              weight: st.weight_kg,
+                            })
+                          : t("subscribers.sessions.setLineNoWeight", {
+                              exercise: st.exercise_name ?? t("subscribers.sessions.exerciseFallback"),
+                              n: st.set_number ?? 1,
+                              reps: st.reps ?? 0,
+                            })}
                       </li>
                     ))}
                   </ul>
@@ -689,37 +809,44 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               </div>
             );
           })}
-          {sessions.length === 0 && <p className="text-sm text-muted-foreground">No workout sessions logged yet.</p>}
+          {sessions.length === 0 && (
+            <p className="text-sm text-muted-foreground">{t("subscribers.sessions.empty")}</p>
+          )}
         </div>
       </CollapsibleSection>
 
       {/* ── Secondary: collapsed reference sections ───────────────────────── */}
       <CollapsibleSection
-        title="Assigned workouts"
-        description="Templates assigned to this client."
+        title={t("subscribers.assigned.title")}
+        description={t("subscribers.assigned.desc")}
         badge={
           <span className="flex gap-1.5">
-            {upcoming.length > 0 && <Badge variant="outline">{upcoming.length} upcoming</Badge>}
-            {completed.length > 0 && <Badge variant="secondary">{completed.length} completed</Badge>}
+            {upcoming.length > 0 && (
+              <Badge variant="outline">{t("subscribers.assigned.upcomingBadge", { n: upcoming.length })}</Badge>
+            )}
+            {completed.length > 0 && (
+              <Badge variant="secondary">{t("subscribers.assigned.completedBadge", { n: completed.length })}</Badge>
+            )}
           </span>
         }
         summary={
           upcoming.length > 0
-            ? `Next: ${nextUpcoming?.template?.name ?? "Workout"} on ${nextUpcoming?.scheduled_date ?? "—"}`
-            : "No upcoming workouts"
+            ? t("subscribers.assigned.nextUpcoming", {
+                name: nextUpcoming?.template?.name ?? t("subscribers.sessions.workoutFallback"),
+                date: nextUpcoming?.scheduled_date ? fmt.date(nextUpcoming.scheduled_date) : "—",
+              })
+            : t("subscribers.assigned.noUpcoming")
         }
       >
         <div className="space-y-5">
           {assigned.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No assigned workouts yet. Create a template in Workouts, then assign it to this client.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("subscribers.assigned.empty")}</p>
           )}
           {[
-            { title: "Upcoming", rows: upcoming },
-            { title: "In progress", rows: inProgress },
-            { title: "Completed", rows: completed },
-            { title: "Skipped", rows: skipped },
+            { title: t("subscribers.assigned.sectionUpcoming"), rows: upcoming },
+            { title: t("subscribers.workoutStatus.started"), rows: inProgress },
+            { title: t("subscribers.workoutStatus.completed"), rows: completed },
+            { title: t("subscribers.workoutStatus.skipped"), rows: skipped },
           ]
             .filter((section) => section.rows.length > 0)
             .map((section) => (
@@ -729,24 +856,28 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                   {section.rows.map((a) => (
                     <li key={a.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{a.template?.name ?? "Workout"}</p>
+                        <p className="text-sm font-medium">
+                          {a.template?.name ?? t("subscribers.sessions.workoutFallback")}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Scheduled {a.scheduled_date}
-                          {a.program_id ? " · via program" : ""}
+                          {t("subscribers.assigned.scheduled", { date: fmt.date(a.scheduled_date) })}
+                          {a.program_id ? t("subscribers.assigned.viaProgram") : ""}
                         </p>
                       </div>
                       <Badge
-                        className="ml-auto"
+                        className="ms-auto"
                         variant={a.status === "completed" ? "default" : a.status === "skipped" ? "secondary" : "outline"}
                       >
-                        {statusLabel[a.status] ?? a.status}
+                        {wsLabel(a.status)}
                       </Badge>
                       <Button
-                        render={<Link href={`/dashboard/subscribers/${sub.id}/workouts/${a.id}`} />}
+                        render={<GlobalLink href={`/dashboard/subscribers/${sub.id}/workouts/${a.id}`} />}
                         variant="outline"
                         size="sm"
                       >
-                        {a.status === "completed" || a.status === "started" ? "Review" : "View"}
+                        {a.status === "completed" || a.status === "started"
+                          ? t("subscribers.assigned.review")
+                          : t("common.actions.view")}
                       </Button>
                     </li>
                   ))}
@@ -757,41 +888,52 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       </CollapsibleSection>
 
       <CollapsibleSection
-        title="Programs"
-        description="Weekly program enrollments with progress grids."
-        badge={enrollments.some((e) => e.status === "active") ? <Badge>{enrollments.filter((e) => e.status === "active").length} active</Badge> : undefined}
+        title={t("common.nav.programs")}
+        description={t("subscribers.programsSection.desc")}
+        badge={
+          enrollments.some((e) => e.status === "active") ? (
+            <Badge>
+              {t("subscribers.programsSection.activeBadge", {
+                n: enrollments.filter((e) => e.status === "active").length,
+              })}
+            </Badge>
+          ) : undefined
+        }
         summary={
           enrollments.length > 0
-            ? `${enrollments.length} enrollment${enrollments.length === 1 ? "" : "s"} · latest ${enrollments[0].program_name}`
-            : "No program enrollments"
+            ? t(
+                enrollments.length === 1
+                  ? "subscribers.programsSection.summaryOne"
+                  : "subscribers.programsSection.summaryMany",
+                { n: enrollments.length, name: enrollments[0].program_name }
+              )
+            : t("subscribers.programsSection.none")
         }
       >
         <div className="space-y-2">
           {enrollments.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No program enrollments yet. Create a program in Programs, then enroll this client.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("subscribers.programsSection.empty")}</p>
           )}
           {enrollments.map((en) => (
             <div key={en.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium">{en.program_name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {en.start_date} · {en.duration_weeks} weeks
+                  {t("subscribers.programsSection.meta", { date: fmt.date(en.start_date), weeks: en.duration_weeks })}
                 </p>
               </div>
               <Badge
-                className="ml-auto"
+                className="ms-auto"
                 variant={en.status === "active" ? "default" : en.status === "completed" ? "outline" : "secondary"}
               >
-                {en.status}
+                {subLabel(en.status)}
               </Badge>
               <Button
-                render={<Link href={`/dashboard/subscribers/${sub.id}/programs/${en.id}`} />}
+                        render={<GlobalLink href={`/dashboard/subscribers/${sub.id}/programs/${en.id}`} />}
                 variant="outline"
                 size="sm"
               >
-                Open progress
+                {t("subscribers.programsSection.openProgress")}
               </Button>
               <EnrollmentActions enrollmentId={en.id} status={en.status} />
             </div>
@@ -800,39 +942,48 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       </CollapsibleSection>
 
       <CollapsibleSection
-        title="Daily summaries"
-        description="Auto-maintained by the app's daily logging (last 14 days)."
-        summary={summaries.length > 0 ? `Latest: ${summaries[0]?.summary_date} · ${summaries[0]?.calories_consumed ?? 0} kcal` : "No daily summaries yet"}
+        title={t("subscribers.daily.title")}
+        description={t("subscribers.daily.desc")}
+        summary={
+          summaries.length > 0
+            ? t("subscribers.daily.summary", {
+                date: fmt.date(summaries[0]?.summary_date ?? ""),
+                kcal: fmt.num(summaries[0]?.calories_consumed ?? 0),
+              })
+            : t("subscribers.daily.none")
+        }
       >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Calories</TableHead>
-                <TableHead>Protein</TableHead>
-                <TableHead>Steps</TableHead>
-                <TableHead>Water</TableHead>
-                <TableHead>Sleep</TableHead>
-                <TableHead>Workout</TableHead>
+                <TableHead>{t("common.table.date")}</TableHead>
+                <TableHead>{t("subscribers.daily.calories")}</TableHead>
+                <TableHead>{t("subscribers.daily.protein")}</TableHead>
+                <TableHead>{t("subscribers.daily.steps")}</TableHead>
+                <TableHead>{t("subscribers.daily.water")}</TableHead>
+                <TableHead>{t("subscribers.daily.sleep")}</TableHead>
+                <TableHead>{t("subscribers.daily.workout")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {summaries.map((d) => (
                 <TableRow key={d.summary_date}>
-                  <TableCell>{d.summary_date}</TableCell>
+                  <TableCell>{fmt.date(d.summary_date)}</TableCell>
                   <TableCell>{d.calories_consumed ?? 0} kcal</TableCell>
                   <TableCell>{d.protein_g ?? 0} g</TableCell>
-                  <TableCell>{(d.steps ?? 0).toLocaleString("en-US")}</TableCell>
+                  <TableCell>{fmt.num(d.steps ?? 0)}</TableCell>
                   <TableCell>{d.water_ml ?? 0} ml</TableCell>
                   <TableCell>{d.sleep_hours ?? 0} h</TableCell>
-                  <TableCell>{d.workout_done ? <Badge>done</Badge> : <Badge variant="secondary">rest</Badge>}</TableCell>
+                  <TableCell>
+                    {d.workout_done ? <Badge>{t("subscribers.daily.done")}</Badge> : <Badge variant="secondary">{t("subscribers.daily.rest")}</Badge>}
+                  </TableCell>
                 </TableRow>
               ))}
               {summaries.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
-                    No daily summaries logged yet.
+                    {t("subscribers.daily.empty")}
                   </TableCell>
                 </TableRow>
               )}
@@ -842,24 +993,31 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       </CollapsibleSection>
 
       <CollapsibleSection
-        title="Body measurements"
-        description="Weight and body composition logs."
-        summary={measurements.length > 0 ? `Latest: ${measurements[0]?.measured_date} · ${measurements[0]?.weight_kg ?? "—"} kg` : "No measurements yet"}
+        title={t("subscribers.measurements.title")}
+        description={t("subscribers.measurements.desc")}
+        summary={
+          measurements.length > 0
+            ? t("subscribers.measurements.summary", {
+                date: fmt.date(measurements[0]?.measured_date ?? ""),
+                weight: measurements[0]?.weight_kg ?? "—",
+              })
+            : t("subscribers.measurements.none")
+        }
       >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Weight</TableHead>
-                <TableHead>Body fat</TableHead>
-                <TableHead>Waist</TableHead>
+                <TableHead>{t("common.table.date")}</TableHead>
+                <TableHead>{t("subscribers.measurements.weight")}</TableHead>
+                <TableHead>{t("subscribers.measurements.bodyFat")}</TableHead>
+                <TableHead>{t("subscribers.measurements.waist")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {measurements.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell>{m.measured_date}</TableCell>
+                  <TableCell>{fmt.date(m.measured_date)}</TableCell>
                   <TableCell>{m.weight_kg != null ? `${m.weight_kg} kg` : "—"}</TableCell>
                   <TableCell>{m.body_fat_pct != null ? `${m.body_fat_pct}%` : "—"}</TableCell>
                   <TableCell>{m.waist_cm != null ? `${m.waist_cm} cm` : "—"}</TableCell>
@@ -868,7 +1026,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
               {measurements.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
-                    No measurements logged yet.
+                    {t("subscribers.measurements.empty")}
                   </TableCell>
                 </TableRow>
               )}

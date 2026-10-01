@@ -3,6 +3,9 @@
 import * as React from "react";
 import { X, FileDown, ImageIcon, AudioLines, FileQuestion } from "lucide-react";
 import type { Message } from "@/lib/supabase/types";
+import type { TFn } from "@/lib/i18n/dictionary";
+import type { Formatters } from "@/lib/i18n/format";
+import { useI18n } from "@/lib/i18n/client";
 import { toast } from "sonner";
 
 // Renders a non-text chat message (image | voice | file). Signed URLs are
@@ -12,6 +15,7 @@ import { toast } from "sonner";
 // arrivals and expired URLs. If one expires mid-session the next media error
 // refetches it.
 export function MediaMessage({ message, prefetchedSrc }: { message: Message; prefetchedSrc?: string }) {
+  const { t, fmt } = useI18n();
   const [src, setSrc] = React.useState<string | null>(prefetchedSrc ?? null);
   const [failed, setFailed] = React.useState(false);
   const [lightbox, setLightbox] = React.useState(false);
@@ -67,7 +71,7 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
   if (failed) {
     return (
       <span className="flex items-center gap-1.5 rounded-md bg-black/10 px-2 py-1.5 text-xs">
-        <FileQuestion className="size-3.5" /> Attachment unavailable
+        <FileQuestion className="size-3.5" /> {t("chat.media.unavailable")}
       </span>
     );
   }
@@ -79,7 +83,7 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
           // eslint-disable-next-line @next/next/no-img-element -- signed, expiring URL; next/image adds no value
           <img
             src={src}
-            alt={message.content || "Shared image"}
+            alt={message.content || t("chat.media.imageAlt")}
             onError={reRefetch}
             onClick={() => setLightbox(true)}
             className="max-h-56 w-auto cursor-zoom-in rounded-lg"
@@ -93,11 +97,11 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
             onClick={() => setLightbox(false)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
-            <img src={src} alt={message.content || "Shared image"} className="max-h-full max-w-full rounded-lg" />
+            <img src={src} alt={message.content || t("chat.media.imageAlt")} className="max-h-full max-w-full rounded-lg" />
             <button
               type="button"
-              aria-label="Close"
-              className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+              aria-label={t("common.actions.close")}
+              className="absolute end-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
             >
               <X className="size-5" />
             </button>
@@ -115,9 +119,9 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
         {src ? (
           <audio controls preload="metadata" src={src} onError={reRefetch} className="h-8 max-w-52" />
         ) : (
-          <span className="text-xs opacity-70">Loading voice note…</span>
+          <span className="text-xs opacity-70">{t("chat.media.loadingVoice")}</span>
         )}
-        <span className="text-xs opacity-70">{seconds}s</span>
+        <span className="text-xs opacity-70">{t("chat.media.seconds", { s: seconds })}</span>
       </div>
     );
   }
@@ -130,7 +134,7 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
   } catch {
     /* not JSON — fall back to the path's filename */
   }
-  const fileName = fileInfo?.name ?? message.file_url?.split("/").pop() ?? "File";
+  const fileName = fileInfo?.name ?? message.file_url?.split("/").pop() ?? t("chat.media.fileFallback");
   return (
     <a
       href={src ?? undefined}
@@ -144,58 +148,60 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
       <span className="min-w-0">
         <span className="block max-w-52 truncate text-sm font-medium">{fileName}</span>
         <span className="block text-xs opacity-70">
-          {fileInfo?.size != null ? `${formatSize(fileInfo.size)} · ` : ""}
-          {src ? "Click to download" : "Preparing download…"}
+          {fileInfo?.size != null ? `${formatSize(fileInfo.size, fmt)} · ` : ""}
+          {src ? t("chat.media.clickToDownload") : t("chat.media.preparing")}
         </span>
       </span>
     </a>
   );
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function formatSize(bytes: number, fmt: Formatters): string {
+  if (bytes < 1024) return `${fmt.num(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${fmt.num(bytes / 1024, { maximumFractionDigits: 0 })} KB`;
+  return `${fmt.num(bytes / (1024 * 1024), { maximumFractionDigits: 1 })} MB`;
 }
 
 function ImagePlaceholder() {
+  const { t } = useI18n();
   return (
     <span className="flex h-32 w-48 items-center justify-center gap-2 rounded-lg bg-black/10 text-xs opacity-70">
-      <ImageIcon className="size-4" /> Loading image…
+      <ImageIcon className="size-4" /> {t("chat.media.loadingImage")}
     </span>
   );
 }
 
-// Friendly conversation-list preview for non-text messages.
-export function messagePreview(m: Message | null | undefined): string {
-  if (!m) return "No messages yet";
+// Friendly conversation-list preview for non-text messages. Takes the active
+// t() so previews follow the dashboard language.
+export function messagePreview(m: Message | null | undefined, t: TFn): string {
+  if (!m) return t("chat.media.previewNone");
   switch (m.type) {
     case "image":
-      return "📷 Photo";
+      return t("chat.media.previewPhoto");
     case "voice": {
       const s = Math.max(1, Math.round(Number(m.content) || 0));
-      return `🎤 Voice note (${s}s)`;
+      return t("chat.media.previewVoice", { s });
     }
     case "file": {
-      let name = "File";
+      let name = t("chat.media.fileFallback");
       try {
         const parsed = JSON.parse(m.content);
         if (parsed?.name) name = parsed.name;
       } catch {
         /* keep default */
       }
-      return `📄 ${name}`;
+      return t("chat.media.previewFile", { name });
     }
     case "workout_plan":
-      return "🏋️ Workout plan";
+      return t("chat.media.previewWorkout");
     case "nutrition_plan":
-      return "🥗 Nutrition plan";
+      return t("chat.media.previewNutrition");
     default:
-      return m.content || "Message";
+      return m.content || t("chat.media.previewMessage");
   }
 }
 
 // Toast helper for consistent media failure reporting.
-export function mediaErrorToast(err: unknown) {
-  toast.error(err instanceof Error ? err.message : "Attachment failed");
+export function mediaErrorToast(err: unknown, fallback: string) {
+  toast.error(err instanceof Error ? err.message : fallback);
 }

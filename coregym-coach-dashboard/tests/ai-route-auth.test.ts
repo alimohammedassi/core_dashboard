@@ -155,7 +155,10 @@ describe("AI flow — no persistence, no mutation (spec §1.1, §1.3)", () => {
   });
 
   it("returns the analysis without persisting it", () => {
-    assert.ok(HANDLER.includes("body: { analysis: validated.value }"), "analysis returned");
+    assert.ok(
+      HANDLER.includes("body: { analysis: validated.value, metrics: buildAnalysisMetrics(payload) }"),
+      "analysis + deterministic metrics returned, nothing persisted"
+    );
     assert.ok(!HANDLER.toLowerCase().includes("insert into"), "no persistence");
   });
 });
@@ -189,7 +192,7 @@ describe("AI module — key handling (spec §14, §28)", () => {
 
   it("wraps the provider call in a timeout", () => {
     assert.ok(GEMINI.includes("AbortController"), "AbortController present");
-    assert.ok(/TIMEOUT_MS = 30_000/.test(GEMINI), "30s timeout");
+    assert.ok(/TIMEOUT_MS = 60_000/.test(GEMINI), "60s timeout (proposals lengthen the response)");
   });
 
   it("declares database text untrusted inside the system instruction (spec §15)", () => {

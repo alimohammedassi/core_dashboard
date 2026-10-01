@@ -153,6 +153,7 @@ function contractValidResult(): Record<string, unknown> {
     improvements: [{ title: "Add hinge movement", detail: "Balances posterior chain volume.", target: "workout" }],
     missing_information: ["No injury or limitation information is available."],
     coach_action_items: [{ action: "Review hamstring exercise selection.", priority: "medium" }],
+    program_proposal: { workout: null, nutrition: null },
     disclaimer: DISCLAIMER_TEXT,
   };
 }
@@ -409,6 +410,12 @@ describe("AI flow runtime — provider interaction, contract and repair (spec §
     const analysis = (res.body as { analysis: unknown }).analysis;
     const check = validateAnalysisResult(analysis);
     assert.ok(check.ok, `returned analysis must satisfy the contract: ${check.ok ? "" : check.error}`);
+
+    // Deterministic metrics ride along the analysis (never AI-generated).
+    const metrics = (res.body as { metrics: { workout: { completed: number }; nutrition: { overall: unknown } } }).metrics;
+    assert.ok(metrics, "metrics block present alongside the analysis");
+    assert.equal(metrics.workout.completed, 1, "metrics computed from the fixture payload");
+    assert.ok(metrics.nutrition.overall, "nutrition adherence present");
 
     assert.equal(fetchCalls.length, 1, "exactly one provider call on the happy path");
     const { url, init } = fetchCalls[0];

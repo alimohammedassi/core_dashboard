@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Mic, Square, Trash2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
+import type { TFn } from "@/lib/i18n/dictionary";
 
 // In-browser voice note recorder (MediaRecorder). Prefers audio/mp4 (Safari —
 // matches the mobile app's .m4a notes); Chrome/Edge/Firefox fall back to
@@ -17,6 +19,7 @@ export function VoiceRecorder({
   onDiscard: () => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [state, setState] = React.useState<"idle" | "recording" | "preview">("idle");
   const [seconds, setSeconds] = React.useState(0);
   const [blob, setBlob] = React.useState<Blob | null>(null);
@@ -57,7 +60,7 @@ export function VoiceRecorder({
       setState("recording");
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     } catch {
-      toastMicDenied();
+      toastMicDenied(t);
     }
   }
 
@@ -100,7 +103,7 @@ export function VoiceRecorder({
 
   if (state === "idle") {
     return (
-      <Button type="button" variant="ghost" size="icon" disabled={disabled} aria-label="Record voice note" onClick={startRecording}>
+      <Button type="button" variant="ghost" size="icon" disabled={disabled} aria-label={t("chat.recorder.record")} onClick={startRecording}>
         <Mic className="size-4" />
       </Button>
     );
@@ -111,10 +114,10 @@ export function VoiceRecorder({
       <div className="flex items-center gap-2 rounded-full border px-3 py-1.5">
         <span className="size-2 animate-pulse rounded-full bg-destructive" aria-hidden />
         <span className="text-sm tabular-nums">{formatTime(seconds)}</span>
-        <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive" aria-label="Discard recording" onClick={() => stopRecording(false)}>
+        <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive" aria-label={t("chat.recorder.discardRecording")} onClick={() => stopRecording(false)}>
           <Trash2 className="size-3.5" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" className="size-7" aria-label="Stop recording" onClick={() => stopRecording(true)}>
+        <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={t("chat.recorder.stop")} onClick={() => stopRecording(true)}>
           <Square className="size-3.5" />
         </Button>
       </div>
@@ -127,18 +130,18 @@ export function VoiceRecorder({
         <audio controls src={URL.createObjectURL(blob)} className="h-8 max-w-44" />
       ) : null}
       <span className="text-xs tabular-nums opacity-70">{formatTime(seconds)}</span>
-      <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive" aria-label="Discard" onClick={() => { setBlob(null); setSeconds(0); setState("idle"); onDiscard(); }}>
+      <Button type="button" variant="ghost" size="icon" className="size-7 text-destructive" aria-label={t("chat.recorder.discard")} onClick={() => { setBlob(null); setSeconds(0); setState("idle"); onDiscard(); }}>
         <Trash2 className="size-3.5" />
       </Button>
-      <Button type="button" variant="ghost" size="icon" className="size-7" aria-label="Send voice note" disabled={sending} onClick={handleSend}>
+      <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={t("chat.recorder.send")} disabled={sending} onClick={handleSend}>
         <Send className="size-3.5" />
       </Button>
     </div>
   );
 }
 
-function toastMicDenied() {
-  import("sonner").then(({ toast }) => toast.error("Microphone access is required to record a voice note."));
+function toastMicDenied(t: TFn) {
+  import("sonner").then(({ toast }) => toast.error(t("chat.recorder.micDenied")));
 }
 
 function formatTime(s: number): string {

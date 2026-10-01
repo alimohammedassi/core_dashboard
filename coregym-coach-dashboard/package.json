@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/ownership.test.ts tests/rpc-auth.test.ts tests/read-state-auth.test.ts tests/nutrition-coach-edit-auth.test.ts tests/workout-input.test.ts tests/csv-security.test.ts tests/ai-payload.test.ts tests/ai-contract.test.ts tests/ai-route-auth.test.ts tests/ai-analysis-runtime.test.ts tests/chat-unread.test.ts tests/exercise-performance.test.ts"
+    "test": "node --test tests/i18n-parity.test.ts tests/ownership.test.ts tests/rpc-auth.test.ts tests/read-state-auth.test.ts tests/nutrition-coach-edit-auth.test.ts tests/workout-input.test.ts tests/csv-security.test.ts tests/ai-payload.test.ts tests/ai-contract.test.ts tests/ai-route-auth.test.ts tests/ai-analysis-runtime.test.ts tests/ai-metrics.test.ts tests/ai-proposal-apply.test.ts tests/chat-unread.test.ts tests/exercise-performance.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

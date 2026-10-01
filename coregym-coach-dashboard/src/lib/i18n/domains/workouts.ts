@@ -9,6 +9,7 @@ export const workouts = {
         "Workout templates are owned by your coach profile, which does not exist yet. Complete coach onboarding first, then come back to build your template library.",
       subtitle:
         "Your reusable workout templates. Build once, assign to any active client, then review their performance.",
+      title: "Workout Templates",
     },
     list: {
       createTemplate: "Create Template",
@@ -19,6 +20,8 @@ export const workouts = {
       updated: "Updated {date}",
       assign: "Assign",
       program: "Program",
+      blueprint: "Exercise blueprint",
+      moreExercises: "+{n} more",
     },
     builder: {
       createTitle: "Create template",
@@ -126,6 +129,7 @@ export const workouts = {
       coachProfileMissingBody:
         "قوالب التمارين مرتبطة بملف الكوتش بتاعك، وده لسه مش موجود. كمّل تسجيل الكوتش الأول، وبعدين ارجع اعمل مكتبة القوالب بتاعتك.",
       subtitle: "قوالب التمارين اللي بتستخدمها تاني. جهّزها مرة واحدة، وزّعها على أي عميل نشط، وبعدين راجع أداءه.",
+      title: "قوالب التمارين",
     },
     list: {
       createTemplate: "إنشاء قالب",
@@ -136,6 +140,8 @@ export const workouts = {
       updated: "آخر تحديث {date}",
       assign: "إسناد",
       program: "برنامج",
+      blueprint: "بلوبرينت التمارين",
+      moreExercises: "+{n} كمان",
     },
     builder: {
       createTitle: "إنشاء قالب",

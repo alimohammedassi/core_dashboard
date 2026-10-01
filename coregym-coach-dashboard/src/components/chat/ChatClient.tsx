@@ -7,12 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, MessageSquare, Paperclip, ImagePlus, X, Loader2 } from "lucide-react";
+import { Send, MessageSquare, Paperclip, ImagePlus, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { MediaMessage, messagePreview } from "@/components/chat/MediaMessage";
 import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
+import { Spinner } from "@/components/ui/spinner";
+import { useI18n } from "@/lib/i18n/client";
+import { AvatarImage } from "@/components/ui/avatar";
 
 type ConvWithClient = Conversation & {
   client?: { full_name: string | null; avatar_url: string | null };
@@ -26,13 +28,29 @@ const PAGE_SIZE = 50;
 
 type PendingAttachment = { file: File; type: "image" | "file" };
 
-export function ChatClient({ coachId, initialConversations }: { coachId: string; initialConversations: ConvWithClient[] }) {
+export function ChatClient({
+  coachId,
+  initialConversations,
+  initialSelectedId = null,
+}: {
+  coachId: string;
+  initialConversations: ConvWithClient[];
+  /** Conversation to open on mount (client deep-link from profile pages). */
+  initialSelectedId?: string | null;
+}) {
+  const { t, fmt } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [conversations, setConversations] = React.useState<ConvWithClient[]>(initialConversations);
-  const [selectedId, setSelectedId] = React.useState<string | null>(conversations[0]?.id ?? null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(
+    initialSelectedId ?? conversations[0]?.id ?? null
+  );
+  const [rosterQuery, setRosterQuery] = React.useState("");
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [hasMore, setHasMore] = React.useState(false);
   const [loadingOlder, setLoadingOlder] = React.useState(false);
+  // Conversation whose newest page has arrived. `threadLoading` is derived
+  // from it so the effect never sets state synchronously.
+  const [loadedThreadId, setLoadedThreadId] = React.useState<string | null>(null);
   const [composer, setComposer] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
@@ -87,8 +105,9 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
         .order("created_at", { ascending: false })
         .limit(PAGE_SIZE + 1);
       if (!cancelled) {
+        setLoadedThreadId(selectedId);
         if (error) {
-          toast.error("Failed to load messages: " + error.message);
+          toast.error(t("chat.thread.errorLoad", { message: error.message }));
         } else {
           const rows = (data as Message[]) ?? [];
           setHasMore(rows.length > PAGE_SIZE);
@@ -133,7 +152,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
                 setConversations((prev) =>
                   prev.map((c) => (c.id === selectedId ? { ...c, unread_count: prevUnread } : c))
                 );
-                toast.error("Couldn't mark messages as read — check your connection");
+                toast.error(t("chat.thread.errorMarkRead"));
               }
             }
           }
@@ -143,7 +162,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     return () => {
       cancelled = true;
     };
-  }, [selectedId, supabase, coachId]);
+  }, [selectedId, supabase, coachId, t]);
 
   // P4: prefetch signed URLs for the visible page's media messages in ONE
   // batch call. MediaMessage still single-fetches as fallback (new realtime
@@ -195,7 +214,7 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
         .order("created_at", { ascending: false })
         .limit(PAGE_SIZE + 1);
       if (error) {
-        toast.error("Failed to load older messages: " + error.message);
+        toast.error(t("chat.thread.errorLoadOlder", { message: error.message }));
         return;
       }
       const rows = (data as Message[]) ?? [];
@@ -330,13 +349,13 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
       form.set("file", pending.file);
       const res = await fetch("/api/chat/upload", { method: "POST", body: form });
       const b = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(b?.error ?? "Attachment failed");
+      if (!res.ok) throw new Error(b?.error ?? t("chat.composer.attachmentFailed"));
       await refreshAfterSend(b as Message);
       setPending(null);
       if (imageInputRef.current) imageInputRef.current.value = "";
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Attachment failed");
+      toast.error(err instanceof Error ? err.message : t("chat.composer.attachmentFailed"));
     } finally {
       setUploading(false);
     }
@@ -353,10 +372,10 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
       form.set("file", file);
       const res = await fetch("/api/chat/upload", { method: "POST", body: form });
       const b = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(b?.error ?? "Voice note failed");
+      if (!res.ok) throw new Error(b?.error ?? t("chat.composer.voiceFailed"));
       await refreshAfterSend(b as Message);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Voice note failed");
+      toast.error(err instanceof Error ? err.message : t("chat.composer.voiceFailed"));
     } finally {
       setUploading(false);
     }
@@ -367,113 +386,188 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
     setPending({ file, type });
   }
 
+  // Roster search filters the already-loaded conversation list client-side.
+  const q = rosterQuery.trim().toLowerCase();
+  const visibleConversations = q
+    ? conversations.filter((c) => {
+        const name = (c.client?.full_name ?? "").toLowerCase();
+        const preview = messagePreview(c.last_message as Message | undefined, t).toLowerCase();
+        return name.includes(q) || preview.includes(q);
+      })
+    : conversations;
+
   return (
-    <div className="grid h-[calc(100svh-8rem)] grid-cols-1 gap-4 md:grid-cols-[340px_1fr]">
-      {/* Conversation list */}
+    <div className="grid h-[calc(100svh-9.5rem)] min-h-80 grid-cols-1 gap-4 md:h-[calc(100svh-8.5rem)] md:grid-cols-[340px_1fr]">
+      {/* Conversation roster — Stitch left pane */}
       <Card className="flex flex-col overflow-hidden">
-        <div className="p-3 border-b flex items-center justify-between">
-          <h2 className="font-semibold text-sm">Conversations</h2>
+        <div className="flex items-center justify-between border-b p-3">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-headline-sm text-foreground">{t("chat.list.title")}</h2>
+            <span className="rounded bg-secondary px-1.5 py-0.5 text-label-sm tabular-nums text-muted-foreground">
+              {conversations.length}
+            </span>
+          </div>
+        </div>
+        <div className="border-b p-3">
+          <div className="relative">
+            <Search className="absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-faint" />
+            <Input
+              value={rosterQuery}
+              onChange={(e) => setRosterQuery(e.target.value)}
+              placeholder={t("chat.list.searchPlaceholder")}
+              aria-label={t("chat.list.searchPlaceholder")}
+              className="h-9 ps-8"
+            />
+          </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
-            {conversations.map((c) => {
-              const name = c.client?.full_name ?? "Client";
-              const preview = messagePreview(c.last_message as Message | undefined);
+          <div className="space-y-1 p-2">
+            {visibleConversations.map((c) => {
+              const name = c.client?.full_name ?? t("chat.clientFallback");
+              const preview = messagePreview(c.last_message as Message | undefined, t);
               const isActive = c.id === selectedId;
               return (
                 <button
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className={`w-full text-left flex gap-3 rounded-lg p-3 hover:bg-muted transition-colors ${isActive ? "bg-muted" : ""}`}
+                  aria-current={isActive ? "true" : undefined}
+                  className={`flex w-full gap-3 rounded-lg border-s-2 p-3 text-start transition-colors ${
+                    isActive
+                      ? "border-primary bg-secondary"
+                      : "border-transparent hover:bg-secondary/60"
+                  }`}
                 >
-                  <Avatar className="size-9 shrink-0">
-                    <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{name}</span>
-                      {(c.unread_count ?? 0) > 0 && <Badge className="h-5 px-1.5 text-xs">{c.unread_count}</Badge>}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{preview}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {c.last_message_at ? new Date(c.last_message_at).toLocaleDateString() : ""}
+                  <span className="relative shrink-0">
+                    <Avatar className="size-9">
+                      {c.client?.avatar_url ? <AvatarImage src={c.client.avatar_url} alt="" /> : null}
+                      <AvatarFallback className="text-xs">{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="absolute bottom-0 end-0 size-2 rounded-full bg-primary ring-2 ring-card" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-body-md font-semibold text-foreground">{name}</span>
+                      {(c.unread_count ?? 0) > 0 && (
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold tabular-nums text-primary-foreground">
+                          {c.unread_count}
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 flex items-center gap-1.5">
+                      <span className="truncate text-body-sm text-muted-foreground">{preview}</span>
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[11px] tabular-nums text-faint">
+                    {c.last_message_at ? fmt.date(c.last_message_at) : ""}
                   </span>
                 </button>
               );
             })}
-            {conversations.length === 0 && (
-              <p className="text-sm text-muted-foreground p-4 text-center">No conversations yet.</p>
+            {visibleConversations.length === 0 && (
+              <p className="p-4 text-center text-body-sm text-muted-foreground">
+                {q ? t("chat.list.searchEmpty") : t("chat.list.empty")}
+              </p>
             )}
           </div>
         </ScrollArea>
       </Card>
 
-      {/* Thread */}
+      {/* Thread — Stitch right pane */}
       <Card className="flex flex-col overflow-hidden">
         {!selectedConv ? (
           <CardContent className="flex flex-1 items-center justify-center text-muted-foreground">
             <div className="text-center">
-              <MessageSquare className="mx-auto size-8 mb-2 opacity-50" />
-              <p className="text-sm">Select a conversation</p>
+              <MessageSquare className="mx-auto mb-2 size-8 opacity-50" />
+              <p className="text-sm">{t("chat.thread.select")}</p>
             </div>
           </CardContent>
         ) : (
           <>
-            <div className="p-3 border-b flex items-center gap-3">
-              <Avatar className="size-8">
-                <AvatarFallback>{(selectedConv.client?.full_name ?? "C").slice(0, 2).toUpperCase()}</AvatarFallback>
+            <div className="flex items-center gap-3 border-b p-3">
+              <Avatar className="size-9">
+                {selectedConv.client?.avatar_url ? (
+                  <AvatarImage src={selectedConv.client.avatar_url} alt="" />
+                ) : null}
+                <AvatarFallback className="text-xs">
+                  {(selectedConv.client?.full_name ?? "C").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
-              <div>
-                <p className="text-sm font-medium">{selectedConv.client?.full_name ?? "Client"}</p>
-                <p className="text-xs text-muted-foreground">Realtime</p>
+              <div className="min-w-0">
+                <p className="truncate text-body-md font-semibold text-foreground">
+                  {selectedConv.client?.full_name ?? t("chat.clientFallback")}
+                </p>
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="size-1.5 animate-pulse rounded-full bg-[#68dfa6]" />
+                  {t("chat.thread.realtime")}
+                </p>
               </div>
             </div>
-            <div ref={threadWrapRef} className="flex-1 min-h-0">
+            <div ref={threadWrapRef} className="min-h-0 flex-1">
               <ScrollArea className="h-full p-4">
                 <div className="space-y-3">
+                  {selectedId !== null && loadedThreadId !== selectedId && messages.length === 0 && (
+                    <div className="flex justify-center py-10">
+                      <Spinner size="lg" className="text-muted-foreground" />
+                    </div>
+                  )}
                   {hasMore && (
                     <div className="flex justify-center pb-2">
-                      <Button type="button" variant="outline" size="sm" disabled={loadingOlder} onClick={loadOlder}>
-                        {loadingOlder ? "Loading older messages…" : "Load older messages"}
+                      <Button type="button" variant="secondary" size="sm" disabled={loadingOlder} onClick={loadOlder}>
+                        {loadingOlder ? t("chat.thread.loadingOlder") : t("chat.thread.loadOlder")}
                       </Button>
                     </div>
                   )}
                   {messages.map((m) => {
-                  const isMe = m.sender_id === coachId;
-                  const isMedia = m.type === "image" || m.type === "voice" || m.type === "file";
-                  return (
-                    <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted rounded-bl-sm"}`}
-                      >
-                        {isMedia ? (
-                          <MediaMessage message={m} prefetchedSrc={attachmentUrls[m.id]} />
-                        ) : (
-                          <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                        )}
-                        <span className={`text-xs mt-1 block ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                          {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          {!m.is_read && !isMe ? " · unread" : ""}
+                    const isMe = m.sender_id === coachId;
+                    const isMedia = m.type === "image" || m.type === "voice" || m.type === "file";
+                    const clientName = selectedConv.client?.full_name ?? t("chat.clientFallback");
+                    return (
+                      <div key={m.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                        <div className={`flex max-w-[85%] items-end gap-2 md:max-w-xl ${isMe ? "flex-row-reverse" : ""}`}>
+                          {!isMe && (
+                            <Avatar className="mb-1 size-7 shrink-0">
+                              {selectedConv.client?.avatar_url ? (
+                                <AvatarImage src={selectedConv.client.avatar_url} alt="" />
+                              ) : null}
+                              <AvatarFallback className="text-[10px]">
+                                {clientName.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div
+                            className={`px-3.5 py-2.5 text-body-md ${
+                              isMe
+                                ? "rounded-2xl rounded-ee-sm bg-primary font-medium text-primary-foreground shadow-[0_4px_16px_rgba(178,215,66,0.18)]"
+                                : "rounded-2xl rounded-ss-sm bg-secondary text-foreground"
+                            } ${isMedia ? "w-full min-w-56 max-w-sm" : ""}`}
+                          >
+                            {isMedia ? (
+                              <MediaMessage message={m} prefetchedSrc={attachmentUrls[m.id]} />
+                            ) : (
+                              <p className="whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`flex items-center gap-1 px-1 pt-1 text-[11px] tabular-nums text-faint ${isMe ? "" : "ps-9"}`}>
+                          {fmt.time(m.created_at)}
+                          {!m.is_read && !isMe ? <span className="font-medium text-primary">· {t("chat.thread.unread")}</span> : ""}
                         </span>
                       </div>
-                    </div>
-                  );
-                })}
-                <div ref={bottomRef} />
-              </div>
-            </ScrollArea>
+                    );
+                  })}
+                  <div ref={bottomRef} />
+                </div>
+              </ScrollArea>
             </div>
-            <form onSubmit={handleSend} className="p-3 border-t space-y-2">
+            <form onSubmit={handleSend} className="space-y-2 border-t p-3">
               {pending && (
-                <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-                  <Loader2 className="hidden size-3.5 animate-spin" aria-hidden />
+                <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm">
                   <span className="min-w-0 flex-1 truncate">
                     {pending.type === "image" ? "📷 " : "📄 "}
                     {pending.file.name}
-                    <span className="ml-1 text-xs text-muted-foreground">({Math.round(pending.file.size / 1024)} KB)</span>
+                    <span className="ms-1 text-xs text-muted-foreground">{t("chat.composer.pendingSize", { n: fmt.num(Math.round(pending.file.size / 1024)) })}</span>
                   </span>
-                  <Button type="button" variant="ghost" size="icon" className="size-7" aria-label="Remove attachment" onClick={() => setPending(null)}>
+                  <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={t("chat.composer.removeAttachment")} onClick={() => setPending(null)}>
                     <X className="size-3.5" />
                   </Button>
                 </div>
@@ -492,27 +586,27 @@ export function ChatClient({ coachId, initialConversations }: { coachId: string;
                   className="hidden"
                   onChange={(e) => pickPending(e.target.files?.[0] ?? null, "file")}
                 />
-                <Button type="button" variant="ghost" size="icon" aria-label="Attach image" disabled={uploading || !!pending} onClick={() => imageInputRef.current?.click()}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("chat.composer.attachImage")} disabled={uploading || !!pending} onClick={() => imageInputRef.current?.click()}>
                   <ImagePlus className="size-4" />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" aria-label="Attach file" disabled={uploading || !!pending} onClick={() => fileInputRef.current?.click()}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("chat.composer.attachFile")} disabled={uploading || !!pending} onClick={() => fileInputRef.current?.click()}>
                   <Paperclip className="size-4" />
                 </Button>
                 <VoiceRecorder onSend={handleVoiceSend} onDiscard={() => undefined} disabled={uploading || !!pending} />
                 <Input
-                  placeholder="Type a message…"
+                  placeholder={t("chat.composer.placeholder")}
                   value={composer}
                   onChange={(e) => setComposer(e.target.value)}
-                  className="flex-1"
+                  className="h-10 flex-1"
                   disabled={uploading || !!pending}
                 />
                 <Button
                   type="submit"
                   disabled={sending || uploading || (!composer.trim() && !pending)}
-                  size="icon"
-                  aria-label={pending ? "Send attachment" : "Send"}
+                  aria-label={pending ? t("chat.composer.sendAttachment") : t("chat.composer.send")}
                 >
-                  {(sending || uploading) && pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  {t("chat.composer.send")}
+                  {(sending || uploading) && pending ? <Spinner /> : <Send className="size-4" />}
                 </Button>
               </div>
             </form>

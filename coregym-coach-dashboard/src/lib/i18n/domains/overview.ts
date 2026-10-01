@@ -5,6 +5,10 @@ export const overview = {
     pageTitle: "Dashboard",
     realDataOnly: "Real data only",
 
+    header: {
+      createWorkout: "Create Workout",
+    },
+
     range: {
       "30d": "Last 30 days",
       month: "This month",
@@ -46,6 +50,7 @@ export const overview = {
       empty: "No data in this window yet.",
       adherenceTitle: "Nutrition adherence",
       adherenceOnTrack: "{on} / {total} clients on track",
+      adherencePercent: "{p}% adherence",
       weekdayTitle: "Workouts by weekday",
       workoutCount: "{n} workouts",
       completedSeries: "Completed",
@@ -62,6 +67,8 @@ export const overview = {
     },
 
     status: {
+      title: "Subscriber Status",
+      totalSuffix: "total",
       active: "Active",
       trial: "Trial",
       cancelled: "Cancelled",
@@ -70,6 +77,7 @@ export const overview = {
 
     table: {
       title: "Top clients",
+      subtitle: "Adherence, plans and lifetime value for your premier tier athletes.",
       exportCsv: "Export CSV",
       client: "Client",
       plan: "Plan",
@@ -159,6 +167,10 @@ export const overview = {
     pageTitle: "داشبورد",
     realDataOnly: "بيانات حقيقية بس",
 
+    header: {
+      createWorkout: "إنشاء تمرين",
+    },
+
     range: {
       "30d": "آخر 30 يوم",
       month: "الشهر ده",
@@ -200,6 +212,7 @@ export const overview = {
       empty: "مفيش بيانات في الفترة دي لسه.",
       adherenceTitle: "الالتزام بالتغذية",
       adherenceOnTrack: "{on} / {total} عملاء ملتزمين",
+      adherencePercent: "التزام {p}%",
       weekdayTitle: "التمارين على مدار الأسبوع",
       workoutCount: "{n} تمرين",
       completedSeries: "اتعملت",
@@ -216,6 +229,8 @@ export const overview = {
     },
 
     status: {
+      title: "حالة المشتركين",
+      totalSuffix: "إجمالي",
       active: "نشط",
       trial: "تجريبي",
       cancelled: "ملغي",
@@ -224,6 +239,7 @@ export const overview = {
 
     table: {
       title: "أفضل العملاء",
+      subtitle: "الالتزام والخطط وقيمة كل عميل من أفضل عملائك.",
       exportCsv: "تصدير CSV",
       client: "العميل",
       plan: "الخطة",

@@ -1,0 +1,267 @@
+▲ Next.js 16.3.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.18:3000
+- Environments: .env.local
+✓ Ready in 633ms
+✓ Running next.config.ts took 48ms
+
+ GET /login 200 in 595ms (next.js: 266ms, application-code: 329ms)
+ POST /api/ai/proposal-apply 403 in 157ms (next.js: 113ms, application-code: 44ms)
+ POST /api/ai/proposal-apply 403 in 45ms (next.js: 8ms, application-code: 37ms)
+ GET /login 200 in 99ms (next.js: 15ms, application-code: 84ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard 200 in 2.2s (next.js: 10ms, application-code: 2.2s)
+ GET /dashboard 200 in 2.5s (next.js: 115ms, application-code: 2.4s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at DashboardOverviewPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+ GET /dashboard/workouts 200 in 1149ms (next.js: 50ms, application-code: 1099ms)
+ GET /dashboard/programs 200 in 982ms (next.js: 36ms, application-code: 946ms)
+ GET /dashboard/nutrition 200 in 1061ms (next.js: 44ms, application-code: 1017ms)
+ GET /dashboard/subscribers 200 in 711ms (next.js: 41ms, application-code: 670ms)
+ GET /dashboard/revenue 200 in 772ms (next.js: 79ms, application-code: 693ms)
+ GET /dashboard/settings 200 in 2.3s (next.js: 1756ms, application-code: 519ms)
+ GET /dashboard/revenue 200 in 771ms (next.js: 115ms, application-code: 656ms)
+ GET /dashboard/plans 200 in 713ms (next.js: 51ms, application-code: 663ms)
+ GET /dashboard/settings 200 in 778ms (next.js: 148ms, application-code: 630ms)
+ GET /dashboard/revenue 200 in 820ms (next.js: 9ms, application-code: 812ms)
+ GET /dashboard 200 in 1093ms (next.js: 13ms, application-code: 1080ms)
+ GET /dashboard/programs 200 in 616ms (next.js: 9ms, application-code: 608ms)
+ GET /dashboard/workouts 200 in 751ms (next.js: 9ms, application-code: 742ms)
+ GET /dashboard/nutrition 200 in 768ms (next.js: 9ms, application-code: 759ms)
+ GET /dashboard/chat 200 in 434ms (next.js: 109ms, application-code: 325ms)
+ POST /api/chat/attachments 200 in 1026ms (next.js: 141ms, application-code: 886ms)
+ POST /api/chat/attachments 200 in 1033ms (next.js: 110ms, application-code: 923ms)
+ POST /api/chat/attachments 200 in 1035ms (next.js: 131ms, application-code: 904ms)
+ GET /dashboard/subscribers 200 in 565ms (next.js: 13ms, application-code: 552ms)
+ GET /dashboard/nutrition 200 in 625ms (next.js: 12ms, application-code: 613ms)
+ GET /dashboard/revenue 200 in 725ms (next.js: 9ms, application-code: 716ms)
+ GET /dashboard/settings 200 in 575ms (next.js: 13ms, application-code: 562ms)
+ GET /dashboard 200 in 1057ms (next.js: 15ms, application-code: 1042ms)
+ GET /dashboard/workouts 200 in 765ms (next.js: 10ms, application-code: 755ms)
+ GET /dashboard/settings 200 in 3.1s (next.js: 8ms, application-code: 3.1s)
+ GET /dashboard/revenue 200 in 775ms (next.js: 9ms, application-code: 766ms)
+ GET /dashboard/settings 200 in 638ms (next.js: 9ms, application-code: 629ms)
+ GET /dashboard/subscribers 200 in 2.1s (next.js: 8ms, application-code: 2.1s)
+(node:16060) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+ GET /dashboard/subscribers/450aaaba-caf6-4ad8-b290-905e11ad715c 200 in 4.2s (next.js: 853ms, application-code: 3.4s)
+ POST /api/ai/analysis 200 in 9.4s (next.js: 49ms, application-code: 9.3s)
+ GET /dashboard/chat 200 in 3.8s (next.js: 25ms, application-code: 3.8s)
+ GET /dashboard/nutrition 200 in 6.0s (next.js: 12ms, application-code: 6.0s)
+ GET /dashboard/settings 200 in 3.6s (next.js: 11ms, application-code: 3.6s)
+ GET /dashboard/revenue 200 in 5.0s (next.js: 9ms, application-code: 5.0s)
+ GET /dashboard 200 in 5.5s (next.js: 8ms, application-code: 5.5s)
+ GET /dashboard/workouts 200 in 3.5s (next.js: 7ms, application-code: 3.5s)
+ GET /dashboard/programs 200 in 4.9s (next.js: 26ms, application-code: 4.9s)
+ GET /dashboard/nutrition 200 in 3.8s (next.js: 9ms, application-code: 3.8s)
+ GET /dashboard/chat 200 in 2.7s (next.js: 8ms, application-code: 2.7s)
+ GET /dashboard/subscribers 200 in 3.4s (next.js: 9ms, application-code: 3.4s)
+ POST /api/chat/attachments 200 in 4.5s (next.js: 7ms, application-code: 4.5s)
+ POST /api/chat/attachments 200 in 4.5s (next.js: 5ms, application-code: 4.5s)
+ POST /api/chat/attachments 200 in 5.3s (next.js: 17ms, application-code: 5.3s)
+ GET /dashboard/plans 200 in 3.4s (next.js: 38ms, application-code: 3.4s)
+ GET /dashboard/settings 200 in 3.6s (next.js: 7ms, application-code: 3.6s)
+ GET /dashboard/revenue 200 in 3.4s (next.js: 8ms, application-code: 3.4s)
+✓ Compiled in 1631ms
+✓ Compiled in 483ms
+✓ Compiled in 521ms
+✓ Compiled in 582ms
+✓ Compiled in 1502ms
+ GET /dashboard/revenue 200 in 3.8s (next.js: 13ms, application-code: 3.8s)
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '2755192641'
+}
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 9.1s (next.js: 111ms, application-code: 9.0s)
+ GET /dashboard/revenue 200 in 121ms (next.js: 8ms, application-code: 113ms)
+✓ Compiled in 6.5s
+ GET /dashboard/revenue 200 in 172ms (next.js: 42ms, application-code: 130ms)
+ GET /dashboard/revenue 200 in 120ms (next.js: 13ms, application-code: 107ms)
+✓ Compiled in 292ms
+✓ Compiled in 208ms
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/common.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 343ms (next.js: 21ms, application-code: 322ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 7.3s (next.js: 9ms, application-code: 7.3s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/common.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 147ms (next.js: 17ms, application-code: 129ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 7.8s (next.js: 14ms, application-code: 7.8s)
+✓ Compiled in 5.6s
+ GET /dashboard/revenue 200 in 158ms (next.js: 10ms, application-code: 148ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 8.4s (next.js: 14ms, application-code: 8.4s)
+✓ Compiled in 302ms
+ GET /dashboard/revenue 200 in 314ms (next.js: 77ms, application-code: 236ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 2.1s (next.js: 12ms, application-code: 2.0s)
+✓ Compiled in 335ms
+✓ Compiled in 8.1s
+ GET /dashboard/revenue 200 in 2.9s (next.js: 11ms, application-code: 2.9s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 7.6s (next.js: 98ms, application-code: 7.5s)
+✓ Compiled in 883ms
+ GET /dashboard/revenue 200 in 121ms (next.js: 6ms, application-code: 115ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 8.3s (next.js: 18ms, application-code: 8.2s)
+✓ Compiled in 508ms
+ GET /dashboard/revenue 200 in 135ms (next.js: 8ms, application-code: 127ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/overview.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 134ms (next.js: 16ms, application-code: 118ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 7.8s (next.js: 16ms, application-code: 7.8s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/overview.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 172ms (next.js: 24ms, application-code: 147ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 7.2s (next.js: 17ms, application-code: 7.2s)
+ GET /dashboard/revenue 200 in 123ms (next.js: 7ms, application-code: 116ms)
+ GET /dashboard/revenue 200 in 139ms (next.js: 7ms, application-code: 132ms)
+ GET /dashboard/revenue 200 in 119ms (next.js: 8ms, application-code: 111ms)
+✓ Compiled in 521ms
+ GET /dashboard/revenue 200 in 149ms (next.js: 10ms, application-code: 139ms)
+ GET /dashboard/revenue 200 in 142ms (next.js: 10ms, application-code: 132ms)
+ GET /dashboard/revenue 200 in 125ms (next.js: 8ms, application-code: 117ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/workouts.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 334ms (next.js: 19ms, application-code: 315ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 5.1s (next.js: 9ms, application-code: 5.1s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/workouts.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 323ms (next.js: 16ms, application-code: 307ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 6.3s (next.js: 9ms, application-code: 6.3s)
+✓ Compiled in 410ms
+ GET /dashboard/revenue 200 in 107ms (next.js: 8ms, application-code: 99ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/subscribers.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 334ms (next.js: 16ms, application-code: 318ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 4.0s (next.js: 18ms, application-code: 4.0s)
+ GET /dashboard/revenue 200 in 122ms (next.js: 8ms, application-code: 114ms)
+✓ Compiled in 358ms
+ GET /dashboard/revenue 200 in 126ms (next.js: 8ms, application-code: 118ms)
+✓ Compiled in 271ms
+ GET /dashboard/revenue 200 in 120ms (next.js: 9ms, application-code: 110ms)
+ GET /dashboard/revenue 200 in 143ms (next.js: 8ms, application-code: 135ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/subscribers.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 329ms (next.js: 82ms, application-code: 247ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 4.8s (next.js: 15ms, application-code: 4.7s)
+ GET /dashboard/revenue 200 in 207ms (next.js: 49ms, application-code: 158ms)
+ GET /dashboard/revenue 200 in 149ms (next.js: 12ms, application-code: 137ms)
+✓ Compiled in 21.4s
+ GET /dashboard/revenue 200 in 137ms (next.js: 7ms, application-code: 130ms)
+ GET /dashboard/revenue 200 in 119ms (next.js: 10ms, application-code: 109ms)
+ GET /dashboard/revenue 200 in 114ms (next.js: 9ms, application-code: 105ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/chat.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 313ms (next.js: 54ms, application-code: 259ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 7.7s (next.js: 9ms, application-code: 7.6s)
+ GET /dashboard/revenue 200 in 184ms (next.js: 8ms, application-code: 176ms)
+✓ Compiled in 1821ms
+ GET /dashboard/revenue 200 in 111ms (next.js: 8ms, application-code: 102ms)
+ GET /dashboard/revenue 200 in 121ms (next.js: 9ms, application-code: 113ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/plans.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 128ms (next.js: 14ms, application-code: 115ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 9.2s (next.js: 18ms, application-code: 9.2s)
+✓ Finished filesystem cache database compaction in 10.2s
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/plans.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 202ms (next.js: 8ms, application-code: 194ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 3.9s (next.js: 24ms, application-code: 3.9s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/plans.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 294ms (next.js: 18ms, application-code: 276ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 3.2s (next.js: 8ms, application-code: 3.2s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/programs.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 264ms (next.js: 81ms, application-code: 182ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 3.0s (next.js: 16ms, application-code: 3.0s)
+✓ Compiled in 2.3s
+ GET /dashboard/revenue 200 in 113ms (next.js: 7ms, application-code: 106ms)
+ GET /dashboard/revenue 200 in 128ms (next.js: 10ms, application-code: 118ms)
+ GET /dashboard/revenue 200 in 124ms (next.js: 8ms, application-code: 116ms)
+ GET /dashboard/revenue 200 in 119ms (next.js: 7ms, application-code: 112ms)
+ GET /dashboard/revenue 200 in 119ms (next.js: 7ms, application-code: 112ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/programs.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 282ms (next.js: 97ms, application-code: 185ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 3.7s (next.js: 13ms, application-code: 3.7s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/programs.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 301ms (next.js: 83ms, application-code: 218ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 4.0s (next.js: 13ms, application-code: 4.0s)
+ GET /dashboard/revenue 200 in 133ms (next.js: 16ms, application-code: 117ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/revenue.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 129ms (next.js: 12ms, application-code: 117ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 6.2s (next.js: 18ms, application-code: 6.2s)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/revenue.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 330ms (next.js: 109ms, application-code: 220ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 2.5s (next.js: 18ms, application-code: 2.4s)
+ GET /dashboard/revenue 200 in 122ms (next.js: 9ms, application-code: 113ms)
+ GET /dashboard/revenue 200 in 130ms (next.js: 6ms, application-code: 124ms)
+ GET /dashboard/revenue 200 in 136ms (next.js: 9ms, application-code: 127ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/nutrition.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 292ms (next.js: 18ms, application-code: 274ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 3.1s (next.js: 8ms, application-code: 3.0s)
+✓ Compiled in 1103ms
+ GET /dashboard/revenue 200 in 123ms (next.js: 9ms, application-code: 114ms)
+ GET /dashboard/revenue 200 in 125ms (next.js: 9ms, application-code: 117ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/i18n/domains/settings.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /dashboard/revenue 200 in 307ms (next.js: 150ms, application-code: 157ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/revenue 200 in 4.0s (next.js: 16ms, application-code: 4.0s)
+ GET /dashboard/revenue 200 in 124ms (next.js: 10ms, application-code: 114ms)
+ GET /dashboard/revenue 200 in 138ms (next.js: 11ms, application-code: 127ms)
+ GET /login 200 in 218ms (next.js: 102ms, application-code: 116ms)
+ GET /login 200 in 87ms (next.js: 9ms, application-code: 79ms)
+ GET /signup 200 in 1275ms (next.js: 835ms, application-code: 439ms)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ POST /api/coaches 200 in 6.5s (next.js: 2.4s, application-code: 4.1s)
+ GET /dashboard 200 in 3.2s (next.js: 324ms, application-code: 2.9s)
+ GET /dashboard 200 in 4.3s (next.js: 10ms, application-code: 4.3s)
+[browser] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24)
+    at DashboardOverviewPage (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js:1958:24) 
+ GET /dashboard 200 in 6.4s (next.js: 29ms, application-code: 6.4s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+ GET /dashboard/workouts 200 in 3.7s (next.js: 116ms, application-code: 3.6s)
+ POST /api/workout-templates 200 in 5.5s (next.js: 1250ms, application-code: 4.3s)
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+⨯ Error: Base UI: <Dialog.Trigger> must be used within <Dialog.Root> or provided with a handle.
+    at ignore-listed frames {
+  digest: '1487743219'
+}
+ GET /dashboard/plans 200 in 6.2s (next.js: 634ms, application-code: 5.6s)

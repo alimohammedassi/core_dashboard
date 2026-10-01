@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/client";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { AvatarUpload } from "@/components/settings/SettingsSections";
 import { CredentialsManager } from "@/components/settings/CredentialsManager";
 
@@ -190,7 +191,7 @@ export default function OnboardingPage() {
   if (authState !== "ready") {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <Spinner size="lg" className="text-muted-foreground" />
       </div>
     );
   }
@@ -409,13 +410,13 @@ export default function OnboardingPage() {
           </Button>
           {step < 5 ? (
             <Button type="button" onClick={next} disabled={savingStep || finishing}>
-              {savingStep ? <Loader2 className="me-1 size-4 animate-spin" /> : null}
+              {savingStep ? <Spinner className="me-1" /> : null}
               {step === 1 ? t("auth.onboarding.saveContinue") : t("common.actions.continue")}{" "}
               <ArrowRight className="ms-1 size-4 rtl:rotate-180" />
             </Button>
           ) : (
             <Button type="button" onClick={handleComplete} disabled={finishing}>
-              {finishing ? <Loader2 className="me-1 size-4 animate-spin" /> : <Check className="me-1 size-4" />}
+              {finishing ? <Spinner className="me-1" /> : <Check className="me-1 size-4" />}
               {finishing ? t("auth.onboarding.completing") : t("auth.onboarding.complete")}
             </Button>
           )}

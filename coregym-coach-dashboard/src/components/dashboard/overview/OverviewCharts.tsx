@@ -97,7 +97,7 @@ export function OverviewAreaChart({
 
 // ── Right column: Mon→Sun workout bars, peak day highlighted in lime ────────
 export function WeekdayBarChart({ data, peakIndex }: { data: { day: string; count: number }[]; peakIndex: number }) {
-  const { t, fmt } = useI18n();
+  const { t } = useI18n();
   const localized = data.map((d) => ({ day: WEEKDAY_KEYS[d.day] ? t(WEEKDAY_KEYS[d.day]) : d.day, count: d.count }));
   return (
     <div dir="ltr">
@@ -110,7 +110,7 @@ export function WeekdayBarChart({ data, peakIndex }: { data: { day: string; coun
             cursor={{ fill: "var(--accent)" }}
             formatter={(v) => [t("overview.chart.workoutCount", { n: Number(v) }), t("overview.chart.completedSeries")]}
           />
-          <Bar dataKey="count" radius={[5, 5, 5, 5]} maxBarSize={26}>
+          <Bar dataKey="count" radius={[6, 6, 6, 6]} maxBarSize={32}>
             {data.map((_, i) => (
               <Cell
                 key={i}
@@ -162,7 +162,7 @@ export function AdherenceGauge({ rate }: { rate: number | null }) {
         )}
       </svg>
       <div className="pointer-events-none absolute inset-x-0 top-[38%] text-center">
-        <span className="text-[34px] leading-none font-extrabold tracking-tight">
+        <span className="font-display text-[34px] leading-none font-bold tracking-tight tabular-nums">
           {rate == null ? "—" : fmt.percent(rate)}
         </span>
       </div>

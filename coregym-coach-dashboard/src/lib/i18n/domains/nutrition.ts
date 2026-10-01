@@ -6,6 +6,7 @@
 export const nutrition = {
   en: {
     page: {
+      title: "Nutrition Programs & Macro Blueprints",
       subtitle: "Build weekly meal plans from the food library, then assign them to clients.",
       coachMissing: "Coach profile missing — complete onboarding to build nutrition programs.",
     },
@@ -121,6 +122,7 @@ export const nutrition = {
 
   ar: {
     page: {
+      title: "برامج التغذية والمخططات الغذائية",
       subtitle: "جهّز خطط وجبات أسبوعية من مكتبة الأكل، وبعدين أسندها للعملاء.",
       coachMissing: "مفيش بروفايل كوتش — كمّل الـ onboarding عشان تقدر تعمل برامج تغذية.",
     },

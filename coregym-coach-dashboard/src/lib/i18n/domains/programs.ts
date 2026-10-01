@@ -9,6 +9,7 @@ export const programs = {
         "Programs are owned by your coach profile, which does not exist yet. Complete coach onboarding first.",
       subtitle:
         "Group your workout templates into a weekly schedule, then enroll clients — their daily workouts are generated for the whole duration automatically.",
+      title: "Weekly Programs & Mesocycles",
     },
     list: {
       createProgram: "Create Program",
@@ -27,6 +28,15 @@ export const programs = {
       sat: "Saturday",
       sun: "Sunday",
       fallback: "Day {n}",
+    },
+    weekdaysShort: {
+      mon: "Mon",
+      tue: "Tue",
+      wed: "Wed",
+      thu: "Thu",
+      fri: "Fri",
+      sat: "Sat",
+      sun: "Sun",
     },
     builder: {
       editTitle: "Edit program",
@@ -106,6 +116,7 @@ export const programs = {
       coachProfileMissingBody: "البرامج مرتبطة بملف الكوتش بتاعك، وده لسه مش موجود. كمّل تسجيل الكوتش الأول.",
       subtitle:
         "اجمع قوالب التمارين في جدول أسبوعي، وبعدين سجّل عملاءك — تمارينهم اليومية هتتولد لوحدها للفترة كلها.",
+      title: "البرامج الأسبوعية",
     },
     list: {
       createProgram: "إنشاء برنامج",
@@ -124,6 +135,15 @@ export const programs = {
       sat: "السبت",
       sun: "الحد",
       fallback: "يوم {n}",
+    },
+    weekdaysShort: {
+      mon: "الاتنين",
+      tue: "التلات",
+      wed: "الأربع",
+      thu: "الخميس",
+      fri: "الجمعة",
+      sat: "السبت",
+      sun: "الحد",
     },
     builder: {
       editTitle: "تعديل البرنامج",

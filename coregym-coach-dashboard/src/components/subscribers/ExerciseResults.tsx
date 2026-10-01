@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useI18n } from "@/lib/i18n/client";
 
 // "Exercise Results" visual for the customer profile: working-set volume per
 // session (bars) + weight progression for the top exercises (lines).
@@ -29,13 +30,14 @@ export function ExerciseResults({
   sessionVolume: SessionVolumePoint[];
   exercises: ExerciseProgression[];
 }) {
+  const { t, fmt } = useI18n();
   const hasVolume = sessionVolume.length > 0;
   const hasProgression = exercises.length > 0;
 
   if (!hasVolume && !hasProgression) {
     return (
       <p className="text-sm text-muted-foreground py-4">
-        No workout results yet — charts appear once the client logs sets in the app.
+        {t("subscribers.exerciseResults.empty")}
       </p>
     );
   }
@@ -45,70 +47,76 @@ export function ExerciseResults({
       {hasVolume && (
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
-            Volume per session (kg)
+            {t("subscribers.exerciseResults.volumeTitle")}
           </p>
-          <ResponsiveContainer width="100%" height={190}>
-            <BarChart data={sessionVolume} margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--popover)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  color: "var(--popover-foreground)",
-                  fontSize: 12,
-                }}
-                formatter={(value) => [`${Number(value).toLocaleString("en-US")} kg`, "Volume"]}
-              />
-              <Bar dataKey="volume" radius={[6, 6, 0, 0]} fill="var(--primary)" maxBarSize={38} />
-            </BarChart>
-          </ResponsiveContainer>
+          {/* recharts SVGs are not RTL-aware */}
+          <div dir="ltr">
+            <ResponsiveContainer width="100%" height={190}>
+              <BarChart data={sessionVolume} margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--popover)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 10,
+                    color: "var(--popover-foreground)",
+                    fontSize: 12,
+                  }}
+                  formatter={(value) => [`${fmt.num(Number(value))} kg`, t("subscribers.exerciseResults.volumeSeries")]}
+                />
+                <Bar dataKey="volume" radius={[6, 6, 0, 0]} fill="var(--primary)" maxBarSize={38} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 
       {hasProgression && (
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
-            Weight progression — top exercises (kg)
+            {t("subscribers.exerciseResults.weightTitle")}
           </p>
-          <ResponsiveContainer width="100%" height={190}>
-            <LineChart margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="date"
-                type="category"
-                allowDuplicatedCategory={false}
-                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--popover)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  color: "var(--popover-foreground)",
-                  fontSize: 12,
-                }}
-                formatter={(value) => [`${Number(value)} kg`, "Weight"]}
-              />
-              {exercises.map((ex, i) => (
-                <Line
-                  key={ex.name}
-                  data={ex.points}
-                  dataKey="weight"
-                  name={ex.name}
-                  type="monotone"
-                  stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                  strokeWidth={2.5}
-                  dot={{ r: 3 }}
+          {/* recharts SVGs are not RTL-aware */}
+          <div dir="ltr">
+            <ResponsiveContainer width="100%" height={190}>
+              <LineChart margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  type="category"
+                  allowDuplicatedCategory={false}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--popover)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 10,
+                    color: "var(--popover-foreground)",
+                    fontSize: 12,
+                  }}
+                  formatter={(value) => [`${fmt.num(Number(value))} kg`, t("subscribers.exerciseResults.weightSeries")]}
+                />
+                {exercises.map((ex, i) => (
+                  <Line
+                    key={ex.name}
+                    data={ex.points}
+                    dataKey="weight"
+                    name={ex.name}
+                    type="monotone"
+                    stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
             {exercises.map((ex, i) => (
               <span key={ex.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">

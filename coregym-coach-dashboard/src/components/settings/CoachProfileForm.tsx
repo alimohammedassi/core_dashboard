@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useI18n } from "@/lib/i18n/client";
 
+// Suggested specializations are stored in the DB (specialization[]) and shown
+// on the public coach profile, so they stay canonical English values — they
+// are data, not UI chrome. Coaches can add their own custom values.
 const SUGGESTED_SPECIALIZATIONS = [
   "Weight Loss",
   "Muscle Gain",
@@ -20,6 +24,7 @@ const SUGGESTED_SPECIALIZATIONS = [
 ];
 
 export function CoachProfileForm() {
+  const { t, fmt } = useI18n();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -49,7 +54,7 @@ export function CoachProfileForm() {
       try {
         const res = await fetch("/api/coach/profile");
         const body = await res.json();
-        if (!res.ok) throw new Error(body?.error ?? "Could not load your profile");
+        if (!res.ok) throw new Error(body?.error ?? t("settings.professional.form.loadFailed"));
         const p = body.policy ?? {};
         const snapshot = {
           name: body.name ?? "",
@@ -71,12 +76,12 @@ export function CoachProfileForm() {
         setLateFee(snapshot.lateFee);
         setInitial(snapshot);
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Could not load your profile");
+        toast.error(err instanceof Error ? err.message : t("settings.professional.form.loadFailed"));
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [t]);
 
   function toggleSpec(s: string) {
     setSpecializations((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
@@ -109,7 +114,7 @@ export function CoachProfileForm() {
         }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? "Save failed");
+      if (!res.ok) throw new Error(body?.error ?? t("settings.professional.form.saveFailed"));
       setInitial({
         name,
         bio,
@@ -120,16 +125,16 @@ export function CoachProfileForm() {
         refundPolicy,
         lateFee,
       });
-      toast.success("Profile saved");
+      toast.success(t("settings.professional.form.saved"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("settings.professional.form.saveFailed"));
     } finally {
       setSaving(false);
     }
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading your profile…</p>;
+    return <p className="text-sm text-muted-foreground">{t("settings.professional.form.loading")}</p>;
   }
 
   const dirty =
@@ -150,22 +155,22 @@ export function CoachProfileForm() {
       {/* Profile */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cp-bio">Bio</Label>
-          <Textarea id="cp-bio" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} className={inputCls} placeholder="Tell clients about your coaching style…" />
-          <p className="text-xs text-muted-foreground">{bio.length} / 1000</p>
+          <Label htmlFor="cp-bio">{t("settings.professional.form.bio")}</Label>
+          <Textarea id="cp-bio" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} className={inputCls} placeholder={t("settings.professional.form.bioPlaceholder")} />
+          <p className="text-xs text-muted-foreground">{t("settings.professional.form.charCount", { count: fmt.num(bio.length) })}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="cp-exp">Experience (years)</Label>
-          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={inputCls} placeholder="e.g. 5" />
+          <Label htmlFor="cp-exp">{t("settings.professional.form.experience")}</Label>
+          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={inputCls} placeholder={t("settings.professional.form.experiencePlaceholder")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cp-price">Monthly price (USD)</Label>
+          <Label htmlFor="cp-price">{t("settings.professional.form.price")}</Label>
           <Input id="cp-price" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={inputCls} />
         </div>
         </div>
         <div className="space-y-2">
-          <Label>Specializations</Label>
+          <Label>{t("settings.professional.form.specializations")}</Label>
           <div className="flex flex-wrap gap-2">
             {[...new Set([...SUGGESTED_SPECIALIZATIONS, ...specializations])].map((s) => (
               <button
@@ -192,11 +197,11 @@ export function CoachProfileForm() {
                   addCustomSpec();
                 }
               }}
-              placeholder="Add custom specialization…"
+              placeholder={t("settings.professional.form.customPlaceholder")}
               className={`h-8 text-sm ${inputCls}`}
             />
             <Button type="button" variant="outline" size="sm" className="h-8" onClick={addCustomSpec}>
-              Add
+              {t("common.actions.add")}
             </Button>
           </div>
         </div>
@@ -205,23 +210,23 @@ export function CoachProfileForm() {
       {/* Policy */}
       <div className="space-y-4 rounded-xl border p-4">
         <div>
-          <p className="text-sm font-semibold">Training policy</p>
+          <p className="text-sm font-semibold">{t("settings.professional.form.policyTitle")}</p>
           <p className="text-xs text-muted-foreground">
-            Your cancellation / refund rules. Shown to clients so expectations are clear.
+            {t("settings.professional.form.policyDesc")}
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="cp-notice">Cancellation notice (days)</Label>
-            <Input id="cp-notice" type="number" min="0" max="365" value={noticeDays} onChange={(e) => setNoticeDays(e.target.value)} className={inputCls} placeholder="e.g. 24" />
+            <Label htmlFor="cp-notice">{t("settings.professional.form.notice")}</Label>
+            <Input id="cp-notice" type="number" min="0" max="365" value={noticeDays} onChange={(e) => setNoticeDays(e.target.value)} className={inputCls} placeholder={t("settings.professional.form.noticePlaceholder")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="cp-fee">Late / no-show fee (USD)</Label>
-            <Input id="cp-fee" type="number" min="0" step="0.5" value={lateFee} onChange={(e) => setLateFee(e.target.value)} className={inputCls} placeholder="e.g. 10" />
+            <Label htmlFor="cp-fee">{t("settings.professional.form.lateFee")}</Label>
+            <Input id="cp-fee" type="number" min="0" step="0.5" value={lateFee} onChange={(e) => setLateFee(e.target.value)} className={inputCls} placeholder={t("settings.professional.form.lateFeePlaceholder")} />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cp-refund">Refund policy</Label>
+          <Label htmlFor="cp-refund">{t("settings.professional.form.refund")}</Label>
           <Textarea
             id="cp-refund"
             rows={3}
@@ -229,15 +234,15 @@ export function CoachProfileForm() {
             onChange={(e) => setRefundPolicy(e.target.value)}
             maxLength={2000}
             className={inputCls}
-            placeholder="e.g. Full refund if cancelled more than 24h in advance. No refunds for missed sessions."
+            placeholder={t("settings.professional.form.refundPlaceholder")}
           />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         <Button type="button" onClick={handleSave} disabled={saving || !dirty}>
-          <Save className="mr-1 size-3.5" />
-          {saving ? "Saving…" : "Save profile"}
+          <Save className="me-1 size-3.5" />
+          {saving ? t("common.actions.saving") : t("settings.professional.form.save")}
         </Button>
         <Button
           type="button"
@@ -245,7 +250,7 @@ export function CoachProfileForm() {
           disabled={saving}
           onClick={() => window.location.reload()}
         >
-          <X className="mr-1 size-3.5" /> Reset
+          <X className="me-1 size-3.5" /> {t("common.actions.reset")}
         </Button>
       </div>
     </div>

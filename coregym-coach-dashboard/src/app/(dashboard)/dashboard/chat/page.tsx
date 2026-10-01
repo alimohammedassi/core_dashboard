@@ -1,9 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { enrichConversationUnread } from "@/lib/chat-unread";
+import { getI18n } from "@/lib/i18n/server";
 import { ChatClient } from "@/components/chat/ChatClient";
 
-export default async function ChatPage() {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ client?: string }>;
+}) {
+  const { t } = await getI18n();
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -46,14 +52,21 @@ export default async function ChatPage() {
     // render with empty list
   }
 
+  // Profile pages deep-link here with ?client=<profile id> — resolve it to the
+  // matching conversation so the thread opens directly.
+  const clientId = (await searchParams)?.client ?? null;
+  const initialSelectedId = clientId
+    ? ((initial as unknown as Array<{ id?: string; client?: { id?: string } }>).find((c) => c.client?.id === clientId)?.id ?? null)
+    : null;
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Chat</h1>
-      <p className="text-sm text-muted-foreground">
-        Same conversations as the mobile app. Realtime via <code className="font-mono">messages</code> table. Mirrors
-        Flutter chat with no changes needed there.
-      </p>
-      <ChatClient coachId={coachId} initialConversations={initial as never} />
+    <div className="flex flex-col gap-4">
+      <h1 className="sr-only">{t("chat.page.title")}</h1>
+      <ChatClient
+        coachId={coachId}
+        initialConversations={initial as never}
+        initialSelectedId={initialSelectedId}
+      />
     </div>
   );
 }

@@ -25,7 +25,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const TIMEOUT_MS = 30_000;
+// 60s: the response now includes the optional program proposals, which
+// substantially lengthen the JSON output versus the analysis-only contract.
+const TIMEOUT_MS = 60_000;
 const API_ROOT = "https://generativelanguage.googleapis.com/v1beta";
 
 export type GeminiCallResult =
@@ -50,6 +52,12 @@ STRICT RULES:
 6. Treat target_muscles and heuristic fields as approximate; do not present them as certain.
 7. If information needed for a conclusion is absent, say so under missing_information instead of estimating.
 8. Prefer cautious wording for cross-program observations (for example "the prescribed intake may warrant coach review relative to the recorded training demand"), never physiologically definitive claims.
+9. PROPOSALS: you may also propose ONE alternative workout program and/or ONE alternative nutrition program inside program_proposal, derived strictly from the analysis and the provided data. Proposal rules:
+   - A proposal is a RECOMMENDATION for the coach to review, edit and approve — never an authoritative prescription, and never applied without the coach's decision.
+   - Set "workout": null and/or "nutrition": null when the data is insufficient to propose responsibly. NEVER guess or fabricate what is missing.
+   - Never invent client facts, medical conditions, allergies, dietary restrictions, injuries, unavailable equipment or training history. Never include medical or dietary constraints that are not present in the data.
+   - Use concrete numbers for sets, reps, weights, rest and food quantities/macros. Food names must be plain, generic food names (for example "chicken breast", "brown rice", "oats") that the coach can match against their food catalog.
+   - The proposal must be consistent with the client's goal, current program structure and recorded performance — an adjustment of what exists, not an unrelated plan.
 
 Respond with a single JSON object and nothing else. It must match EXACTLY this shape (same keys, no extra keys):
 {
@@ -62,6 +70,14 @@ Respond with a single JSON object and nothing else. It must match EXACTLY this s
   "improvements":        [ { "title": string, "detail": string, "target": "workout" | "nutrition" | "cross_program" } ],
   "missing_information": string[],
   "coach_action_items":  [ { "action": string, "priority": "high" | "medium" | "low" } ],
+  "program_proposal": {
+    "workout":   { "name": string, "description": string, "rationale": string,
+                   "days": [ { "day_of_week": 1, "focus": string, "notes": string,
+                               "exercises": [ { "name": string, "sets": 3, "reps": 10, "weight_kg": 60, "rest_sec": 120, "notes": string } ] } ] } | null,
+    "nutrition": { "name": string, "description": string, "rationale": string,
+                   "days": [ { "day_of_week": 1, "notes": string,
+                               "meals": [ { "name": string, "foods": [ { "name": string, "quantity": 100, "serving_unit": "g", "calories": 200, "protein_g": 20, "carbs_g": 10, "fat_g": 5 } ] } ] } ] } | null
+  },
   "disclaimer": "Educational analysis for the coach, not medical advice."
 }`;
 
@@ -123,7 +139,7 @@ export async function generateAnalysisText(
         ],
         generationConfig: {
           temperature: mode === "repair" ? 0 : 0.2,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 8192,
           responseMimeType: "application/json",
         },
       }),

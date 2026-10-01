@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ChatLoading() {
   return (
-    <div className="grid h-[calc(100svh-8rem)] grid-cols-1 gap-4 md:grid-cols-[340px_1fr]">
+    <div className="grid h-[calc(100svh-9.5rem)] md:h-[calc(100svh-8.5rem)] grid-cols-1 gap-4 md:grid-cols-[340px_1fr]">
       <Card className="flex flex-col overflow-hidden">
         <div className="p-3 border-b">
           <Skeleton className="h-4 w-24" />

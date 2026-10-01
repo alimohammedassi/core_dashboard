@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 // UX-01: Plus Jakarta Sans and Instrument Serif were defined but their CSS
 // variables were never referenced outside this file (verified by grep) —
-// they still shipped on every route. Poppins (UI) + Cairo (Arabic) + Inter
-// (landing nav) remain.
-import { Poppins, Cairo, Inter } from "next/font/google";
+// they still shipped on every route. Poppins (landing/auth UI) + Cairo
+// (Arabic) + Inter (landing nav) remain, and the Stitch pairing — Space
+// Grotesk (dashboard display/metrics) + Hanken Grotesk (dashboard body) —
+// rides alongside them (consumed only by the dashboard shell + font tokens).
+import { Poppins, Cairo, Inter, Space_Grotesk, Hanken_Grotesk } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -28,6 +30,17 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const hankenGrotesk = Hanken_Grotesk({
+  variable: "--font-hanken",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "CoreGym Coach Dashboard",
   description: "Coach dashboard for CoreGym — chat, subscribers, workouts, revenue",
@@ -44,7 +57,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={lang}
       dir={dirFor(lang)}
       suppressHydrationWarning
-      className={`${poppins.variable} ${cairo.variable} ${inter.variable} h-full antialiased`}
+      className={`${poppins.variable} ${cairo.variable} ${inter.variable} ${spaceGrotesk.variable} ${hankenGrotesk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <I18nProvider lang={lang}>

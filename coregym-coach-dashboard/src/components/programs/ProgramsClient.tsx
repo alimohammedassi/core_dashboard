@@ -3,18 +3,17 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarPlus, Pencil, Trash2, Users } from "lucide-react";
+import { CalendarDays, CalendarPlus, Pencil, Trash2 } from "lucide-react";
 import type { CoachProgram } from "@/lib/programs";
 import type { ActiveClient } from "@/lib/workouts";
 import { generateEnrollmentDates, nextMonday } from "@/lib/program-dates";
 import { useI18n } from "@/lib/i18n/client";
-import type { TFn } from "@/lib/i18n/dictionary";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/core/EmptyState";
 import {
   Dialog,
   DialogContent,
@@ -92,23 +91,23 @@ export function ProgramsClient({
     <>
       <div className="flex justify-end">
         <Button
+          size="lg"
           onClick={() => {
             setBuilderSeed(seedForCreate());
             setBuilderNonce((n) => n + 1);
           }}
         >
+          <CalendarPlus className="size-4" />
           {t("programs.list.createProgram")}
         </Button>
       </div>
 
       {programs.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <Users className="size-8 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="font-medium">{t("programs.list.emptyTitle")}</p>
-              <p className="text-sm text-muted-foreground">{t("programs.list.emptyBody")}</p>
-            </div>
+        <EmptyState
+          icon={CalendarDays}
+          title={t("programs.list.emptyTitle")}
+          hint={t("programs.list.emptyBody")}
+          action={
             <Button
               onClick={() => {
                 setBuilderSeed(seedForCreate());
@@ -117,59 +116,85 @@ export function ProgramsClient({
             >
               {t("programs.list.createProgram")}
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {programs.map((p) => (
-            <Card key={p.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-base">{p.name}</CardTitle>
-                {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {p.days.length === 0 ? (
-                    <Badge variant="secondary">{t("programs.list.noDays")}</Badge>
-                  ) : (
-                    p.days.map((d) => (
-                      <Badge key={d.id} variant="secondary" className="rounded-full">
-                        {weekdayShort(d.day_of_week, t)} · {d.templateName ?? "—"}
-                      </Badge>
-                    ))
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t("programs.list.updated", { date: fmt.date(p.updated_at) })}
-                </p>
-                <div className="mt-auto grid grid-cols-3 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busyId === p.id}
-                    onClick={() => {
-                      setBuilderSeed(seedForEdit(p));
-                      setBuilderNonce((n) => n + 1);
-                    }}
-                  >
-                    <Pencil className="me-1 size-3.5" /> {t("common.actions.edit")}
-                  </Button>
-                  <Button size="sm" disabled={busyId === p.id} onClick={() => setEnrollSeed(p)}>
-                    <CalendarPlus className="me-1 size-3.5" /> {t("programs.list.enroll")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive"
-                    disabled={busyId === p.id}
-                    onClick={() => handleDelete(p)}
-                  >
-                    <Trash2 className="me-1 size-3.5" /> {t("common.actions.delete")}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {programs.map((p) => {
+            // Stitch week strip: 7 fixed slots, template name per training day,
+            // dimmed rest slots for everything else.
+            const byDay = new Map<number, string>();
+            for (const d of p.days) byDay.set(d.day_of_week, d.templateName ?? "—");
+            return (
+              <Card key={p.id} className="flex flex-col">
+                <CardContent className="flex flex-1 flex-col gap-3">
+                  <div className="space-y-1">
+                    <h3 className="font-display text-headline-sm text-foreground">{p.name}</h3>
+                    {p.description && (
+                      <p className="line-clamp-2 text-body-sm text-muted-foreground">{p.description}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {WEEKDAY_KEYS.map((key, idx) => {
+                      const dow = idx + 1;
+                      const tplName = byDay.get(dow);
+                      const rest = !tplName;
+                      return (
+                        <div
+                          key={dow}
+                          title={rest ? t("programs.builder.rest") : tplName}
+                          className={`rounded-md border p-1.5 text-center ${
+                            rest ? "border-border/60 bg-background/40" : "border-primary/25 bg-primary/10"
+                          }`}
+                        >
+                          <p className={`text-[10px] font-bold uppercase tracking-wide ${rest ? "text-faint" : "text-primary"}`}>
+                            {t(`programs.weekdaysShort.${key}`)}
+                          </p>
+                          <p className={`mt-0.5 line-clamp-2 text-[11px] leading-tight ${rest ? "text-faint/70" : "text-foreground"}`}>
+                            {rest ? t("programs.builder.rest") : tplName}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-auto flex items-center gap-1.5 text-body-sm text-faint">
+                    <span className="size-1.5 rounded-full bg-primary/60" />
+                    {t("programs.list.updated", { date: fmt.date(p.updated_at) })}
+                  </p>
+
+                  <div className="flex items-center gap-2 border-t border-border/60 pt-3">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busyId === p.id}
+                      onClick={() => {
+                        setBuilderSeed(seedForEdit(p));
+                        setBuilderNonce((n) => n + 1);
+                      }}
+                    >
+                      <Pencil className="size-3.5" /> {t("common.actions.edit")}
+                    </Button>
+                    <Button size="sm" disabled={busyId === p.id} onClick={() => setEnrollSeed(p)}>
+                      <CalendarPlus className="size-3.5" /> {t("programs.list.enroll")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="ms-auto text-destructive hover:text-destructive"
+                      aria-label={t("common.actions.delete")}
+                      title={t("common.actions.delete")}
+                      disabled={busyId === p.id}
+                      onClick={() => handleDelete(p)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -196,13 +221,6 @@ export function ProgramsClient({
       )}
     </>
   );
-}
-
-function weekdayShort(dayOfWeek: number, t: TFn): string {
-  const key = WEEKDAY_KEYS[dayOfWeek - 1];
-  return key
-    ? t(`programs.weekdays.${key}`)
-    : t("programs.weekdays.fallback", { n: dayOfWeek });
 }
 
 // ── Program builder ──────────────────────────────────────────────────────────

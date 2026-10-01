@@ -55,7 +55,7 @@ export default async function ProgramsPage({
   if (!hasCoachRow) {
     return (
       <div className="max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.programs")}</h1>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("common.nav.programs")}</h1>
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("programs.page.coachProfileMissing")}</CardTitle>
@@ -67,10 +67,10 @@ export default async function ProgramsPage({
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("common.nav.programs")}</h1>
-        <p className="text-sm text-muted-foreground">{t("programs.page.subtitle")}</p>
+        <h1 className="font-display text-headline-lg tracking-tight">{t("programs.page.title")}</h1>
+        <p className="mt-1 text-body-md text-muted-foreground">{t("programs.page.subtitle")}</p>
       </div>
       <ProgramsClient initialPrograms={programs} clients={clients} templates={templates} />
       <Pager basePath="/dashboard/programs" page={page} totalPages={pageCount(total, LIB_PAGE_SIZE)} />

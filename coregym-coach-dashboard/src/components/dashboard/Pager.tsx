@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { GlobalLink } from "@/components/shared/link";
 import { getI18n } from "@/lib/i18n/server";
 
 // P3: server-rendered pager for library pages (?page=). Renders nothing for
@@ -19,9 +19,9 @@ export async function Pager({
   return (
     <nav aria-label={t("overview.pager.aria")} className="flex items-center justify-center gap-3 pt-2 text-sm">
       {prev ? (
-        <Link href={prev} className="inline-flex h-8 items-center rounded-md border px-3">
+        <GlobalLink href={prev} className="inline-flex h-8 items-center rounded-md border px-3">
           {t("common.actions.previous")}
-        </Link>
+        </GlobalLink>
       ) : (
         <span className="inline-flex h-8 items-center rounded-md border px-3 opacity-40">
           {t("common.actions.previous")}
@@ -29,9 +29,9 @@ export async function Pager({
       )}
       <span className="text-muted-foreground">{t("overview.pager.pageOf", { page, total: totalPages })}</span>
       {next ? (
-        <Link href={next} className="inline-flex h-8 items-center rounded-md border px-3">
+        <GlobalLink href={next} className="inline-flex h-8 items-center rounded-md border px-3">
           {t("common.actions.next")}
-        </Link>
+        </GlobalLink>
       ) : (
         <span className="inline-flex h-8 items-center rounded-md border px-3 opacity-40">
           {t("common.actions.next")}
