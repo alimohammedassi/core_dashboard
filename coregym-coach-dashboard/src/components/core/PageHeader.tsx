@@ -29,8 +29,10 @@ export function PageHeader({
     >
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Stitch headline scale: 24px mobile → 32px desktop (headline-lg). */}
-          <h1 className="font-display text-[1.5rem] leading-8 tracking-tight text-foreground lg:text-headline-lg lg:leading-10">
+          {/* Stitch page-title scale, measured off the reference screens:
+              ~40px bold desktop / 24px bold mobile (between headline-lg and
+              headline-xl in the token doc — the screens win). */}
+          <h1 className="font-display text-[1.5rem] font-bold leading-8 tracking-tight text-foreground lg:text-[2.5rem] lg:leading-[2.75rem]">
             {title}
           </h1>
           {chip ? (
