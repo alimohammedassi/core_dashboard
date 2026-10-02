@@ -66,9 +66,19 @@ export function AccountNameForm({ initialName }: { initialName: string }) {
 // Appearance — theme is real (next-themes); language/density are clearly
 // marked as not available yet rather than faked. Language itself IS live via
 // the sidebar toggle, so the box points there.
+/** Never fires — useSyncExternalStore hydration probe (server false → client true). */
+const noopSubscribe = () => () => {};
+
 export function AppearancePrefs() {
   const { t } = useI18n();
   const { theme, setTheme } = useTheme();
+  // next-themes resolves the theme on the client only; SSR renders an unknown
+  // state. Gate the active chip on mount so server and client HTML match.
+  const mounted = React.useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
   const opts: { key: string; label: string }[] = [
     { key: "light", label: t("settings.appearance.light") },
     { key: "dark", label: t("settings.appearance.dark") },
@@ -82,7 +92,7 @@ export function AppearancePrefs() {
         <p className="text-body-sm text-muted-foreground">{t("settings.appearance.themeDesc")}</p>
         <div className="flex flex-wrap gap-2">
           {opts.map((o) => {
-            const active = theme === o.key;
+            const active = mounted && theme === o.key;
             return (
               <button
                 key={o.key}

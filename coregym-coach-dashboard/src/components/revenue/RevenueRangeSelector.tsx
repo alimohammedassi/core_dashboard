@@ -8,20 +8,15 @@ import type { TKey } from "@/lib/i18n/dictionary";
 
 // Revenue-local date-range presets (?range=30d|90d|all). Kept separate from
 // the overview RangeSelector because the preset list differs ("all" here, no
-// "month") while the URL-driven Select pattern is the same.
+// "month") while the URL-driven Select pattern is the same. The range type +
+// resolver live in lib/revenue-range.ts (server-safe — the page imports them).
+import { REV_RANGES, type RevRange } from "@/lib/revenue-range";
+
 const RANGE_LABELS: Record<RevRange, TKey> = {
   "30d": "revenue.range.30d",
   "90d": "revenue.range.90d",
   all: "revenue.range.all",
 };
-
-export type RevRange = "30d" | "90d" | "all";
-
-export const REV_RANGES: RevRange[] = ["30d", "90d", "all"];
-
-export function resolveRevRange(raw?: string | null): RevRange {
-  return raw === "90d" || raw === "all" ? raw : "30d";
-}
 
 export function RevenueRangeSelector({ current, rangeLabel }: { current: RevRange; rangeLabel: string }) {
   const router = useRouter();
