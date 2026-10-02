@@ -45,12 +45,20 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // When rendering a non-button element (anchor/GlobalLink), tell Base UI so it
+  // stops expecting native-button semantics (dev overlay a11y warning).
+  const nonNative =
+    render !== undefined &&
+    !(typeof render === "object" && render !== null && "type" in render && render.type === "button");
   return (
     <ButtonPrimitive
       data-slot="button"
+      nativeButton={!nonNative}
       className={cn(buttonVariants({ variant, size, className }))}
+      render={render}
       {...props}
     />
   )
