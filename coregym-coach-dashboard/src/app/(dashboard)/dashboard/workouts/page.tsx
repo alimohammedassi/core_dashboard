@@ -51,7 +51,11 @@ export default async function WorkoutsPage({
     // Data honesty: real per-template usage — one coach-scoped query,
     // aggregated below into a distinct-client count per template.
     hasCoachRow
-      ? supabase.from("workout_assignments").select("template_id,client_id").eq("coach_id", coachId)
+      ? supabase
+          .from("workout_assignments")
+          .select("template_id,client_id")
+          .eq("coach_id", coachId)
+          .limit(5000)
       : Promise.resolve({ data: [] as unknown[], error: null }),
   ]);
 

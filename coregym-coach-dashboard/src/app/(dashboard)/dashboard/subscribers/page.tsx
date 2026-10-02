@@ -64,6 +64,7 @@ export default async function SubscribersPage({
   let rows: Row[] = [];
   let total: number | null = null;
   let error: string | null = null;
+  let coachId: string | null = null;
   let kpis: { active: number; trialing: number; pastDue: number } | null = null;
   // Real roster totals for chips/card footers — independent of ?status= filter.
   let counts: Record<string, number> = {};
@@ -72,7 +73,7 @@ export default async function SubscribersPage({
 
   if (user) {
     // subscriptions.coach_id references coaches.id, not the auth uid
-    const coachId = await resolveCoachId(supabase, user.id);
+    coachId = await resolveCoachId(supabase, user.id);
     const query = supabase
       .from("subscriptions")
       .select(
@@ -114,7 +115,7 @@ export default async function SubscribersPage({
 
     if (res.error) {
       // S-mask: never surface DB internals to the coach (remediation-log rule).
-      error = res.error.message;
+      error = "load-failed";
     } else {
       rows = (res.data ?? []) as unknown as Row[];
       total = res.count;
@@ -142,7 +143,7 @@ export default async function SubscribersPage({
   const adherenceByClient = new Map<string, number | null>();
   const checkInByClient = new Map<string, string>();
 
-  if (clientIds.length > 0) {
+  if (clientIds.length > 0 && coachId) {
     const since30 = daysAgoISO(30);
     const [progRes, assignRes, summaryRes] = await Promise.all([
       // Active program enrollment per client (latest first — first row wins)
@@ -150,6 +151,7 @@ export default async function SubscribersPage({
         .from("client_program_enrollments")
         .select("client_id, start_date, duration_weeks, program:coach_programs(name)")
         .in("client_id", clientIds)
+        .eq("coach_id", coachId)
         .eq("status", "active")
         .order("start_date", { ascending: false })
         .limit(250),
@@ -158,6 +160,7 @@ export default async function SubscribersPage({
         .from("nutrition_assignments")
         .select("id, client_id, scheduled_date")
         .in("client_id", clientIds)
+        .eq("coach_id", coachId)
         .gte("scheduled_date", since30)
         .order("scheduled_date", { ascending: false })
         .limit(2000),

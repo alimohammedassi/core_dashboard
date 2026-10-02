@@ -72,7 +72,7 @@ export default async function PlansPage({
       .range(from, to);
     if (qErr) {
       // Masked: DB internals never reach the UI (remediation-log rule)
-      error = qErr.message;
+      error = "load-failed";
     } else {
       plans = (data ?? []) as unknown as SubscriptionPlan[];
     }
