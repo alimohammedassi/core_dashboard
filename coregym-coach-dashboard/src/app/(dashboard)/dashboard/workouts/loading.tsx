@@ -24,7 +24,7 @@ export default function WorkoutsLoading() {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col gap-3 rounded-xl bg-card px-5 py-4">
+          <div key={i} className="flex flex-col gap-3 rounded-xl bg-card px-5 py-5">
             <div className="flex gap-1.5">
               <Skeleton className="h-5 w-16 rounded-[6px]" />
               <Skeleton className="h-5 w-16 rounded-[6px]" />

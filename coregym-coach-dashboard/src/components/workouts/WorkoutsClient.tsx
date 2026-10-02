@@ -215,7 +215,7 @@ export function WorkoutsClient({
             const used = usedBy[tpl.id] ?? 0;
             const fresh = freshTemplates[tpl.id] ?? false;
             return (
-              <Card key={tpl.id} className="group flex flex-col justify-between transition-colors hover:bg-secondary">
+              <Card key={tpl.id} className="group flex flex-col justify-between py-5 transition-colors hover:bg-secondary">
                 <CardContent className="flex flex-1 flex-col justify-between gap-3 px-5">
                   <div className="flex flex-col gap-2.5">
                     {(tpl.target_muscles ?? []).length > 0 && (
@@ -230,7 +230,7 @@ export function WorkoutsClient({
                         {tpl.name}
                       </h3>
                       <p className="flex items-center gap-1.5 text-label-sm text-muted-foreground">
-                        <Dumbbell className="size-3.5" />
+                        <Dumbbell className="size-3.5 text-primary" />
                         <span>
                           {exercises.length === 1
                             ? t("workouts.list.exercisesOne")
@@ -246,7 +246,7 @@ export function WorkoutsClient({
                     </div>
 
                     {exercises.length > 0 && (
-                      <div className="rounded-lg bg-secondary/70 p-3">
+                      <div className="rounded-lg bg-background/80 p-2">
                         <p className="pb-1.5 text-label-sm uppercase tracking-wider text-faint">
                           {t("workouts.list.blueprint")}
                         </p>
@@ -256,7 +256,7 @@ export function WorkoutsClient({
                               <span className="truncate text-foreground">
                                 {i + 1}. {e.exercise_name}
                               </span>
-                              <span className="shrink-0 text-label-sm tabular-nums text-faint">
+                              <span className="shrink-0 tabular-nums text-faint">
                                 {e.target_sets}
                                 {e.target_reps ? `×${e.target_reps}` : ""}
                                 {e.target_weight_kg ? ` @ ${e.target_weight_kg}kg` : ""}
@@ -281,7 +281,7 @@ export function WorkoutsClient({
                         {t("workouts.list.updated", { date: fmt.date(tpl.updated_at) })}
                       </span>
                       {used > 0 && (
-                        <span className="shrink-0 text-label-sm text-muted-foreground">
+                        <span className="shrink-0 text-body-sm text-muted-foreground">
                           {t("workouts.list.usedBy", { n: used })}
                         </span>
                       )}
@@ -309,7 +309,7 @@ export function WorkoutsClient({
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary"
+                          className="bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
                           disabled={busyId === tpl.id}
                           onClick={() => setAssign({ template: tpl, mode: "assign", defaultDate: tomorrowLocal() })}
                         >

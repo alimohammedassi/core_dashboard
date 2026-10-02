@@ -52,7 +52,7 @@ export async function WorkoutsPager({
       <span className="text-body-sm text-muted-foreground">
         {segments.map((seg, i) =>
           seg === "{from}" || seg === "{to}" || seg === "{total}" ? (
-            <span key={i} className="font-semibold text-foreground">
+            <span key={i} className="font-bold text-foreground">
               {seg === "{from}" ? fmt.num(from) : seg === "{to}" ? fmt.num(to) : fmt.num(total)}
             </span>
           ) : (

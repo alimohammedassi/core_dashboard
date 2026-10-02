@@ -97,7 +97,7 @@ export default async function EnrollmentProgressPage({
         <div className="pointer-events-none absolute -end-16 -top-16 size-64 rounded-full bg-primary/5 blur-3xl" />
         <div className="relative flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-display text-[1.5rem] leading-8 tracking-tight text-foreground lg:text-headline-lg lg:leading-10">
+            <h1 className="font-display text-[1.5rem] font-bold leading-8 tracking-tight text-foreground lg:text-[2.5rem] lg:leading-[2.75rem]">
               {enrollment.program_name}
             </h1>
             <StatusBadge tone={ENROLLMENT_TONE[enrollment.status] ?? "neutral"}>
@@ -141,11 +141,11 @@ export default async function EnrollmentProgressPage({
           <table className="w-full min-w-[520px] border-separate border-spacing-1 text-sm">
             <thead>
               <tr>
-                <th className="w-14 text-start text-label-sm font-semibold uppercase tracking-wider text-faint">
+                <th className="w-14 text-start text-label-sm uppercase text-faint">
                   {t("common.time.week")}
                 </th>
                 {programDays.map((d) => (
-                  <th key={d.id} className="text-start text-label-sm font-semibold uppercase tracking-wider text-faint">
+                  <th key={d.id} className="text-start text-label-sm uppercase text-faint">
                     {weekday(d.day_of_week)}
                   </th>
                 ))}
@@ -211,7 +211,7 @@ export default async function EnrollmentProgressPage({
         </CardHeader>
         <CardContent>
           {weeklyVolume.every((w) => w.volume === 0) ? (
-            <p className="text-sm text-muted-foreground">{t("subscribers.enrollmentPage.noVolume")}</p>
+            <p className="text-body-md text-muted-foreground">{t("subscribers.enrollmentPage.noVolume")}</p>
           ) : (
             <div className="flex h-32 items-end gap-2">
               {weeklyVolume.map((w) => {

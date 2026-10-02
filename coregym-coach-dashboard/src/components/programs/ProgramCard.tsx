@@ -47,7 +47,7 @@ export function ProgramCard({
             <Icon className={cn("size-7", index % 2 === 0 ? "text-primary" : "text-mint")} />
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-display text-headline-sm tracking-tight text-foreground">
+            <h3 className="line-clamp-2 font-display text-headline-sm tracking-tight text-foreground">
               {program.name}
             </h3>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -116,7 +116,7 @@ export function ProgramCard({
           <Button variant="secondary" size="sm" className="text-label-md" disabled={busy} onClick={onEdit}>
             <Pencil className="size-4" /> {t("common.actions.edit")}
           </Button>
-          <Button size="sm" className="font-bold" disabled={busy} onClick={onEnroll}>
+          <Button size="sm" className="text-label-md font-bold" disabled={busy} onClick={onEnroll}>
             <UserPlus className="size-4" /> {t("programs.list.enroll")}
           </Button>
           <Button

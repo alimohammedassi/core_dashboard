@@ -70,7 +70,7 @@ export default async function ProgramsPage({
   if (!hasCoachRow) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="font-display text-headline-lg tracking-tight">{t("common.nav.programs")}</h1>
+        <h1 className="font-display text-[1.5rem] font-bold leading-8 tracking-tight text-foreground lg:text-[2.5rem] lg:leading-[2.75rem]">{t("common.nav.programs")}</h1>
         <div className="rounded-xl bg-card p-5 ring-1 ring-border">
           <p className="font-display text-headline-sm text-foreground">
             {t("programs.page.coachProfileMissing")}

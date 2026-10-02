@@ -141,6 +141,7 @@ function ExerciseNameInput({
         value={query}
         placeholder={placeholder}
         autoComplete="off"
+        className="text-label-md font-semibold md:text-label-md"
         onChange={(e) => {
           setQuery(e.target.value);
           onChange(e.target.value);

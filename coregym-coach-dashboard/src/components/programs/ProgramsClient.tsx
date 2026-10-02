@@ -142,7 +142,7 @@ export function ProgramsClient({
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="font-display text-headline-sm tracking-tight text-foreground">
+            <h2 className="font-display text-headline-sm text-foreground">
               {t("programs.page.kpiLibrary")}
             </h2>
             <span className="rounded bg-accent px-2 py-0.5 text-label-sm text-muted-foreground">
@@ -302,7 +302,7 @@ function ProgramBuilder({
               })}
             </div>
             {templates.length === 0 && (
-              <p className="text-xs text-destructive">{t("programs.builder.noTemplates")}</p>
+              <p className="text-body-sm text-destructive">{t("programs.builder.noTemplates")}</p>
             )}
           </div>
         </div>
@@ -455,7 +455,7 @@ function EnrollDialog({
               )}
             </div>
             {clients.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("programs.enroll.noClients")}</p>
+              <p className="text-body-md text-muted-foreground">{t("programs.enroll.noClients")}</p>
             ) : (
               <select
                 id="enroll-client"
@@ -482,7 +482,7 @@ function EnrollDialog({
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">{t("programs.enroll.startHint")}</p>
+              <p className="text-body-sm text-muted-foreground">{t("programs.enroll.startHint")}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="enroll-weeks">{t("programs.enroll.durationLabel")}</Label>
@@ -493,7 +493,7 @@ function EnrollDialog({
                 value={durationWeeks}
                 onChange={(e) => setDurationWeeks(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-body-sm text-muted-foreground">
                 {t("programs.enroll.durationHint", { n: expected })}
               </p>
             </div>
@@ -507,7 +507,7 @@ function EnrollDialog({
               <span className="font-display text-headline-sm font-bold tabular-nums text-primary">
                 {fmt.num(expected)}
               </span>
-              <span className="text-body-sm text-muted-foreground">
+              <span className="text-body-sm text-foreground">
                 {t("programs.enroll.computationValue", { n: expected })}
               </span>
             </div>

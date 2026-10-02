@@ -9,7 +9,7 @@ export default function ProgramsLoading() {
       {/* Header card */}
       <div className="rounded-xl bg-card p-5 ring-1 ring-border">
         <Skeleton className="h-4 w-44" />
-        <Skeleton className="mt-3 h-8 w-72" />
+        <Skeleton className="mt-3 h-11 w-72" />
         <Skeleton className="mt-2 h-4 w-[28rem] max-w-full" />
       </div>
 
@@ -18,7 +18,7 @@ export default function ProgramsLoading() {
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="rounded-xl bg-card p-5 ring-1 ring-border">
             <Skeleton className="h-4 w-28" />
-            <Skeleton className="mt-4 h-9 w-20" />
+            <Skeleton className="mt-4 h-11 w-20" />
             <Skeleton className="mt-3 h-3 w-36" />
           </div>
         ))}

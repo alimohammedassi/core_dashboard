@@ -89,7 +89,7 @@ export function ProfileTelemetryTiles({
             <span className="text-headline-sm text-faint">{weight.unit}</span>
             {weight.deltaLabel && (
               <span
-                className={`rounded-md px-1.5 py-0.5 text-label-sm font-bold tabular-nums ${
+                className={`rounded-md px-1.5 py-0.5 text-label-sm font-semibold tabular-nums ${
                   weight.deltaPositive ? "bg-mint/20 text-mint" : "bg-[#ea7a72]/20 text-[#ea7a72]"
                 }`}
               >
@@ -123,8 +123,8 @@ export function ProfileTelemetryTiles({
           <div className="grid grid-cols-3 gap-1.5">
             {energy.macros.map((m) => (
               <div key={m.label} className="rounded bg-accent py-1 text-center">
-                <p className="text-[10px] uppercase tracking-wider text-faint">{m.label}</p>
-                <p className={`text-body-md font-bold tabular-nums ${m.valueClass}`}>{m.display}</p>
+                <p className="text-label-sm text-faint">{m.label}</p>
+                <p className={`text-label-sm font-bold tabular-nums ${m.valueClass}`}>{m.display}</p>
               </div>
             ))}
           </div>
@@ -149,7 +149,7 @@ export function ProfileTelemetryTiles({
               {adherence.done}
             </span>
             {adherence.goalSuffix ? (
-              <span className="text-headline-sm text-faint">{adherence.goalSuffix}</span>
+              <span className="text-headline-sm text-foreground">{adherence.goalSuffix}</span>
             ) : null}
           </div>
           {/* Segments: one per allowed weekly workout (capped at 7) */}
@@ -167,7 +167,7 @@ export function ProfileTelemetryTiles({
         {/* Milestone PR */}
         <div className={TILE}>
           <TileLabel>{pr.label}</TileLabel>
-          <span className="inline-flex w-fit items-center gap-1 rounded-md bg-[#ea7a72]/20 px-1.5 py-0.5 text-label-sm font-bold uppercase tracking-wide text-[#ea7a72]">
+          <span className="inline-flex w-fit items-center gap-1 rounded-md bg-[#ea7a72]/20 px-1.5 py-0.5 text-label-sm font-bold uppercase tracking-wider text-[#ea7a72]">
             <Flame className="size-3" />
             {pr.recordChip}
           </span>

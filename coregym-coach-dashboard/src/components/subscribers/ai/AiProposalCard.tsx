@@ -67,11 +67,11 @@ function WorkoutDay({
           <Badge variant="outline" className="text-[10px]">
             {t("subscribers.ai.proposal.weeklySets", { n: totalSets })}
           </Badge>
-          {day.focus && <span className="text-xs text-muted-foreground">{day.focus}</span>}
+          {day.focus && <span className="text-body-sm text-muted-foreground">{day.focus}</span>}
         </span>
       }
     >
-      {day.notes && <p className="mb-2 text-xs text-muted-foreground">{day.notes}</p>}
+      {day.notes && <p className="mb-2 text-body-sm text-muted-foreground">{day.notes}</p>}
       <Table>
         <TableHeader>
           <TableRow>
@@ -87,7 +87,7 @@ function WorkoutDay({
             <TableRow key={i}>
               <TableCell className="font-medium">
                 {e.name}
-                {e.notes && <span className="block text-xs text-muted-foreground">{e.notes}</span>}
+                {e.notes && <span className="block text-body-sm text-muted-foreground">{e.notes}</span>}
               </TableCell>
               <TableCell className="text-center">{e.sets}</TableCell>
               <TableCell className="text-center">{e.reps ?? "—"}</TableCell>
@@ -128,7 +128,7 @@ function NutritionDay({ proposal, index, maxDayKcal }: { proposal: NutritionProp
         </span>
       }
     >
-      {day.notes && <p className="mb-2 text-xs text-muted-foreground">{day.notes}</p>}
+      {day.notes && <p className="mb-2 text-body-sm text-muted-foreground">{day.notes}</p>}
       <div className="space-y-3">
         {day.meals.map((meal, mi) => {
           const mealKcal = sum(meal.foods.map((f) => f.calories));
@@ -136,7 +136,7 @@ function NutritionDay({ proposal, index, maxDayKcal }: { proposal: NutritionProp
             <div key={mi} className="rounded-md border p-2">
               <p className="flex items-center justify-between gap-2 text-sm font-medium">
                 {meal.name}
-                <span className="text-xs text-muted-foreground">
+                <span className="text-body-sm text-muted-foreground">
                   {t("subscribers.ai.proposal.perMeal", { n: fmt.num(Math.round(mealKcal)) })}
                 </span>
               </p>
@@ -157,7 +157,7 @@ function NutritionDay({ proposal, index, maxDayKcal }: { proposal: NutritionProp
                       <TableCell className="font-medium">
                         {f.name}
                         {f.serving_unit && (
-                          <span className="block text-xs text-muted-foreground">
+                          <span className="block text-body-sm text-muted-foreground">
                             {f.quantity} {f.serving_unit}
                           </span>
                         )}
@@ -229,7 +229,7 @@ export function AiProposalCard({
             <Icon className="size-4" />
             {kind === "workout" ? t("subscribers.ai.proposal.workoutTitle") : t("subscribers.ai.proposal.nutritionTitle")}
           </p>
-          <p className="mt-1 text-sm font-semibold">{proposal.name}</p>
+          <p className="mt-1 text-sm font-bold">{proposal.name}</p>
         </div>
         <Button size="sm" onClick={() => setApplyOpen(true)}>
           <ClipboardList className="size-4" /> {t("subscribers.ai.proposal.apply")}

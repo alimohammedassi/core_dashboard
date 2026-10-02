@@ -23,7 +23,7 @@ export default function SubscribersLoading() {
       </div>
       {/* Command bar */}
       <div className="flex flex-col gap-3 rounded-xl bg-card p-3 ring-1 ring-border lg:flex-row lg:items-center lg:justify-between">
-        <Skeleton className="h-9 w-full max-w-xs rounded-lg" />
+        <Skeleton className="h-10 w-full max-w-xs rounded-lg" />
         <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-8 w-20 rounded-[6px]" />

@@ -58,7 +58,7 @@ export function StatCard({
         <span className={cn("font-display text-metric-display tabular-nums tracking-tight text-foreground", valueClassName)}>
           {value}
         </span>
-        {suffix ? <span className="text-body-md text-muted-foreground">{suffix}</span> : null}
+        {suffix ? <span className="text-body-sm text-muted-foreground">{suffix}</span> : null}
         {trendLabel ? (
           <span
             className={cn(

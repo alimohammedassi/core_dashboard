@@ -296,6 +296,16 @@ export default async function SubscribersPage({
         : "bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
+  // Stitch chip counts: the solid volt chip shows its count muted/regular,
+  // inactive chips carry a semibold count tinted by the status color.
+  const countTone: Record<string, string> = {
+    active: "text-primary font-semibold",
+    trialing: "text-mint font-semibold",
+    past_due: "text-destructive font-semibold",
+  };
+  const chipCountClass = (status: string | null, isActive: boolean) =>
+    isActive ? "tabular-nums font-normal opacity-80" : `tabular-nums ${status ? (countTone[status] ?? "text-faint") : "text-faint"}`;
+
   const labels = {
     searchPlaceholder: t("subscribers.list.searchPlaceholder"),
     colClient: t("subscribers.list.client"),
@@ -335,26 +345,38 @@ export default async function SubscribersPage({
             label={t("subscribers.kpi.active")}
             badge={<StatCardChip>{t("subscribers.kpi.liveChip")}</StatCardChip>}
             value={fmt.num(kpis.active)}
-            footer={t("subscribers.kpi.totalCount", { n: fmt.num(allTotal) })}
+            suffix={
+              <span className="text-body-sm text-muted-foreground">
+                {t("subscribers.kpi.totalCount", { n: fmt.num(allTotal) })}
+              </span>
+            }
             progress={allTotal > 0 ? Math.round((kpis.active / allTotal) * 100) : 0}
           />
           <StatCard
             label={t("subscribers.kpi.trialing")}
             badge={<StatCardChip tone="mint">{t("subscribers.status.trialing")}</StatCardChip>}
             value={fmt.num(kpis.trialing)}
-            footer={t("subscribers.kpi.totalCount", { n: fmt.num(allTotal) })}
+            suffix={
+              <span className="text-body-sm text-muted-foreground">
+                {t("subscribers.kpi.totalCount", { n: fmt.num(allTotal) })}
+              </span>
+            }
             progress={allTotal > 0 ? Math.round((kpis.trialing / allTotal) * 100) : 0}
             progressClassName="bg-mint"
           />
           <StatCard
             label={t("subscribers.kpi.pastDue")}
             badge={
-              <span className="rounded px-1.5 py-0.5 text-label-sm uppercase tracking-wide bg-destructive/10 text-destructive">
+              <span className="rounded px-1.5 py-0.5 text-label-sm uppercase tracking-wider bg-destructive/10 text-destructive">
                 {t("subscribers.status.pastDue")}
               </span>
             }
             value={fmt.num(kpis.pastDue)}
-            footer={t("subscribers.kpi.totalCount", { n: fmt.num(allTotal) })}
+            suffix={
+              <span className="text-body-sm text-muted-foreground">
+                {t("subscribers.kpi.totalCount", { n: fmt.num(allTotal) })}
+              </span>
+            }
             progress={allTotal > 0 ? Math.round((kpis.pastDue / allTotal) * 100) : 0}
             progressClassName="bg-destructive"
           />
@@ -375,12 +397,12 @@ export default async function SubscribersPage({
           <>
             <GlobalLink href="/dashboard/subscribers" className={chipClass(!filter)}>
               {t("common.state.all")}
-              <span className="tabular-nums opacity-75">{fmt.num(allTotal)}</span>
+              <span className={chipCountClass(null, !filter)}>{fmt.num(allTotal)}</span>
             </GlobalLink>
             {statuses.map((s) => (
               <GlobalLink key={s} href={`/dashboard/subscribers?status=${s}`} className={chipClass(filter === s)}>
                 {statusLabel(s)}
-                <span className="tabular-nums opacity-75">{fmt.num(counts[s] ?? 0)}</span>
+                <span className={chipCountClass(s, filter === s)}>{fmt.num(counts[s] ?? 0)}</span>
               </GlobalLink>
             ))}
           </>

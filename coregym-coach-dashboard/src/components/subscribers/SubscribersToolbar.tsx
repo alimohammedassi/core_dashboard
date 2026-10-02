@@ -77,13 +77,13 @@ export function SubscribersToolbar({
       {/* Command bar: search + status chips */}
       <div className="flex flex-col gap-3 rounded-xl bg-card p-3 ring-1 ring-border lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full max-w-xs">
-          <Search className="absolute start-3 top-1/2 size-[18px] -translate-y-1/2 text-faint" />
+          <Search className="absolute start-3 top-1/2 size-5 -translate-y-1/2 text-faint" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={labels.searchPlaceholder}
             aria-label={labels.searchPlaceholder}
-            className="h-9 ps-9 text-body-sm"
+            className="h-10 ps-9 text-body-md"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">{chips}</div>
@@ -148,9 +148,9 @@ export function SubscribersToolbar({
                     {r.programName ? (
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="truncate text-body-sm font-medium text-foreground">{r.programName}</span>
+                          <span className="truncate text-label-md font-semibold text-foreground">{r.programName}</span>
                           {r.weekLabel && (
-                            <span className="rounded bg-accent px-1.5 py-0.5 text-label-md text-foreground">
+                            <span className="rounded bg-accent px-1.5 py-0.5 text-label-sm text-muted-foreground">
                               {r.weekLabel}
                             </span>
                           )}

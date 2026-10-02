@@ -364,7 +364,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
           </span>
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="font-display text-headline-lg tracking-tight text-foreground">{name}</h1>
+              <h1 className="font-display text-headline-lg text-foreground">{name}</h1>
               {sub.status === "active" ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-label-sm font-bold uppercase tracking-wider text-primary">
                   <span className="size-1.5 rounded-full bg-current" />
@@ -377,13 +377,13 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body-sm text-muted-foreground">
               {sub.client.email && (
                 <span className="inline-flex items-center gap-1.5">
-                  <Mail className="size-3.5 text-faint" />
+                  <Mail className="size-4 text-faint" />
                   {sub.client.email}
                 </span>
               )}
               {sub.plan?.name && sub.plan.price_usd != null && (
                 <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
-                  <BadgeCheck className="size-3.5" />
+                  <BadgeCheck className="size-4" />
                   {t("subscribers.detail.verifiedPlan", {
                     plan: sub.plan.name,
                     price: fmt.money(sub.plan.price_usd * 100),
@@ -391,12 +391,12 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5">
-                <Calendar className="size-3.5 text-faint" />
+                <Calendar className="size-4 text-faint" />
                 {t("subscribers.detail.since", { date: fmt.date(sub.start_date) })}
               </span>
               {sub.end_date && (
                 <span className="inline-flex items-center gap-1.5 tabular-nums">
-                  <CalendarClock className="size-3.5 text-faint" />
+                  <CalendarClock className="size-4 text-faint" />
                   {t("subscribers.detail.ends", { date: fmt.date(sub.end_date) })}
                 </span>
               )}

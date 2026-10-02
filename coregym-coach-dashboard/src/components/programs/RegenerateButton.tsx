@@ -51,7 +51,7 @@ export function RegenerateButton({
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <Button type="button" onClick={handleRegenerate} disabled={!enabled || busy}>
+      <Button type="button" onClick={handleRegenerate} disabled={!enabled || busy} className="text-label-lg font-bold">
         <RefreshCw className="me-1 size-3.5" />
         {busy ? t("programs.regenerate.updating") : t("programs.regenerate.button")}
       </Button>

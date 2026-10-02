@@ -300,7 +300,7 @@ export function AiAnalysisCard({ subscriptionId }: Props) {
             {metrics && (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <BentoTile kicker={t("subscribers.ai.overall")}>
-                  <p className="text-body-sm leading-relaxed text-foreground">{analysis.overall_assessment}</p>
+                  <p className="text-body-md leading-snug text-foreground">{analysis.overall_assessment}</p>
                 </BentoTile>
                 <BentoTile kicker={t("subscribers.ai.workoutMetrics")}>
                   <p className="font-display text-headline-sm tabular-nums text-foreground">
