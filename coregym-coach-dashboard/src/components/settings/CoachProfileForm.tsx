@@ -162,19 +162,19 @@ export function CoachProfileForm() {
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             maxLength={1000}
-            className="resize-none bg-background p-3 text-body-md"
+            className="resize-none bg-background p-3 text-body-md!"
             placeholder={t("settings.professional.form.bioPlaceholder")}
           />
-          <p className="text-xs text-muted-foreground">{t("settings.professional.form.charCount", { count: fmt.num(bio.length) })}</p>
+          <p className="text-label-sm text-faint">{t("settings.professional.form.charCount", { count: fmt.num(bio.length) })}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="cp-exp">{t("settings.professional.form.experience")}</Label>
-          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={`h-10 px-3 text-body-md ${inputCls}`} placeholder={t("settings.professional.form.experiencePlaceholder")} />
+          <Input id="cp-exp" type="number" min="0" max="60" value={experience} onChange={(e) => setExperience(e.target.value)} className={`h-10 px-3 text-body-md! ${inputCls}`} placeholder={t("settings.professional.form.experiencePlaceholder")} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="cp-price">{t("settings.professional.form.price")}</Label>
-          <Input id="cp-price" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={`h-10 px-3 text-body-md ${inputCls}`} />
+          <Input id="cp-price" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={`h-10 px-3 text-body-md! ${inputCls}`} />
         </div>
         </div>
         <div className="space-y-2">
@@ -212,7 +212,7 @@ export function CoachProfileForm() {
                 }
               }}
               placeholder={t("settings.professional.form.customPlaceholder")}
-              className={`h-10 px-3 text-body-md ${inputCls}`}
+              className={`h-10 px-3 text-body-md! ${inputCls}`}
             />
             <Button type="button" variant="outline" className="h-10" onClick={addCustomSpec}>
               {t("common.actions.add")}
@@ -224,14 +224,17 @@ export function CoachProfileForm() {
       {/* Policy — one tile per rule */}
       <div className="space-y-4">
         <div>
-          <p className="text-label-lg text-foreground">{t("settings.professional.form.policyTitle")}</p>
+          {/* Stitch in-card group headers run at label-md (e.g. "Verified
+              Credentials & Certifications"), not label-lg. */}
+          <p className="text-label-md text-foreground">{t("settings.professional.form.policyTitle")}</p>
           <p className="text-body-sm text-faint">
             {t("settings.professional.form.policyDesc")}
           </p>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-2 rounded-lg bg-secondary p-3">
-            <Label htmlFor="cp-notice">{t("settings.professional.form.notice")}</Label>
+            {/* Tile labels are label-sm in the Stitch policy grid (11px/700). */}
+            <Label htmlFor="cp-notice" className="text-label-sm!">{t("settings.professional.form.notice")}</Label>
             <Input
               id="cp-notice"
               type="number"
@@ -239,12 +242,12 @@ export function CoachProfileForm() {
               max="365"
               value={noticeDays}
               onChange={(e) => setNoticeDays(e.target.value)}
-              className="h-10 bg-background px-3 font-display text-headline-md tabular-nums"
+              className="h-10 bg-background px-3 font-display text-headline-md! tabular-nums"
               placeholder={t("settings.professional.form.noticePlaceholder")}
             />
           </div>
           <div className="space-y-2 rounded-lg bg-secondary p-3">
-            <Label htmlFor="cp-fee">{t("settings.professional.form.lateFee")}</Label>
+            <Label htmlFor="cp-fee" className="text-label-sm!">{t("settings.professional.form.lateFee")}</Label>
             <Input
               id="cp-fee"
               type="number"
@@ -252,19 +255,19 @@ export function CoachProfileForm() {
               step="0.5"
               value={lateFee}
               onChange={(e) => setLateFee(e.target.value)}
-              className="h-10 bg-background px-3 font-display text-headline-md tabular-nums"
+              className="h-10 bg-background px-3 font-display text-headline-md! tabular-nums"
               placeholder={t("settings.professional.form.lateFeePlaceholder")}
             />
           </div>
           <div className="space-y-2 rounded-lg bg-secondary p-3">
-            <Label htmlFor="cp-refund">{t("settings.professional.form.refund")}</Label>
+            <Label htmlFor="cp-refund" className="text-label-sm!">{t("settings.professional.form.refund")}</Label>
             <Textarea
               id="cp-refund"
               rows={3}
               value={refundPolicy}
               onChange={(e) => setRefundPolicy(e.target.value)}
               maxLength={2000}
-              className="resize-none bg-background p-3 text-body-md"
+              className="resize-none bg-background p-3 text-body-md!"
               placeholder={t("settings.professional.form.refundPlaceholder")}
             />
           </div>

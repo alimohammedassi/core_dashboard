@@ -51,7 +51,7 @@ export function AccountNameForm({ initialName }: { initialName: string }) {
           onChange={(e) => setName(e.target.value)}
           maxLength={80}
           placeholder={t("settings.account.name.placeholder")}
-          className="h-10 bg-background px-3 text-body-md"
+          className="h-10 bg-background px-3 text-body-md!"
         />
         <Button type="button" className="h-10" onClick={handleSave} disabled={saving || !name.trim() || name.trim() === savedName}>
           {saving ? <Spinner size="sm" className="me-1" /> : null}

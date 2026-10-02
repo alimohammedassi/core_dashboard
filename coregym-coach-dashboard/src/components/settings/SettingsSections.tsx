@@ -191,7 +191,7 @@ export function EmailChange({ currentEmail }: { currentEmail: string }) {
             value={currentEmail}
             readOnly
             disabled
-            className="h-10 bg-background px-3 text-body-md"
+            className="h-10 bg-background px-3 text-body-md!"
           />
           <span className="inline-flex shrink-0 items-center gap-1 rounded bg-mint/15 px-2 py-0.5 text-label-sm text-mint">
             <CheckCircle2 className="size-3.5" aria-hidden="true" />
@@ -208,7 +208,7 @@ export function EmailChange({ currentEmail }: { currentEmail: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="new@email.com"
-            className="h-10 bg-background px-3 text-body-md"
+            className="h-10 bg-background px-3 text-body-md!"
           />
           <Button type="button" className="h-10" onClick={handleSave} disabled={saving || !email.trim()}>
             {saving ? <Spinner size="sm" className="me-1" /> : null}
@@ -321,7 +321,7 @@ export function SecurityControls({ hasEmailIdentity = true }: { hasEmailIdentity
             onChange={(e) => setPw(e.target.value)}
             minLength={8}
             placeholder={t("settings.security.newPwPlaceholder")}
-            className="h-10 bg-background px-3 text-body-md shadow-inner"
+            className="h-10 bg-background px-3 text-body-md! shadow-inner"
           />
         </div>
         {pw.length > 0 && (
@@ -335,7 +335,7 @@ export function SecurityControls({ hasEmailIdentity = true }: { hasEmailIdentity
                   />
                 ))}
               </div>
-              <span className="text-body-sm text-faint">{t(STRENGTH_KEYS[strength - 1])}</span>
+              <span className="text-label-sm text-primary">{t(STRENGTH_KEYS[strength - 1])}</span>
             </div>
             <p className="sr-only">{t("settings.security.strength.label")}</p>
           </div>
@@ -348,7 +348,7 @@ export function SecurityControls({ hasEmailIdentity = true }: { hasEmailIdentity
             value={pw2}
             onChange={(e) => setPw2(e.target.value)}
             placeholder={t("settings.security.confirmPlaceholder")}
-            className="h-10 bg-background px-3 text-body-md shadow-inner"
+            className="h-10 bg-background px-3 text-body-md! shadow-inner"
           />
         </div>
         {!hasEmailIdentity && (

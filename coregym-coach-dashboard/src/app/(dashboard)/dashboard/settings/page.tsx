@@ -35,7 +35,10 @@ function SectionCard({
           <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
           <CardTitle>{title}</CardTitle>
         </div>
-        <CardDescription>{description}</CardDescription>
+        {/* body-sm faint: the custom token loses to the primitive's core
+            text-sm without the `!` (Tailwind v4 sort order), and Stitch card
+            descriptions sit on the outline (faint) step of the ladder. */}
+        <CardDescription className="text-body-sm! text-faint">{description}</CardDescription>
         {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
       <CardContent>{children}</CardContent>

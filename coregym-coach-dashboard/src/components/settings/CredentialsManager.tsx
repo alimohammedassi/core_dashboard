@@ -232,7 +232,7 @@ export function CredentialsManager({
               ? "settings.professional.credentials.titlePlaceholderAchievement"
               : "settings.professional.credentials.titlePlaceholderCertificate"
           )}
-          className="h-10 bg-background px-3 text-body-md"
+          className="h-10 bg-background px-3 text-body-md!"
         />
       </div>
       <input

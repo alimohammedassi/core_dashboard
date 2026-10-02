@@ -102,10 +102,11 @@ export function NotificationsPrefs() {
         </div>
       ))}
       {/* Quiet hours — one functional row; times are stored as HH:MM, no
-          fixed-timezone display is faked. */}
+          fixed-timezone display is faked. The compact inner slab runs one step
+          denser than the toggle rows: label-md title, matching Stitch. */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-lg bg-background p-4 shadow-inner">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-label-lg text-foreground">
+          <p className="flex items-center gap-2 text-label-md text-foreground">
             <Moon className="size-4 text-primary" aria-hidden="true" />
             {t("settings.notifications.quietTitle")}
           </p>
@@ -113,7 +114,7 @@ export function NotificationsPrefs() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Label htmlFor="qh-start" className="text-label-sm">{t("settings.notifications.from")}</Label>
+            <Label htmlFor="qh-start" className="text-label-sm!">{t("settings.notifications.from")}</Label>
             <Input
               id="qh-start"
               type="time"
@@ -123,11 +124,11 @@ export function NotificationsPrefs() {
                 setPrefs({ ...prefs, quiet_hours_start: v });
                 if (v === "" || timeRe.test(v)) void save({ ...prefs, quiet_hours_start: v || null });
               }}
-              className="w-32 bg-transparent px-2 text-body-md"
+              className="w-32 bg-transparent px-2 text-body-md!"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="qh-end" className="text-label-sm">{t("settings.notifications.to")}</Label>
+            <Label htmlFor="qh-end" className="text-label-sm!">{t("settings.notifications.to")}</Label>
             <Input
               id="qh-end"
               type="time"
@@ -137,7 +138,7 @@ export function NotificationsPrefs() {
                 setPrefs({ ...prefs, quiet_hours_end: v });
                 if (v === "" || timeRe.test(v)) void save({ ...prefs, quiet_hours_end: v || null });
               }}
-              className="w-32 bg-transparent px-2 text-body-md"
+              className="w-32 bg-transparent px-2 text-body-md!"
             />
           </div>
         </div>
