@@ -263,7 +263,7 @@ export default async function NutritionEnrollmentPage({
                     <div key={m.assignmentId} className="space-y-2.5 rounded-lg border border-border/40 p-3">
                       <div className="flex flex-wrap items-center gap-2 border-b border-border/40 pb-2.5">
                         <MealChip>{t("nutrition.builder.numberedMeal", { n: mealNo(m.orderIndex + 1) })}</MealChip>
-                        <p className="min-w-0 flex-1 text-label-lg font-semibold text-foreground">{m.mealName}</p>
+                        <p className="min-w-0 flex-1 truncate font-display text-headline-sm text-foreground">{m.mealName}</p>
                         <Badge variant={m.status === "completed" ? "default" : "outline"}>
                           {mealLabel(m.status)}
                         </Badge>
@@ -293,7 +293,7 @@ export default async function NutritionEnrollmentPage({
                         {m.foods.map((f) => (
                           <div key={f.id} className="rounded-lg bg-background/40 p-2.5">
                             <div className="flex items-center gap-1.5">
-                              <p className="min-w-0 flex-1 truncate text-label-md font-semibold">{f.currentName}</p>
+                              <p className="min-w-0 flex-1 truncate text-label-md font-medium">{f.currentName}</p>
                               {f.changed && (
                                 <Badge variant="secondary" className="text-[10px]">
                                   {f.changeType === "substitution"
@@ -302,7 +302,7 @@ export default async function NutritionEnrollmentPage({
                                 </Badge>
                               )}
                             </div>
-                            <div className="mt-1 flex items-center justify-between gap-2 text-label-sm text-muted-foreground">
+                            <div className="mt-1 flex items-center justify-between gap-2 text-body-sm text-faint">
                               <span className="min-w-0 truncate">
                                 {f.currentQuantity} {f.servingUnit}
                               </span>

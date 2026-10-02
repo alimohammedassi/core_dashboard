@@ -15,7 +15,7 @@ export const nutrition = {
     metrics: {
       avgEnergyLabel: "Avg kcal / day",
       programsLabel: "Nutrition programs",
-      assignmentsFooter: "{n} active assignments · {m} clients",
+      assignmentsFooter: "{n} active assignment(s) · {m} client(s)",
       adherenceLabel: "Meal adherence · 7d",
       adherenceFooter: "{completed}/{planned} completed",
       noData: "No meals elapsed yet",

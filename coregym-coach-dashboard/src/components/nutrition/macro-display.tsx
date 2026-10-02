@@ -23,16 +23,16 @@ export function MacroPill({
     <span className={cn("inline-flex items-baseline gap-1 whitespace-nowrap", className)}>
       {kcal ? (
         <>
-          <span className="font-semibold tabular-nums">{Math.round(macros.calories)}</span>
+          <span className="font-bold tabular-nums">{Math.round(macros.calories)}</span>
           <span className="text-faint">kcal</span>
           <span className="text-faint">·</span>
         </>
       ) : null}
-      <span className="font-semibold tabular-nums text-mint">{macros.protein_g}P</span>
+      <span className="font-bold tabular-nums text-mint">{macros.protein_g}P</span>
       <span className="text-faint">/</span>
-      <span className="font-semibold tabular-nums text-primary">{macros.carbs_g}C</span>
+      <span className="font-bold tabular-nums text-primary">{macros.carbs_g}C</span>
       <span className="text-faint">/</span>
-      <span className="font-semibold tabular-nums text-faint">{macros.fat_g}F</span>
+      <span className="font-bold tabular-nums text-faint">{macros.fat_g}F</span>
     </span>
   );
 }
@@ -49,17 +49,23 @@ export function MacroGrid({
   className?: string;
 }) {
   const cells = [
-    { key: "kcal", label: labels.kcal, value: Math.round(macros.calories), valueClass: "text-foreground" },
-    { key: "protein", label: labels.protein, value: macros.protein_g, valueClass: "text-mint" },
-    { key: "carbs", label: labels.carbs, value: macros.carbs_g, valueClass: "text-primary" },
-    { key: "fat", label: labels.fat, value: macros.fat_g, valueClass: "text-faint" },
+    {
+      key: "kcal",
+      label: labels.kcal,
+      labelClass: "text-faint",
+      value: Math.round(macros.calories),
+      valueClass: "text-foreground",
+    },
+    { key: "protein", label: labels.protein, labelClass: "text-mint", value: macros.protein_g, valueClass: "text-mint" },
+    { key: "carbs", label: labels.carbs, labelClass: "text-primary", value: macros.carbs_g, valueClass: "text-primary" },
+    { key: "fat", label: labels.fat, labelClass: "text-faint", value: macros.fat_g, valueClass: "text-faint" },
   ];
   return (
     <div className={cn("grid grid-cols-4 gap-1 rounded-lg bg-secondary/60 p-1.5 text-center", className)}>
       {cells.map((c) => (
         <div key={c.key} className="min-w-0">
-          <p className="truncate text-[10px] uppercase tracking-wider text-faint">{c.label}</p>
-          <p className={cn("mt-0.5 font-bold tabular-nums leading-tight", c.valueClass)}>{c.value}</p>
+          <p className={cn("truncate text-[10px] uppercase tracking-wider", c.labelClass)}>{c.label}</p>
+          <p className={cn("mt-0.5 text-label-sm font-bold tabular-nums leading-tight", c.valueClass)}>{c.value}</p>
         </div>
       ))}
     </div>

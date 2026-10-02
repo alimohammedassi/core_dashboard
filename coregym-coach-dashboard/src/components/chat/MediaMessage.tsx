@@ -104,7 +104,7 @@ export function MediaMessage({ message, prefetchedSrc }: { message: Message; pre
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-background/90 to-transparent p-3 pt-8">
               <Camera className="size-4 shrink-0 text-primary" />
               {message.content ? (
-                <span className="truncate text-[13px] font-semibold text-white">{message.content}</span>
+                <span className="truncate font-semibold text-white">{message.content}</span>
               ) : null}
             </div>
           </div>

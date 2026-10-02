@@ -491,7 +491,7 @@ export function ChatClient({
               onChange={(e) => setRosterQuery(e.target.value)}
               placeholder={t("chat.list.searchPlaceholder")}
               aria-label={t("chat.list.searchPlaceholder")}
-              className="h-9 rounded-lg bg-background ps-9 pe-8 text-body-sm"
+              className="h-9 rounded-lg bg-background ps-9 pe-8 text-body-sm md:text-body-sm placeholder:text-faint"
             />
           </div>
         </div>
@@ -527,8 +527,8 @@ export function ChatClient({
                     <span className="flex items-center gap-2">
                       <span className="truncate text-label-lg text-foreground">{name}</span>
                       <span
-                        className={`ms-auto shrink-0 text-[11px] tabular-nums ${
-                          hot ? "font-bold text-primary" : "text-faint"
+                        className={`ms-auto shrink-0 tabular-nums ${
+                          hot ? "text-[11px] font-bold text-primary" : "text-label-sm text-faint"
                         }`}
                       >
                         {stamp}
@@ -620,7 +620,7 @@ export function ChatClient({
                 className={buttonVariants({ variant: "secondary", size: "sm" })}
               >
                 <User className="size-4 text-primary" />
-                <span className="hidden sm:inline">{t("chat.thread.clientProfile")}</span>
+                <span className="hidden text-label-md sm:inline">{t("chat.thread.clientProfile")}</span>
               </GlobalLink>
             </header>
             <div ref={threadWrapRef} className="min-h-0 flex-1">
@@ -769,7 +769,7 @@ export function ChatClient({
                 />
                 <Button
                   type="submit"
-                  className="h-9 shrink-0 rounded-lg px-4 font-label-lg font-bold glow-volt"
+                  className="h-9 shrink-0 rounded-lg px-4 text-label-lg font-bold glow-volt"
                   disabled={sending || uploading || (!composer.trim() && !pending)}
                   aria-label={pending ? t("chat.composer.sendAttachment") : t("chat.composer.send")}
                 >

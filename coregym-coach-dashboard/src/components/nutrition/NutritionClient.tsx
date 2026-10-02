@@ -224,7 +224,9 @@ function FoodPicker({
               )}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-label-md font-semibold">{h.name}</span>
+                <span className={cn("min-w-0 truncate text-label-md", hi === 0 ? "font-bold" : "font-medium")}>
+                  {h.name}
+                </span>
                 <span className="shrink-0 whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 text-label-sm text-muted-foreground">
                   {t("nutrition.picker.serving", { size: h.serving_size ?? "—", unit: h.serving_unit ?? "" })}
                 </span>
@@ -245,8 +247,8 @@ function FoodPicker({
                 }}
               />
               <div className="mt-1 flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-label-sm text-faint">{h.category ?? ""}</span>
-                <span className="shrink-0 text-label-sm font-semibold text-primary">
+                <span className="min-w-0 truncate text-body-sm text-faint">{h.category ?? ""}</span>
+                <span className="shrink-0 text-label-sm text-primary">
                   {t("nutrition.picker.quickInsert")}
                 </span>
               </div>
@@ -378,7 +380,7 @@ export function NutritionClient({
                           {p.name}
                         </h3>
                         {p.is_active && (
-                          <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-label-sm uppercase text-primary">
+                          <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-label-sm uppercase tracking-wider text-primary">
                             {t("nutrition.card.active")}
                           </span>
                         )}
@@ -421,7 +423,7 @@ export function NutritionClient({
                             rest ? "border-border/60 bg-background/40" : "border-primary/25 bg-primary/10"
                           }`}
                         >
-                          <p className={`text-[10px] font-bold uppercase tracking-wide ${rest ? "text-faint" : "text-primary"}`}>
+                          <p className={`text-label-md uppercase ${rest ? "text-faint" : "text-primary"}`}>
                             {w.short}
                           </p>
                           <p className={`mt-0.5 text-[11px] font-semibold tabular-nums leading-tight ${rest ? "text-faint/70" : "text-foreground"}`}>
@@ -748,7 +750,7 @@ function BuilderDialog({
                 {dayMacroCells.map((c) => (
                   <div key={c.key}>
                     <p className="text-label-sm uppercase tracking-wider text-faint">{c.label}</p>
-                    <p className={cn("mt-0.5 text-body-md font-semibold tabular-nums", c.valueClass)}>{c.value}</p>
+                    <p className={cn("mt-0.5 text-label-sm font-semibold tabular-nums", c.valueClass)}>{c.value}</p>
                     {c.fillClass && c.share != null && c.share > 0 ? (
                       <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
                         <div className={cn("h-full rounded-full", c.fillClass)} style={{ width: `${Math.round(c.share * 100)}%` }} />
@@ -766,7 +768,7 @@ function BuilderDialog({
                   <Input
                     value={m.name}
                     onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))}
-                    className="h-8 min-w-0 flex-1 font-semibold"
+                    className="h-8 min-w-0 flex-1 font-display text-headline-sm!"
                     aria-label={t("nutrition.builder.mealNameAria")}
                   />
                   <MacroPill macros={mealTotals(m)} className="shrink-0 text-label-sm" />
@@ -791,7 +793,7 @@ function BuilderDialog({
                     return (
                       <div key={f.key} className="rounded-lg bg-background/40 p-2.5">
                         <div className="flex items-center gap-1.5">
-                          <p className="min-w-0 flex-1 truncate text-label-md font-semibold">
+                          <p className="min-w-0 flex-1 truncate text-label-md font-medium">
                             {f.foodName || t("nutrition.builder.foodFallback")}
                           </p>
                           <Button

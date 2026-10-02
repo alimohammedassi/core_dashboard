@@ -73,7 +73,9 @@ export function TransactionsLedger({
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("revenue.tx.searchPlaceholder")}
             aria-label={t("common.actions.search")}
-            className="h-9 rounded-lg bg-background ps-8 text-body-sm"
+            /* Stitch ledger filter: compact (~30px) with 13px body-sm text —
+               the `!` beats the primitive's core text-base/md:text-sm. */
+            className="rounded-lg bg-background ps-8 text-body-sm! md:text-body-sm!"
           />
         </div>
       </div>

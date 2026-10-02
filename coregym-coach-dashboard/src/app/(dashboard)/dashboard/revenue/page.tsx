@@ -515,7 +515,7 @@ export default async function RevenuePage({
             <div className="flex flex-1 items-start justify-center">
               <GlobalLink
                 href="/dashboard/settings"
-                className={buttonVariants({ className: "shadow-md shadow-primary/20" })}
+                className={buttonVariants({ size: "lg", className: "font-semibold shadow-md shadow-primary/20" })}
               >
                 {t("revenue.routing.connectCta")}
               </GlobalLink>
@@ -534,8 +534,9 @@ export default async function RevenuePage({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="font-display text-headline-md">{t("revenue.payouts.title")}</CardTitle>
-          <CardDescription>
+          {/* Stitch section headers are headline-sm (18/600) — primitive default */}
+          <CardTitle>{t("revenue.payouts.title")}</CardTitle>
+          <CardDescription className="text-body-sm! text-faint">
             {isStripe ? t("revenue.payouts.descLive") : t("revenue.payouts.descLocal")}
           </CardDescription>
         </CardHeader>

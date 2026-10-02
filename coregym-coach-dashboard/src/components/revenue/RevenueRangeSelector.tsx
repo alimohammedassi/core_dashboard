@@ -36,7 +36,9 @@ export function RevenueRangeSelector({ current, rangeLabel }: { current: RevRang
     >
       <SelectTrigger
         aria-label={t("revenue.range.aria")}
-        className="h-9 rounded-full border-border bg-card ps-3 text-sm font-medium"
+        /* Stitch date selector: label-md (12/600) — `!` beats the primitive's
+           core text-sm. */
+        className="h-9 rounded-full border-border bg-card ps-3 text-label-md! font-semibold"
       >
         <span className="flex items-center gap-2">
           <CalendarRange className="size-4 text-primary" />

@@ -278,7 +278,7 @@ export function PlansClient({
                   >
                     <Minus className="size-4" />
                   </button>
-                  <span className="min-w-14 text-center font-display text-headline-sm font-bold tabular-nums text-primary">
+                  <span className="min-w-14 text-center font-display text-headline-sm tabular-nums text-primary">
                     {fmt.num(capNum)}
                   </span>
                   <button
@@ -308,15 +308,17 @@ export function PlansClient({
                 </p>
                 <div className="mt-2 space-y-1.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-body-sm text-muted-foreground">{t("plans.payout.gross")}</span>
-                    <span className="font-semibold tabular-nums text-foreground">{fmt.money(grossCents)}</span>
+                    <span className="text-body-md text-muted-foreground">{t("plans.payout.gross")}</span>
+                    <span className="font-display text-headline-sm tabular-nums text-foreground">
+                      {fmt.money(grossCents)}
+                    </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-body-sm text-muted-foreground">{t("plans.payout.fee")}</span>
-                    <span className="font-semibold tabular-nums text-destructive">−{fmt.money(feeCents)}</span>
+                    <span className="text-body-sm text-faint">{t("plans.payout.fee")}</span>
+                    <span className="text-body-sm tabular-nums text-destructive">−{fmt.money(feeCents)}</span>
                   </div>
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-body-sm text-muted-foreground">{t("plans.payout.net")}</span>
+                    <span className="text-label-md text-primary">{t("plans.payout.net")}</span>
                     <span className="font-display text-headline-sm font-bold tabular-nums text-primary">
                       {fmt.money(netCents)}
                     </span>
@@ -326,7 +328,7 @@ export function PlansClient({
                       <span className="text-body-sm text-muted-foreground">
                         {t("plans.payout.rosterYield", { n: yieldSeats })}
                       </span>
-                      <span className="font-semibold tabular-nums text-foreground">
+                      <span className="font-bold tabular-nums text-body-sm text-foreground">
                         {fmt.money(netCents * yieldSeats)}
                       </span>
                     </div>
@@ -412,7 +414,7 @@ export function PlansClient({
                           <Users className="size-4 text-mint" />
                           {t("plans.card.rosterLoad")}
                         </span>
-                        <span className="font-semibold tabular-nums">
+                        <span className="text-body-sm font-semibold tabular-nums">
                           {fmt.num(active)}{" "}
                           <span className="text-faint">
                             / {fmt.num(maxClients)} {t("plans.card.athletesUnit")}

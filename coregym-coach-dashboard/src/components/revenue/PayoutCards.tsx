@@ -32,7 +32,7 @@ export function PayoutCards({ payouts }: { payouts: PayoutCardData[] }) {
               <span className="truncate font-mono text-label-sm text-faint">{p.id}</span>
               <span
                 className={cn(
-                  "inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full px-2 text-label-sm font-semibold",
+                  "inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full px-2 text-label-sm font-bold",
                   pillClasses(p.status),
                 )}
               >

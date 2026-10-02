@@ -93,7 +93,7 @@ export function RevenueVelocityChart({
                 <span
                   className={cn(
                     "whitespace-nowrap text-label-md",
-                    w.current ? "font-bold text-foreground" : "text-faint",
+                    w.current ? "font-semibold text-foreground" : "text-faint",
                   )}
                 >
                   {w.label}
