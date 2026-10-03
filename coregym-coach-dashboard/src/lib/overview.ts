@@ -258,66 +258,106 @@ export async function getOverviewData(
 
   // Adherence is derived from the coach-readable prescription chain:
   // nutrition_assignments (+ foods) per client/date vs daily_summary calories.
-  const [msgRes, sessionsRes, assignsRes, summariesRes, checkinsRes, mealsRes, enrollmentsRes] = await Promise.all([
+  // The id-listed reads run chunked (chunkIn): a single .in() with ~800 UUIDs
+  // exceeds the PostgREST URL cap and fails the whole query (observed live),
+  // so a large roster would blank these widgets. Small rosters produce exactly
+  // one chunk — identical behavior; merged lists keep the original caps and
+  // are re-sorted where consumers depend on order (summaries are consumed
+  // first-seen-wins for lastCheckIn, so they are re-sorted desc).
+  async function chunkIn<T>(
+    ids: string[],
+    build: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+  ): Promise<T[]> {
+    const out: T[] = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await build(ids.slice(i, i + 200));
+      if (error) break;
+      out.push(...((data ?? []) as T[]));
+    }
+    return out;
+  }
+  const [msgRows, sessionRows, assignRows, summaryRows, checkinRows, mealRows, enrollmentsRes] = await Promise.all([
     convIds.length
-      ? supabase
-          .from("messages")
-          .select("created_at, sender_id")
-          .in("conversation_id", convIds)
-          .neq("sender_id", userId)
-          .gte("created_at", isos.prevStart)
-          .order("created_at", { ascending: true })
-          .limit(5000)
-      : Promise.resolve({ data: [] as unknown[] }),
+      ? chunkIn<{ created_at: string; sender_id: string }>(convIds, (chunk) =>
+          supabase
+            .from("messages")
+            .select("created_at, sender_id")
+            .in("conversation_id", chunk)
+            .neq("sender_id", userId)
+            .gte("created_at", isos.prevStart)
+            .order("created_at", { ascending: true })
+            .limit(5000)
+        )
+      : Promise.resolve([] as { created_at: string; sender_id: string }[]),
     clientIds.length
-      ? supabase
-          .from("workout_sessions")
-          .select("ended_at, session_date")
-          .in("user_id", clientIds)
-          .gte("ended_at", isos.prevStart)
-          .order("ended_at", { ascending: true })
-          .limit(5000)
-      : Promise.resolve({ data: [] as unknown[] }),
+      ? chunkIn<{ ended_at: string | null; session_date: string | null }>(clientIds, (chunk) =>
+          supabase
+            .from("workout_sessions")
+            .select("ended_at, session_date")
+            .in("user_id", chunk)
+            .gte("ended_at", isos.prevStart)
+            .order("ended_at", { ascending: true })
+            .limit(5000)
+        )
+      : Promise.resolve([] as { ended_at: string | null; session_date: string | null }[]),
     activeIds.length
-      ? supabase
-          .from("nutrition_assignments")
-          .select("id, client_id, scheduled_date")
-          .in("client_id", activeIds)
-          .gte("scheduled_date", period.start.toISOString().slice(0, 10))
-          .order("scheduled_date", { ascending: false })
-          .limit(5000)
-      : Promise.resolve({ data: [] as unknown[] }),
+      ? chunkIn<{ id: string; client_id: string; scheduled_date: string }>(activeIds, (chunk) =>
+          supabase
+            .from("nutrition_assignments")
+            .select("id, client_id, scheduled_date")
+            .in("client_id", chunk)
+            .gte("scheduled_date", period.start.toISOString().slice(0, 10))
+            .order("scheduled_date", { ascending: false })
+            .limit(5000)
+        )
+      : Promise.resolve([] as { id: string; client_id: string; scheduled_date: string }[]),
     activeIds.length
-      ? supabase
-          .from("daily_summary")
-          .select("user_id, summary_date, calories_consumed")
-          .in("user_id", activeIds)
-          .gte("summary_date", period.start.toISOString().slice(0, 10))
-          .order("summary_date", { ascending: false })
-          .limit(5000)
-      : Promise.resolve({ data: [] as unknown[] }),
+      ? chunkIn<{ user_id: string; summary_date: string; calories_consumed: number | null }>(activeIds, (chunk) =>
+          supabase
+            .from("daily_summary")
+            .select("user_id, summary_date, calories_consumed")
+            .in("user_id", chunk)
+            .gte("summary_date", period.start.toISOString().slice(0, 10))
+            .order("summary_date", { ascending: false })
+            .limit(5000)
+        )
+      : Promise.resolve([] as { user_id: string; summary_date: string; calories_consumed: number | null }[]),
     activeIds.length
-      ? supabase
-          .from("daily_summary")
-          .select("user_id, summary_date")
-          .in("user_id", activeIds)
-          .eq("summary_date", new Date().toISOString().slice(0, 10))
-          .limit(500)
-      : Promise.resolve({ data: [] as unknown[] }),
+      ? chunkIn<{ user_id: string; summary_date: string }>(activeIds, (chunk) =>
+          supabase
+            .from("daily_summary")
+            .select("user_id, summary_date")
+            .in("user_id", chunk)
+            .eq("summary_date", new Date().toISOString().slice(0, 10))
+            .limit(500)
+        )
+      : Promise.resolve([] as { user_id: string; summary_date: string }[]),
     activeIds.length
-      ? supabase
-          .from("nutrition_logs")
-          .select("id, user_id")
-          .in("user_id", activeIds)
-          .eq("logged_date", new Date().toISOString().slice(0, 10))
-          .limit(500)
-      : Promise.resolve({ data: [] as unknown[] }),
+      ? chunkIn<{ id: string; user_id: string }>(activeIds, (chunk) =>
+          supabase
+            .from("nutrition_logs")
+            .select("id, user_id")
+            .in("user_id", chunk)
+            .eq("logged_date", new Date().toISOString().slice(0, 10))
+            .limit(500)
+        )
+      : Promise.resolve([] as { id: string; user_id: string }[]),
     supabase
       .from("client_program_enrollments")
       .select("id", { count: "exact", head: true })
       .eq("coach_id", coachId)
       .eq("status", "active"),
   ]);
+  const msgRes = { data: msgRows.slice(0, 5000) as unknown[] };
+  const sessionsRes = { data: sessionRows.slice(0, 5000) as unknown[] };
+  const assignsRes = {
+    data: [...assignRows].sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date)).slice(0, 5000) as unknown[],
+  };
+  const summariesRes = {
+    data: [...summaryRows].sort((a, b) => b.summary_date.localeCompare(a.summary_date)).slice(0, 5000) as unknown[],
+  };
+  const checkinsRes = { data: checkinRows.slice(0, 500) as unknown[] };
+  const mealsRes = { data: mealRows.slice(0, 500) as unknown[] };
 
   // Round 2b — prescribed calories per assignment (coach-readable, no goals
   // read). The only round-2-dependent query left. The id list is chunked:

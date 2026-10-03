@@ -497,20 +497,27 @@ export async function loadNutritionEnrollmentDetail(
     week_number: number | null;
   }[];
 
-  const { data: foodsRaw } = assignments.length
-    ? await svc
-        .from("nutrition_assignment_foods")
-        .select(
-          "id, assignment_id, food_name, serving_unit, original_quantity, original_calories, original_protein_g, original_carbs_g, original_fat_g, current_food_id, current_quantity, current_calories, current_protein_g, current_carbs_g, current_fat_g, change_type, order_index"
-        )
-        .in(
-          "assignment_id",
-          assignments.map((a) => a.id)
-        )
-        .order("order_index")
-        .limit(10000)
-    : { data: [] as unknown[] };
-  const foodRows = (foodsRaw ?? []) as unknown as Record<string, unknown>[];
+  // Foods are read in assignment-id chunks: a single .in() with ~800 UUIDs
+  // exceeds the PostgREST URL cap and fails the whole read (observed live on
+  // the overview gauge). Long enrollments materialize thousands of meals, so
+  // chunk at 200 and merge; per-assignment grouping below is order-agnostic
+  // beyond each chunk's own order_index sort.
+  let foodRows: Record<string, unknown>[] = [];
+  for (let i = 0; i < assignments.length && foodRows.length < 10000; i += 200) {
+    const { data: foodsRaw, error: foodsErr } = await svc
+      .from("nutrition_assignment_foods")
+      .select(
+        "id, assignment_id, food_name, serving_unit, original_quantity, original_calories, original_protein_g, original_carbs_g, original_fat_g, current_food_id, current_quantity, current_calories, current_protein_g, current_carbs_g, current_fat_g, change_type, order_index"
+      )
+      .in(
+        "assignment_id",
+        assignments.slice(i, i + 200).map((a) => a.id)
+      )
+      .order("order_index")
+      .limit(10000);
+    if (foodsErr) break; // degrade to "no food detail" exactly as the old single-read failure did
+    foodRows = foodRows.concat((foodsRaw ?? []) as unknown as Record<string, unknown>[]);
+  }
   const byAssignment = new Map<string, Record<string, unknown>[]>();
   for (const f of foodRows) {
     const k = f.assignment_id as string;

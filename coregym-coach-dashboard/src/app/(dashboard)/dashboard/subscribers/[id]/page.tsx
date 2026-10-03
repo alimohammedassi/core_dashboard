@@ -1,6 +1,6 @@
 import { GlobalLink } from "@/components/shared/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { daysAgoISO, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
@@ -168,6 +168,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
 
   // ── Client logged data (shared DB; RLS lets a coach read subscribed clients)
   const since = daysAgoISO(14);
+  const svcGoals = await createServiceClient();
 
   // ── Assigned workouts + progress + client logged data ──────────────────────
   // P-01: the six coach-scoped loaders and the five client-logged-data reads
@@ -193,7 +194,11 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
     loadClientNutritionEnrollments(coachId, clientId),
     loadTodayNutrition(coachId, clientId, new Date().toISOString().slice(0, 10)),
     loadRecentNutritionChanges(coachId, clientId, 10),
-    supabase
+    // user_goals has no coach RLS policy, so the user-context read always came
+    // back empty and the telemetry tiles lost their targets. The client's
+    // ownership was verified above (coach-scoped subscription), so read goals
+    // through the established post-ownership service-role pattern.
+    svcGoals
       .from("user_goals")
       .select("daily_calories, weekly_workouts, target_weight_kg")
       .eq("user_id", clientId)
@@ -539,6 +544,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                   </span>
                 )}
               </span>
+              <EnrollmentActions enrollmentId={activeNutrition.id} status={activeNutrition.status} kind="nutrition" />
             </CardAction>
           )}
         </CardHeader>
@@ -580,6 +586,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
                     >
                       {t("subscribers.shared.viewFull")}
                     </GlobalLink>
+                    <EnrollmentActions enrollmentId={ne.id} status={ne.status} kind="nutrition" />
                   </div>
                 ))}
               </div>

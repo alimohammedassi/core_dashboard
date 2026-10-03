@@ -24,6 +24,7 @@ import type {
   BundleWeeklyVolume,
   BundlePersonalRecord,
 } from "@/lib/ai/payload";
+import { createServiceClient } from "@/lib/supabase/server";
 import { loadClientPrescription, loadClientProgress } from "@/lib/workouts";
 import { loadNutritionEnrollmentDetail, loadRecentNutritionChanges } from "@/lib/nutrition";
 
@@ -57,7 +58,13 @@ export async function collectAiDataBundle(
   //    unavailable; never guessed). A missing row yields available=true with
   //    null fields; a structurally unavailable read yields goals=null, which
   //    maps to numeric_goals.available=false in the payload.
-  const { data: goalsRaw } = await supabase
+  //    Read via the service role: user_goals RLS has no coach policy, so the
+  //    user-context read always returned empty and the AI never saw goal
+  //    targets. Same trust contract as loadClientPrescription/loadClientProgress
+  //    — this collector only runs AFTER the route verified, scoped to the
+  //    resolved coach, that the client belongs to this coach.
+  const svc = await createServiceClient();
+  const { data: goalsRaw } = await svc
     .from("user_goals")
     .select("daily_calories, weekly_workouts, target_weight_kg")
     .eq("user_id", clientId)
