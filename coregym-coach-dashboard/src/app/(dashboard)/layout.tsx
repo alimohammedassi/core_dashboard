@@ -5,7 +5,7 @@ import { resolveCoachId } from "@/lib/coach";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarNav } from "@/components/dashboard/SidebarNav";
-import { Topbar } from "@/components/dashboard/Topbar";
+import { Topbar } from "@/components/dashboard/TopBar";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
 import { LangToggle } from "@/components/dashboard/LangToggle";
 import { LogOut } from "lucide-react";
