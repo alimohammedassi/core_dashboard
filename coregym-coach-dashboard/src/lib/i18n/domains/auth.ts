@@ -5,6 +5,13 @@
 
 export const auth = {
   en: {
+    shell: {
+      secureAccess: "Secure access",
+      coachPortal: "Coach portal",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+    },
+
     login: {
       title: "CoreGym Coach Login",
       subtitle: "Sign in with your coach account. Non-coach accounts are blocked.",
@@ -184,6 +191,13 @@ export const auth = {
   },
 
   ar: {
+    shell: {
+      secureAccess: "دخول آمن",
+      coachPortal: "بوابة الكوتش",
+      showPassword: "إظهار كلمة السر",
+      hidePassword: "إخفاء كلمة السر",
+    },
+
     login: {
       title: "CoreGym — دخول الكوتش",
       subtitle: "سجّل دخولك بحساب الكوتش بتاعك. الحسابات غير الكوتش مش مسموح بيها.",

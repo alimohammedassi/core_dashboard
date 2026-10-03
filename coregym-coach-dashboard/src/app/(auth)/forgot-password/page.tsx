@@ -6,10 +6,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { describeError } from "@/lib/user-error";
 import { useI18n } from "@/lib/i18n/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/AuthShell";
+import {
+  AUTH_INPUT_CLASS,
+  authCtaClass,
+  authHeadingClass,
+  authLabelClass,
+} from "@/components/auth/styles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 
 // Password recovery step 1 — request a verification code.
@@ -19,7 +25,8 @@ import { toast } from "sonner";
 // redirectTo is passed and /auth/callback stays OAuth-only.
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const isEn = lang === "en";
   const supabase = React.useMemo(() => createClient(), []);
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -46,37 +53,47 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">{t("auth.forgot.title")}</CardTitle>
-          <CardDescription>{t("auth.forgot.subtitle")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">{t("auth.forgot.emailLabel")}</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder={t("auth.forgot.emailPlaceholder")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t("auth.forgot.sending") : t("auth.forgot.sendCode")}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                {t("auth.forgot.backToLogin")}
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell>
+      <h1 className={authHeadingClass(isEn)}>{t("auth.forgot.title")}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-white/60">{t("auth.forgot.subtitle")}</p>
+
+      <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="email" className={authLabelClass(isEn)}>
+            {t("auth.forgot.emailLabel")}
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder={t("auth.forgot.emailPlaceholder")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className={AUTH_INPUT_CLASS}
+          />
+        </div>
+
+        <button type="submit" disabled={loading} className={authCtaClass(isEn)}>
+          {loading ? (
+            <>
+              <Spinner className="text-[#161806]" />
+              {t("auth.forgot.sending")}
+            </>
+          ) : (
+            t("auth.forgot.sendCode")
+          )}
+        </button>
+
+        <p className="text-center text-sm text-white/60">
+          <Link
+            href="/login"
+            className="underline-offset-4 transition-colors hover:text-volt hover:underline"
+          >
+            {t("auth.forgot.backToLogin")}
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
   );
 }

@@ -55,7 +55,10 @@ export function StatCard({
         ) : null}
       </div>
       <div className="my-3 flex flex-wrap items-baseline gap-2">
-        <span className={cn("font-display text-metric-display tabular-nums tracking-tight text-foreground", valueClassName)}>
+        {/* cn misclassifies custom text-size tokens (text-metric-display) as
+            text-color and drops whichever comes first, so the size token must
+            stay the last text-* class or the metric readout loses its scale. */}
+        <span className={cn("font-display text-foreground text-metric-display tabular-nums tracking-tight", valueClassName)}>
           {value}
         </span>
         {suffix ? <span className="text-body-sm text-muted-foreground">{suffix}</span> : null}

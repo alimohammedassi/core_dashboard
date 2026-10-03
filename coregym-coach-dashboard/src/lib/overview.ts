@@ -165,6 +165,7 @@ export interface OverviewData {
     id: string;
     name: string;
     email: string | null;
+    avatarUrl: string | null;
     plan: string | null;
     status: string;
     startDate: string;
@@ -504,6 +505,7 @@ export async function getOverviewData(
     id: s.id,
     name: s.client?.full_name || s.client?.name || s.client?.email || "Client",
     email: s.client?.email ?? null,
+    avatarUrl: s.client?.avatar_url ?? null,
     plan: s.plan?.name ?? null,
     status: s.status,
     startDate: s.start_date,

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Download, Search } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { GlobalLink } from "@/components/shared/link";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export type TopClientRow = {
   id: string;
   name: string;
   email: string | null;
+  avatarUrl: string | null;
   plan: string | null;
   status: string;
   startDate: string;
@@ -110,6 +111,7 @@ function Table({ rows, fmtDate }: { rows: TopClientRow[]; fmtDate: Record<string
                 <div className="flex items-center gap-3">
                   <span className="relative shrink-0">
                     <Avatar className="size-9">
+                      {r.avatarUrl ? <AvatarImage src={r.avatarUrl} alt="" /> : null}
                       <AvatarFallback className="text-xs">{(r.name ?? "?").slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span

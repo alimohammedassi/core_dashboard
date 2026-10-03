@@ -6,10 +6,17 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { describeError } from "@/lib/user-error";
 import { useI18n } from "@/lib/i18n/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { PasswordToggle } from "@/components/auth/PasswordToggle";
+import {
+  AUTH_INPUT_CLASS,
+  authCtaClass,
+  authHeadingClass,
+  authLabelClass,
+} from "@/components/auth/styles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 
 // Password recovery steps 2+3 — verify the emailed OTP, then set a new
@@ -33,7 +40,8 @@ function passwordProblem(
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const isEn = lang === "en";
   const supabase = React.useMemo(() => createClient(), []);
   const [ready, setReady] = React.useState(false);
   const [email, setEmail] = React.useState("");
@@ -42,6 +50,8 @@ export default function ResetPasswordPage() {
   const [code, setCode] = React.useState("");
   const [pw, setPw] = React.useState("");
   const [pw2, setPw2] = React.useState("");
+  const [showPw, setShowPw] = React.useState(false);
+  const [showPw2, setShowPw2] = React.useState(false);
   const [verifying, setVerifying] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [resending, setResending] = React.useState(false);
@@ -145,114 +155,155 @@ export default function ResetPasswordPage() {
   if (!ready) return null;
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
-      <Card className="w-full max-w-sm">
-        {!verified ? (
-          <>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">{t("auth.reset.checkTitle")}</CardTitle>
-              <CardDescription>
-                {t("auth.reset.checkDescBefore")}{" "}
-                <span className="font-medium text-foreground">{email}</span>
-                {t("auth.reset.checkDescAfter")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleVerify} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="code">{t("auth.reset.codeLabel")}</Label>
-                  <Input
-                    id="code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    placeholder={t("auth.reset.codePlaceholder")}
-                    maxLength={10}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, ""))}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={verifying || code.trim().length < 6}>
-                  {verifying ? t("auth.reset.verifying") : t("auth.reset.verifyCode")}
-                </Button>
-                <p className="text-center text-sm text-muted-foreground">
-                  {t("auth.reset.didntGet")}{" "}
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resending || resendIn > 0}
-                    className="underline underline-offset-4 hover:text-foreground disabled:opacity-50"
-                  >
-                    {resendIn > 0
-                      ? t("auth.reset.resendIn", { n: resendIn })
-                      : t("auth.reset.resendCode")}
-                  </button>
-                </p>
-                <p className="text-center text-sm text-muted-foreground">
-                  <Link href="/forgot-password" className="underline underline-offset-4 hover:text-foreground">
-                    {t("auth.reset.differentEmail")}
-                  </Link>
-                  {" · "}
-                  <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                    {t("auth.reset.backToLogin")}
-                  </Link>
-                </p>
-              </form>
-            </CardContent>
-          </>
-        ) : (
-          <>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">{t("auth.reset.newTitle")}</CardTitle>
-              <CardDescription>
-                {googleOnly
-                  ? t("auth.reset.googleOnlyDesc")
-                  : t("auth.reset.newDesc")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSetPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">{t("auth.reset.newPasswordLabel")}</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={pw}
-                    onChange={(e) => setPw(e.target.value)}
-                    required
-                    minLength={8}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">{t("auth.reset.confirmLabel")}</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={pw2}
-                    onChange={(e) => setPw2(e.target.value)}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">{t("auth.reset.policyHint")}</p>
-                <Button type="submit" className="w-full" disabled={saving || !pw || !pw2}>
-                  {saving
-                    ? t("auth.reset.updating")
-                    : googleOnly
-                      ? t("auth.reset.setPassword")
-                      : t("auth.reset.updatePassword")}
-                </Button>
-                <p className="text-center text-sm text-muted-foreground">
-                  <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-                    {t("auth.reset.backToLogin")}
-                  </Link>
-                </p>
-              </form>
-            </CardContent>
-          </>
-        )}
-      </Card>
-    </div>
+    <AuthShell>
+      {!verified ? (
+        <>
+          <h1 className={authHeadingClass(isEn)}>{t("auth.reset.checkTitle")}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-white/60">
+            {t("auth.reset.checkDescBefore")}{" "}
+            <span className="font-medium text-[#eceee2]">{email}</span>
+            {t("auth.reset.checkDescAfter")}
+          </p>
+
+          <form onSubmit={handleVerify} className="mt-7 space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="code" className={authLabelClass(isEn)}>
+                {t("auth.reset.codeLabel")}
+              </Label>
+              <Input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder={t("auth.reset.codePlaceholder")}
+                maxLength={10}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, ""))}
+                required
+                className="h-11 rounded-xl border-white/10 bg-white/[0.04] px-3.5 text-center text-lg font-semibold tracking-[0.25em] md:h-10 dark:bg-white/[0.04]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={verifying || code.trim().length < 6}
+              className={authCtaClass(isEn)}
+            >
+              {verifying ? (
+                <>
+                  <Spinner className="text-[#161806]" />
+                  {t("auth.reset.verifying")}
+                </>
+              ) : (
+                t("auth.reset.verifyCode")
+              )}
+            </button>
+
+            <p className="text-center text-sm text-white/60">
+              {t("auth.reset.didntGet")}{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending || resendIn > 0}
+                className="underline-offset-4 transition-colors hover:text-volt hover:underline disabled:opacity-50"
+              >
+                {resendIn > 0
+                  ? t("auth.reset.resendIn", { n: resendIn })
+                  : t("auth.reset.resendCode")}
+              </button>
+            </p>
+
+            <p className="text-center text-xs text-white/40">
+              <Link
+                href="/forgot-password"
+                className="underline-offset-4 transition-colors hover:text-white/80 hover:underline"
+              >
+                {t("auth.reset.differentEmail")}
+              </Link>
+              {" · "}
+              <Link
+                href="/login"
+                className="underline-offset-4 transition-colors hover:text-white/80 hover:underline"
+              >
+                {t("auth.reset.backToLogin")}
+              </Link>
+            </p>
+          </form>
+        </>
+      ) : (
+        <>
+          <h1 className={authHeadingClass(isEn)}>{t("auth.reset.newTitle")}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-white/60">
+            {googleOnly ? t("auth.reset.googleOnlyDesc") : t("auth.reset.newDesc")}
+          </p>
+
+          <form onSubmit={handleSetPassword} className="mt-7 space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="new-password" className={authLabelClass(isEn)}>
+                {t("auth.reset.newPasswordLabel")}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showPw ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  required
+                  minLength={8}
+                  className={`${AUTH_INPUT_CLASS} pe-11`}
+                />
+                <PasswordToggle show={showPw} onToggle={() => setShowPw((p) => !p)} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password" className={authLabelClass(isEn)}>
+                {t("auth.reset.confirmLabel")}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showPw2 ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={pw2}
+                  onChange={(e) => setPw2(e.target.value)}
+                  required
+                  className={`${AUTH_INPUT_CLASS} pe-11`}
+                />
+                <PasswordToggle show={showPw2} onToggle={() => setShowPw2((p) => !p)} />
+              </div>
+            </div>
+
+            <p className="text-xs leading-relaxed text-white/40">{t("auth.reset.policyHint")}</p>
+
+            <button
+              type="submit"
+              disabled={saving || !pw || !pw2}
+              className={authCtaClass(isEn)}
+            >
+              {saving ? (
+                <>
+                  <Spinner className="text-[#161806]" />
+                  {t("auth.reset.updating")}
+                </>
+              ) : googleOnly ? (
+                t("auth.reset.setPassword")
+              ) : (
+                t("auth.reset.updatePassword")
+              )}
+            </button>
+
+            <p className="text-center text-sm text-white/60">
+              <Link
+                href="/login"
+                className="underline-offset-4 transition-colors hover:text-volt hover:underline"
+              >
+                {t("auth.reset.backToLogin")}
+              </Link>
+            </p>
+          </form>
+        </>
+      )}
+    </AuthShell>
   );
 }

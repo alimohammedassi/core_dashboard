@@ -189,7 +189,7 @@ function FoodPicker({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("nutrition.picker.title")}</DialogTitle>
           <DialogDescription>{t("nutrition.picker.description")}</DialogDescription>
@@ -680,7 +680,7 @@ function BuilderDialog({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{seed.editing ? t("nutrition.builder.titleEdit") : t("nutrition.builder.titleCreate")}</DialogTitle>
           <DialogDescription>
@@ -688,178 +688,189 @@ function BuilderDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3">
-          <div>
-            <Label htmlFor="np-name">{t("common.table.name")}</Label>
-            <Input id="np-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("nutrition.builder.namePlaceholder")} />
-          </div>
-          <div>
-            <Label htmlFor="np-desc">{t("nutrition.builder.notes")}</Label>
-            <Textarea id="np-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("nutrition.builder.notesPlaceholder")} rows={2} />
-          </div>
-        </div>
-
-        {/* Weekday tabs: kcal sub-label from dayTotals; "+" invites adding the day. */}
-        <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
-          {weekdays.map((w, i) => {
-            const dow = i + 1;
-            const d = days.find((x) => x.day_of_week === dow);
-            const active = activeDay === dow;
-            return (
-              <button
-                key={w.short}
-                type="button"
-                aria-pressed={active}
-                onClick={() => (d ? setActiveDay(dow) : ensureDay(dow))}
-                className={cn(
-                  "flex shrink-0 flex-col items-center rounded-lg px-3.5 py-2 transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : d
-                      ? "bg-secondary text-secondary-foreground hover:bg-accent"
-                      : "border border-dashed border-border text-faint hover:bg-muted"
-                )}
-              >
-                <span className="text-label-md">{w.short}</span>
-                <span className="text-[11px] tabular-nums opacity-70">
-                  {d ? t("nutrition.builder.dayKcal", { kcal: fmt.num(dayTotals(d).calories) }) : "+"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {day ? (
-          <div className="space-y-3 rounded-xl border border-border/60 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-label-lg font-semibold text-foreground">{weekdays[day.day_of_week - 1].full}</h3>
-              <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={addMeal}>
-                  <Plus className="size-3 ms-1" /> {t("nutrition.builder.newMeal")}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => removeDay(day.day_of_week)}>
-                  {t("nutrition.builder.restDay")}
-                </Button>
-              </div>
+        {/* Sections (fields / week strip / active day / weekly totals) sit on
+            the popover surface, where --border is invisible in dark mode —
+            hairlines step up to white/10 there. Inner cards step darker
+            (secondary → background) so each layer reads separately. */}
+        <div className="divide-y divide-border dark:divide-white/10">
+          <section className="grid gap-3 pb-4">
+            <div>
+              <Label htmlFor="np-name">{t("common.table.name")}</Label>
+              <Input id="np-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("nutrition.builder.namePlaceholder")} />
             </div>
+            <div>
+              <Label htmlFor="np-desc">{t("nutrition.builder.notes")}</Label>
+              <Textarea id="np-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("nutrition.builder.notesPlaceholder")} rows={2} />
+            </div>
+          </section>
 
-            {/* Day macro summary — absolute values only (no targets stored). */}
-            <div className="rounded-xl bg-background p-3">
-              <p className="text-label-sm uppercase tracking-wider text-faint">{t("nutrition.builder.dayMacrosTitle")}</p>
-              <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
-                {dayMacroCells.map((c) => (
-                  <div key={c.key}>
-                    <p className="text-label-sm uppercase tracking-wider text-faint">{c.label}</p>
-                    <p className={cn("mt-0.5 text-label-sm font-semibold tabular-nums", c.valueClass)}>{c.value}</p>
-                    {c.fillClass && c.share != null && c.share > 0 ? (
-                      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
-                        <div className={cn("h-full rounded-full", c.fillClass)} style={{ width: `${Math.round(c.share * 100)}%` }} />
+          {/* Weekday tabs: kcal sub-label from dayTotals; "+" invites adding the day. */}
+          <section className="pb-3 pt-4">
+            <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
+              {weekdays.map((w, i) => {
+                const dow = i + 1;
+                const d = days.find((x) => x.day_of_week === dow);
+                const active = activeDay === dow;
+                return (
+                  <button
+                    key={w.short}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => (d ? setActiveDay(dow) : ensureDay(dow))}
+                    className={cn(
+                      "flex shrink-0 flex-col items-center rounded-lg px-3.5 py-2 transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : d
+                          ? "bg-secondary text-secondary-foreground hover:bg-accent"
+                          : "border border-dashed border-border text-faint hover:bg-muted dark:border-white/20"
+                    )}
+                  >
+                    <span className="text-label-md">{w.short}</span>
+                    <span className="text-[11px] tabular-nums opacity-70">
+                      {d ? t("nutrition.builder.dayKcal", { kcal: fmt.num(dayTotals(d).calories) }) : "+"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="py-4">
+            {day ? (
+              <div className="space-y-3 rounded-xl border border-border bg-secondary p-3 dark:border-white/10">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-label-lg font-semibold text-foreground">{weekdays[day.day_of_week - 1].full}</h3>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={addMeal}>
+                      <Plus className="size-3 ms-1" /> {t("nutrition.builder.newMeal")}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => removeDay(day.day_of_week)}>
+                      {t("nutrition.builder.restDay")}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Day macro summary — absolute values only (no targets stored). */}
+                <div className="rounded-xl bg-background p-3">
+                  <p className="text-label-sm uppercase tracking-wider text-faint">{t("nutrition.builder.dayMacrosTitle")}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {dayMacroCells.map((c) => (
+                      <div key={c.key}>
+                        <p className="text-label-sm uppercase tracking-wider text-faint">{c.label}</p>
+                        <p className={cn("mt-0.5 text-label-sm font-semibold tabular-nums", c.valueClass)}>{c.value}</p>
+                        {c.fillClass && c.share != null && c.share > 0 ? (
+                          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
+                            <div className={cn("h-full rounded-full", c.fillClass)} style={{ width: `${Math.round(c.share * 100)}%` }} />
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
+                    ))}
+                  </div>
+                </div>
+
+                {day.meals.map((m, mi) => (
+                  <div key={m.key} className="space-y-2.5 rounded-lg bg-background p-3">
+                    <div className="flex items-center gap-2 border-b border-border pb-2.5">
+                      <MealChip>{t("nutrition.builder.numberedMeal", { n: mealNo(mi + 1) })}</MealChip>
+                      <Input
+                        value={m.name}
+                        onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))}
+                        className="h-8 min-w-0 flex-1 font-display text-headline-sm!"
+                        aria-label={t("nutrition.builder.mealNameAria")}
+                      />
+                      <MacroPill macros={mealTotals(m)} className="shrink-0 text-label-sm" />
+                      <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveUp")} onClick={() => moveMeal(m.key, -1)}>
+                        <ArrowUp className="size-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveDown")} onClick={() => moveMeal(m.key, 1)}>
+                        <ArrowDown className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label={t("nutrition.builder.removeMeal")}
+                        onClick={() => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.filter((x) => x.key !== m.key) }))}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {m.foods.map((f) => {
+                        const scaled = roundMacros(foodMacros(f));
+                        return (
+                          <div key={f.key} className="rounded-lg bg-secondary p-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <p className="min-w-0 flex-1 truncate text-label-md font-medium">
+                                {f.foodName || t("nutrition.builder.foodFallback")}
+                              </p>
+                              <Button
+                                size="icon-xs"
+                                variant="ghost"
+                                aria-label={t("nutrition.builder.removeFood")}
+                                onClick={() =>
+                                  updateDay(day.day_of_week, (d) => ({
+                                    ...d,
+                                    meals: d.meals.map((x) =>
+                                      x.key === m.key ? { ...x, foods: x.foods.filter((y) => y.key !== f.key) } : x
+                                    ),
+                                  }))
+                                }
+                              >
+                                <X className="size-3.5" />
+                              </Button>
+                            </div>
+                            <MacroPill macros={scaled} className="mt-1 text-label-sm" />
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <Input
+                                type="number"
+                                min={0}
+                                step="any"
+                                value={f.quantity}
+                                onChange={(e) =>
+                                  updateDay(day.day_of_week, (d) => ({
+                                    ...d,
+                                    meals: d.meals.map((x) =>
+                                      x.key === m.key
+                                        ? { ...x, foods: x.foods.map((y) => (y.key === f.key ? { ...y, quantity: e.target.value } : y)) }
+                                        : x
+                                    ),
+                                  }))
+                                }
+                                className="h-7 w-20"
+                                aria-label={t("nutrition.builder.quantityAria", { unit: f.serving_unit ?? t("nutrition.builder.units") })}
+                              />
+                              <span className="min-w-0 truncate text-label-sm text-faint">{f.serving_unit ?? ""}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setPickFor(m.key)}>
+                      <Plus className="size-3 ms-1" /> {t("nutrition.builder.addFood")}
+                    </Button>
+                    {pickFor === m.key && (
+                      <FoodPicker
+                        onClose={() => setPickFor(null)}
+                        onPick={(hit) => addFood(m.key, hit)}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("nutrition.builder.selectDay")}</p>
+            )}
+          </section>
+
+          <section className="pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background px-3 py-2">
+              <span className="text-label-sm uppercase tracking-wider text-faint">{t("nutrition.builder.weeklyOverview")}</span>
+              <MacroPill macros={weekTotals} className="text-label-sm" />
             </div>
-
-            {day.meals.map((m, mi) => (
-              <div key={m.key} className="space-y-2.5 rounded-lg border border-border/40 p-3">
-                <div className="flex items-center gap-2 border-b border-border/40 pb-2.5">
-                  <MealChip>{t("nutrition.builder.numberedMeal", { n: mealNo(mi + 1) })}</MealChip>
-                  <Input
-                    value={m.name}
-                    onChange={(e) => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.map((x) => (x.key === m.key ? { ...x, name: e.target.value } : x)) }))}
-                    className="h-8 min-w-0 flex-1 font-display text-headline-sm!"
-                    aria-label={t("nutrition.builder.mealNameAria")}
-                  />
-                  <MacroPill macros={mealTotals(m)} className="shrink-0 text-label-sm" />
-                  <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveUp")} onClick={() => moveMeal(m.key, -1)}>
-                    <ArrowUp className="size-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" aria-label={t("nutrition.builder.moveDown")} onClick={() => moveMeal(m.key, 1)}>
-                    <ArrowDown className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label={t("nutrition.builder.removeMeal")}
-                    onClick={() => updateDay(day.day_of_week, (d) => ({ ...d, meals: d.meals.filter((x) => x.key !== m.key) }))}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {m.foods.map((f) => {
-                    const scaled = roundMacros(foodMacros(f));
-                    return (
-                      <div key={f.key} className="rounded-lg bg-background/40 p-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="min-w-0 flex-1 truncate text-label-md font-medium">
-                            {f.foodName || t("nutrition.builder.foodFallback")}
-                          </p>
-                          <Button
-                            size="icon-xs"
-                            variant="ghost"
-                            aria-label={t("nutrition.builder.removeFood")}
-                            onClick={() =>
-                              updateDay(day.day_of_week, (d) => ({
-                                ...d,
-                                meals: d.meals.map((x) =>
-                                  x.key === m.key ? { ...x, foods: x.foods.filter((y) => y.key !== f.key) } : x
-                                ),
-                              }))
-                            }
-                          >
-                            <X className="size-3.5" />
-                          </Button>
-                        </div>
-                        <MacroPill macros={scaled} className="mt-1 text-label-sm" />
-                        <div className="mt-2 flex items-center gap-1.5">
-                          <Input
-                            type="number"
-                            min={0}
-                            step="any"
-                            value={f.quantity}
-                            onChange={(e) =>
-                              updateDay(day.day_of_week, (d) => ({
-                                ...d,
-                                meals: d.meals.map((x) =>
-                                  x.key === m.key
-                                    ? { ...x, foods: x.foods.map((y) => (y.key === f.key ? { ...y, quantity: e.target.value } : y)) }
-                                    : x
-                                ),
-                              }))
-                            }
-                            className="h-7 w-20"
-                            aria-label={t("nutrition.builder.quantityAria", { unit: f.serving_unit ?? t("nutrition.builder.units") })}
-                          />
-                          <span className="min-w-0 truncate text-label-sm text-faint">{f.serving_unit ?? ""}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setPickFor(m.key)}>
-                  <Plus className="size-3 ms-1" /> {t("nutrition.builder.addFood")}
-                </Button>
-                {pickFor === m.key && (
-                  <FoodPicker
-                    onClose={() => setPickFor(null)}
-                    onPick={(hit) => addFood(m.key, hit)}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t("nutrition.builder.selectDay")}</p>
-        )}
-
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background px-3 py-2">
-          <span className="text-label-sm uppercase tracking-wider text-faint">{t("nutrition.builder.weeklyOverview")}</span>
-          <MacroPill macros={weekTotals} className="text-label-sm" />
+            <p className="mt-2 text-label-sm text-faint">{t("nutrition.builder.unsavedNote")}</p>
+          </section>
         </div>
-
-        <p className="text-label-sm text-faint">{t("nutrition.builder.unsavedNote")}</p>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>

@@ -345,3 +345,17 @@ Pre-apply revalidation: catalog matched baseline (60 tables/182 policies/39 fns/
 - Catalog: 61 tables (+stripe_webhook_events), 182 policies, 39 functions, 142 indexes, 2 publications, 32 storage policies, 32/39 functions pinned.
 - Still open (by design, awaiting authorization/decisions): S-01/S-02 anon reads (db01 — Flutter check), S-03 RLS conversation creation (db09 — product), db06 (product), S-04 coach-media (Flutter).
 - Data changes: only probe rows, all cleaned (0 artifacts). No commit/push/deploy.
+
+---
+
+# FINAL PRODUCTION DEPLOYMENT — 2026-10-03
+
+- Pre-deploy: worktree forensics (66 entries classified A/B/C/D), deployment set staged explicitly (68 files), secret scan CLEAN (no keys/tokens; only a no-value documentation mention of .env.qa in the log), tsc PASS, eslint PASS, 231/231 tests, production build PASS, staged-diff review clean (0 console.logs/debug/eval/service-role-in-client).
+- Design-agent work preserved: (auth) pages ×4, StatCard.tsx, i18n/domains/auth.ts, components/auth/**, NutritionClient.tsx, TopClientsTable.tsx + the 2 avatar hunks in overview.ts (surgically unstaged via filtered patch) — all remain uncommitted in the worktree.
+- Deployment commits: 4c90c04 (audit remediation, 68 files) + 654f37b (TopBar import casing fix — layout.tsx imported 'Topbar' vs tracked 'TopBar.tsx', Linux-build blocker found by scripts/case-import-scan.mjs; disk file renamed to tracked casing).
+- Pushed origin/main: b7311ca → 654f37b. Vercel GitHub integration NOT connected (push triggered no build; prior prod was a manual Sep-29 deploy) → deployed the EXACT pushed commit from a clean git worktree (.deploy-4c90c04 @ 654f37b, removed after).
+- Deployment: coregym-coach-dashboard-m2qn0xxrk.vercel.app — **Ready** (previous prod: hfrmkn02h, Sep-29 manual deploy — rollback target).
+- Prod smoke (orpin alias): unauth redirect ✓, login ✓, all 8 dashboard pages render ✓, subscriber ?q= search (F-13) ✓, client profile ✓, F-01 bootstrap creates thread ✓, two-tab realtime delivery ✓ (retest; first attempt failed due to harness thread-targeting, not the app), CSV export ✓, S-06 foreign→404 ✓, 429 enforced ✓, webhook fail-closed 503 (secrets not yet set in Vercel — owner action) ✓, no fatal page errors ✓.
+- S-01/S-02 anon exposures still OPEN (db01 not applied — DB track, unchanged by this deployment).
+- Data: probe rows created→cleaned→verified (final counts 15 conversations / 69 messages; 0 tagged leftovers; notification rows cleaned).
+- No commit beyond the two deployment commits; design work intact; .env.qa never committed.
