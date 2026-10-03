@@ -320,15 +320,22 @@ export async function getOverviewData(
   ]);
 
   // Round 2b — prescribed calories per assignment (coach-readable, no goals
-  // read). The only round-2-dependent query left.
+  // read). The only round-2-dependent query left. The id list is chunked:
+  // a single .in() with hundreds of UUIDs exceeds the PostgREST URL cap and
+  // fails the whole read (observed live at ~800 ids), which silently blanked
+  // the adherence gauge for any coach with a real roster.
   const assignIds = ((assignsRes.data ?? []) as unknown as Array<{ id: string }>).map((a) => a.id);
-  const assignFoodsRes = assignIds.length
-    ? await supabase
-        .from("nutrition_assignment_foods")
-        .select("assignment_id, original_calories")
-        .in("assignment_id", assignIds)
-        .limit(8000)
-    : { data: [] as unknown[] };
+  const assignmentFoods: Array<{ assignment_id: string; original_calories: number | null }> = [];
+  for (let i = 0; i < assignIds.length; i += 200) {
+    const { data, error } = await supabase
+      .from("nutrition_assignment_foods")
+      .select("assignment_id, original_calories")
+      .in("assignment_id", assignIds.slice(i, i + 200))
+      .limit(8000);
+    if (error) break; // degrade to "no prescribed data" exactly as before
+    assignmentFoods.push(...((data ?? []) as unknown as Array<{ assignment_id: string; original_calories: number | null }>));
+  }
+  const assignFoodsRes = { data: assignmentFoods as unknown[] };
   const todayCheckIns = new Set(((checkinsRes.data ?? []) as unknown as Array<{ user_id: string }>).map((r) => r.user_id)).size;
   const todayMeals = (mealsRes.data ?? []).length;
   const activePrograms = enrollmentsRes.count ?? 0;
