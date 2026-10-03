@@ -359,3 +359,11 @@ Pre-apply revalidation: catalog matched baseline (60 tables/182 policies/39 fns/
 - S-01/S-02 anon exposures still OPEN (db01 not applied — DB track, unchanged by this deployment).
 - Data: probe rows created→cleaned→verified (final counts 15 conversations / 69 messages; 0 tagged leftovers; notification rows cleaned).
 - No commit beyond the two deployment commits; design work intact; .env.qa never committed.
+
+# DEPLOYMENT — 2026-10-03 (693bdd5, latest state incl. design work)
+- Commit 693bdd5 "chore: ship latest dashboard updates" (13 files: auth pages ×4 + AuthShell/PasswordToggle/styles, StatCard, TopClientsTable, NutritionClient, auth i18n, overview avatar field, log) pushed 654f37b → 693bdd5; HEAD == origin/main.
+- Validation on candidate: tsc clean, eslint 0/0, 231/231 tests, build ✓, case-sensitive import scan ALL RESOLVE, secret scan clean.
+- Deployed via clean worktree (.deploy-693bdd5, removed after) → coregym-coach-dashboard-r0v52y2q4.vercel.app: Ready, target production, aliased to orpin.
+- Prod smoke: login (fresh profile; new auth markup uses id=email/password ✓), 8 pages, ?q= search, profile, AI present, F-01 bootstrap ✓, CSV ✓, S-06 404 ✓, 429 ✓, webhook 503 fail-closed ✓, no fatal errors. Two-tab realtime verified via deterministic same-thread retest (tab1RealtimeArrived=true; bulk-run failures were harness thread-targeting, not the app).
+- Artifacts cleaned: tagged pings, bootstrap conversations, notification rows — production data at baseline (15/69/0).
+- Rollback target: m2qn0xxrk (654f37b deployment).
