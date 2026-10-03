@@ -71,7 +71,8 @@ export async function PATCH(req: NextRequest) {
   const svc = await createServiceClient();
 
   const coachUpdate: Record<string, unknown> = {};
-  if (bio != null) coachUpdate.bio = bio || null;
+  // coaches.bio is NOT NULL DEFAULT '' — write '' for an empty bio, never null.
+  if (bio != null) coachUpdate.bio = bio;
   if (priceMonthly != null) coachUpdate.price_monthly = priceMonthly;
   if (specialization !== undefined) coachUpdate.specialization = specialization;
   if (policy) coachUpdate.policy = policy;

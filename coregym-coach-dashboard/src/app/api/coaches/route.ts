@@ -31,16 +31,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  const body = (await req.json().catch(() => ({}))) as CoachPayload;
+
   // API-05: onboarding writes span profiles/coaches/coach_onboarding under
   // service role — one attempt per user per minute (per instance) blunts
   // repeated role/onboarding abuse while leaving the normal flow untouched.
-  if (checkCooldown(`coaches-post:${user.id}`, 60_000)) {
+  // Step-1 save and final completion are distinct wizard actions with their
+  // own cooldown keys, so finishing the wizard right after saving step 1 is
+  // not throttled by the step-1 attempt.
+  const cooldownKey = body.complete === true ? `coaches-complete:${user.id}` : `coaches-post:${user.id}`;
+  if (checkCooldown(cooldownKey, 60_000)) {
     return NextResponse.json({ error: "Too many attempts — please wait a moment" }, { status: 429 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as CoachPayload;
   const displayName = (String(body.display_name ?? "").trim() || user.email || "Coach").slice(0, 80);
-  const bio = String(body.bio ?? "").trim().slice(0, 1000) || null;
+  // Live schema: coaches.bio and coach_onboarding.bio are NOT NULL DEFAULT ''.
+  // An empty bio must be '' — coercing it to null failed the coaches INSERT
+  // with a 23502 not-null violation (the post-OAuth onboarding failure).
+  const bio = String(body.bio ?? "").trim().slice(0, 1000);
   const priceMonthly = Number(body.price_monthly ?? 0);
   if (!Number.isFinite(priceMonthly) || priceMonthly < 0 || priceMonthly > 100000) {
     return NextResponse.json({ error: "price_monthly must be between 0 and 100000" }, { status: 400 });

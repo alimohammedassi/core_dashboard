@@ -56,6 +56,9 @@ export const auth = {
       bioPlaceholder: "Tell clients about your coaching style…",
       createCta: "Create coach account",
       creating: "Creating account…",
+      or: "or",
+      redirectingToGoogle: "Redirecting to Google…",
+      continueWithGoogle: "Continue with Google",
       alreadyCoach: "Already a coach?",
       signInLink: "Sign in",
 
@@ -66,6 +69,7 @@ export const auth = {
         welcome: "Welcome to CoreGym! Your coach profile is live.",
         onboardingFailed: "Coach onboarding failed",
         signupFailed: "Sign up failed",
+        googleFailed: "Google sign-up failed. Please try again.",
       },
     },
 
@@ -241,6 +245,9 @@ export const auth = {
       bioPlaceholder: "احكي للعملاء عن أسلوبك في التدريب…",
       createCta: "اعمل حساب كوتش",
       creating: "بيعمل الحساب…",
+      or: "أو",
+      redirectingToGoogle: "بيحوّلك على Google…",
+      continueWithGoogle: "المتابعة بحساب Google",
       alreadyCoach: "كوتش من قبل؟",
       signInLink: "سجّل دخول",
 
@@ -251,6 +258,7 @@ export const auth = {
         welcome: "أهلاً بيك في CoreGym! الـ profile بتاعك كوتش بقى شغال.",
         onboardingFailed: "تجهيز حساب الكوتش فشل",
         signupFailed: "إنشاء الحساب فشل",
+        googleFailed: "التسجيل بـ Google فشل. جرّب تاني.",
       },
     },
 

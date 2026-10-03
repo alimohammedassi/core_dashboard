@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/client";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordToggle } from "@/components/auth/PasswordToggle";
+import { AuthOrDivider, GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
+import { useGoogleAuth } from "@/components/auth/useGoogleAuth";
 import {
   AUTH_INPUT_CLASS,
   AUTH_TEXTAREA_CLASS,
@@ -52,6 +54,9 @@ export default function SignupPage() {
   const [yearsExperience, setYearsExperience] = React.useState("");
   const [specializations, setSpecializations] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const { googleAvailable, googleLoading, startGoogle } = useGoogleAuth(
+    "auth.signup.toasts.googleFailed",
+  );
 
   function toggleSpec(s: string) {
     setSpecializations((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
@@ -241,6 +246,20 @@ export default function SignupPage() {
             t("auth.signup.createCta")
           )}
         </button>
+
+        {googleAvailable !== false && (
+          <>
+            <AuthOrDivider isEn={isEn} label={t("auth.signup.or")} />
+            <GoogleAuthButton
+              isEn={isEn}
+              loading={googleLoading}
+              disabled={googleLoading || loading}
+              onClick={startGoogle}
+              label={t("auth.signup.continueWithGoogle")}
+              loadingLabel={t("auth.signup.redirectingToGoogle")}
+            />
+          </>
+        )}
 
         <p className="text-center text-sm text-white/60">
           {t("auth.signup.alreadyCoach")}{" "}

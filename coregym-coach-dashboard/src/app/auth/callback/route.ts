@@ -61,9 +61,11 @@ export async function GET(request: Request) {
       if ((prof as unknown as { role?: string })?.role === "coach") {
         const { data: existingCoach } = await svc.from("coaches").select("id").eq("user_id", user.id).maybeSingle();
         if (!existingCoach) {
+          // coaches.bio is NOT NULL DEFAULT '' — an explicit null here failed
+          // the heal insert with a 23502 on the live schema.
           await svc.from("coaches").insert({
             user_id: user.id,
-            bio: null,
+            bio: "",
             price_monthly: 0,
             specialization: [],
             is_active: true,
