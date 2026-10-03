@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, SearchX } from "lucide-react";
+import { Search, SearchX, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,10 @@ import { EmptyState } from "@/components/core/EmptyState";
 import { StatusBadge, statusTone } from "@/components/core/StatusBadge";
 
 // Stitch "Clients" table: command bar (search field + server-rendered status
-// chips) above the roster table. The search filters the bounded
-// server-rendered page client-side (same idiom as TopClientsTable — no extra
-// queries); status chips + pager stay server links so pagination state is
-// preserved in the URL.
+// chips) above the roster table. F-13: the search box is a GET form — the
+// server filters the whole roster (any page, not just the loaded 25) and the
+// term lives in the URL, so the pager/chips preserve it and a new search
+// resets to page 1. Status chips + pager stay server links.
 
 export type SubscriberRow = {
   /** SUBSCRIPTION id — row links keep /dashboard/subscribers/{subscriptionId}. */
@@ -56,6 +56,9 @@ export function SubscribersToolbar({
   chips,
   pager,
   emptyAll,
+  query = "",
+  statusFilter = null,
+  clearSearchHref = "/dashboard/subscribers",
 }: {
   rows: SubscriberRow[];
   labels: ToolbarLabels;
@@ -65,27 +68,52 @@ export function SubscribersToolbar({
   pager: React.ReactNode;
   /** Empty state for a roster with no rows at all (server-rendered). */
   emptyAll: React.ReactNode;
+  /** F-13: the active server-side search term (from ?q=), driving the form. */
+  query?: string;
+  /** F-13: the active status filter, preserved by the search form's hidden field. */
+  statusFilter?: string | null;
+  /** F-13: href that clears the search but keeps the status filter (no page → page 1). */
+  clearSearchHref?: string;
 }) {
-  const [query, setQuery] = React.useState("");
-  const q = query.trim().toLowerCase();
-  const visible = q
-    ? rows.filter((r) => `${r.name} ${r.email} ${r.plan}`.toLowerCase().includes(q))
-    : rows;
+  // Server-side search: rows are already the filtered page; no client filter.
+  // Submitting the form navigates with ?q= (plus the hidden ?status=) and
+  // without ?page=, so every new search starts at page 1.
+  const q = query.trim();
 
   return (
     <div className="flex flex-col gap-4">
       {/* Command bar: search + status chips */}
       <div className="flex flex-col gap-3 rounded-xl bg-card p-3 ring-1 ring-border lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full max-w-xs">
+        <form method="GET" action="/dashboard/subscribers" className="relative w-full max-w-xs" role="search">
+          {/* Keep the active status filter when searching; ?page= is dropped → reset to 1. */}
+          <input type="hidden" name="status" value={statusFilter ?? ""} />
           <Search className="absolute start-3 top-1/2 size-5 -translate-y-1/2 text-faint" />
           <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            type="search"
+            name="q"
+            defaultValue={q}
             placeholder={labels.searchPlaceholder}
             aria-label={labels.searchPlaceholder}
-            className="h-10 ps-9 text-body-md"
+            className="h-10 ps-9 pe-9 text-body-md"
           />
-        </div>
+          {q ? (
+            <GlobalLink
+              href={clearSearchHref}
+              aria-label={labels.clearFilter}
+              className="absolute end-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-faint hover:bg-secondary hover:text-foreground"
+            >
+              <X className="size-4" />
+            </GlobalLink>
+          ) : (
+            <button
+              type="submit"
+              aria-label={labels.searchPlaceholder}
+              className="absolute end-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-faint hover:bg-secondary hover:text-foreground"
+            >
+              <Search className="size-4" />
+            </button>
+          )}
+        </form>
         <div className="flex flex-wrap items-center gap-2">{chips}</div>
       </div>
 
@@ -102,7 +130,7 @@ export function SubscribersToolbar({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((r) => (
+              {rows.map((r) => (
                 <TableRow key={r.id} className={r.pastDue ? "bg-secondary/40" : undefined}>
                   {/* Identity: avatar + status dot + name + status chip + email • plan */}
                   <TableCell>
@@ -198,27 +226,29 @@ export function SubscribersToolbar({
                   </TableCell>
                 </TableRow>
               ))}
-              {rows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="p-4">
-                    {emptyAll}
-                  </TableCell>
-                </TableRow>
-              )}
-              {rows.length > 0 && visible.length === 0 && (
+              {/* F-13: an active search with no rows is a "no results" state
+                  (offer clear-search); a bare empty roster gets emptyAll. */}
+              {rows.length === 0 && q && (
                 <TableRow>
                   <TableCell colSpan={5} className="p-4">
                     <EmptyState
                       icon={SearchX}
                       title={labels.filterEmpty}
                       action={
-                        <GlobalLink href={labels.clearHref}>
+                        <GlobalLink href={clearSearchHref}>
                           <Button variant="secondary" size="sm">
                             {labels.clearFilter}
                           </Button>
                         </GlobalLink>
                       }
                     />
+                  </TableCell>
+                </TableRow>
+              )}
+              {rows.length === 0 && !q && (
+                <TableRow>
+                  <TableCell colSpan={5} className="p-4">
+                    {emptyAll}
                   </TableCell>
                 </TableRow>
               )}

@@ -18,3 +18,18 @@ EXCEPTION WHEN undefined_function THEN
 END $$;
 
 ALTER FUNCTION public.is_my_active_client(client_uid uuid) RESET search_path;
+
+-- ============================================================================
+-- v3 ROLLBACK (2026-10-02 additions) — restore live pre-state: no search_path
+-- override, PUBLIC+anon EXECUTE present on the two analytics RPCs.
+-- ============================================================================
+
+ALTER FUNCTION public.handle_subscription_accepted() RESET search_path;
+ALTER FUNCTION public.notify_new_message() RESET search_path;
+ALTER FUNCTION public.sync_nutrition_to_summary() RESET search_path;
+ALTER FUNCTION public.sync_workout_to_summary() RESET search_path;
+ALTER FUNCTION public.update_coach_rating() RESET search_path;
+ALTER FUNCTION public.update_conversation_on_message() RESET search_path;
+
+GRANT EXECUTE ON FUNCTION public.record_daily_activity(text) TO public, anon;
+GRANT EXECUTE ON FUNCTION public.get_streak_status() TO public, anon;

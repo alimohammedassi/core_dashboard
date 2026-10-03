@@ -1,0 +1,364 @@
+[
+  {
+    "proname": "apply_coach_meal_edit",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_assignment_id uuid, p_action text, p_food_id uuid, p_quantity numeric, p_assignment_food_id uuid, p_note text"
+  },
+  {
+    "proname": "apply_nutrition_food_change",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_assignment_food_id uuid, p_new_quantity numeric, p_new_food_id uuid, p_note text"
+  },
+  {
+    "proname": "cp_touch_updated_at",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "create_nutrition_enrollment_atomic",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_program_id uuid, p_coach_id uuid, p_client_id uuid, p_start_date date, p_duration_weeks integer"
+  },
+  {
+    "proname": "create_program_enrollment_atomic",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_program_id uuid, p_coach_id uuid, p_client_id uuid, p_start_date date, p_duration_weeks integer"
+  },
+  {
+    "proname": "create_workout_template_atomic",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_coach_id uuid, p_name text, p_target_muscles text[], p_notes text, p_exercises jsonb"
+  },
+  {
+    "proname": "day_commitment_score",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_consumed numeric, p_calorie_goal numeric, p_water_ml numeric, p_water_goal numeric"
+  },
+  {
+    "proname": "get_leaderboard",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_days integer"
+  },
+  {
+    "proname": "get_leaderboard_v2",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_category text, p_days integer, p_target uuid, p_limit integer"
+  },
+  {
+    "proname": "get_rank_history",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_target uuid, p_days integer"
+  },
+  {
+    "proname": "get_streak_status",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "get_user_activity",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_target uuid, p_days integer"
+  },
+  {
+    "proname": "get_user_streak",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_target uuid"
+  },
+  {
+    "proname": "get_weekly_recap",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_days integer"
+  },
+  {
+    "proname": "handle_new_user",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "handle_subscription_accepted",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "is_my_active_client",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "client_uid uuid"
+  },
+  {
+    "proname": "mark_all_notifications_read",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_user_id uuid"
+  },
+  {
+    "proname": "mark_conversation_read",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_conversation_id uuid, p_user_id uuid"
+  },
+  {
+    "proname": "mark_notification_read",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_notification_id uuid, p_user_id uuid"
+  },
+  {
+    "proname": "notify_new_message",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "np_touch_updated_at",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "record_daily_activity",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_source text"
+  },
+  {
+    "proname": "refresh_coach_rating",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "regenerate_remaining_enrollment_assignments",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_enrollment_id uuid, p_coach_id uuid"
+  },
+  {
+    "proname": "regenerate_remaining_nutrition_assignments",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_enrollment_id uuid, p_coach_id uuid"
+  },
+  {
+    "proname": "sync_nutrition_to_summary",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "sync_workout_to_summary",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "unread_count",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_user_id uuid"
+  },
+  {
+    "proname": "update_coach_onboarding_updated_at",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "update_coach_rating",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "update_conversation_on_message",
+    "security_definer": true,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "update_updated_at",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  },
+  {
+    "proname": "update_workout_template_atomic",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_template_id uuid, p_name text, p_target_muscles text[], p_notes text, p_exercises jsonb"
+  },
+  {
+    "proname": "upsert_coach_program_atomic",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_program_id uuid, p_coach_id uuid, p_name text, p_description text, p_days jsonb"
+  },
+  {
+    "proname": "upsert_nutrition_program_atomic",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_program_id uuid, p_coach_id uuid, p_name text, p_description text, p_tree jsonb"
+  },
+  {
+    "proname": "user_day_values",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_start date, p_end date"
+  },
+  {
+    "proname": "user_window_scores",
+    "security_definer": true,
+    "proconfig": [
+      "search_path=public"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": "p_start date, p_end date"
+  },
+  {
+    "proname": "wt_touch_updated_at",
+    "security_definer": false,
+    "proconfig": null,
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "args": ""
+  }
+]

@@ -25,26 +25,11 @@ export function weekdayLabel(dayOfWeek: number): string {
   return WEEKDAY_LABELS[dayOfWeek - 1] ?? `Day ${dayOfWeek}`;
 }
 
-export async function loadCoachPrograms(coachId: string): Promise<CoachProgram[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("coach_programs")
-    .select(
-      `
-      id, name, description, is_active, updated_at,
-      days:coach_program_days(id, day_of_week, template_id, order_index, template:workout_templates(id, name))
-      `
-    )
-    .eq("coach_id", coachId)
-    .order("updated_at", { ascending: false });
-  if (error) return []; // tables not migrated yet, or RLS error — render empty state
-
-  return mapCoachProgramRows((data ?? []) as unknown as Record<string, unknown>[]);
-}
-
-// P3: paged library read — same rows as loadCoachPrograms, bounded by
+// P3: paged library read — same rows as the coach library, bounded by
 // range() with an exact total for the pager. Keeps the unpaged loader for
 // small callers (enrollment dialogs only need names via separate queries).
+// P-11: the unpaged loadCoachPrograms was removed — no page referenced it
+// (the programs page uses the bounded variant below).
 export async function loadCoachProgramsPage(
   coachId: string,
   from: number,
@@ -266,13 +251,16 @@ export async function loadEnrollmentProgress(
 ): Promise<EnrollmentProgress | null> {
   const svc = await createServiceClient();
 
-  const { data: enrollmentRaw } = await svc
+  // F-03: query failure → throw (error boundary), never a fake 404 via null.
+  // P-10: explicit columns — only the fields destructured below are read.
+  const { data: enrollmentRaw, error: enrollmentErr } = await svc
     .from("client_program_enrollments")
-    .select("*")
+    .select("id, program_id, client_id, start_date, duration_weeks, status")
     .eq("id", enrollmentId)
     .eq("coach_id", coachId)
     .eq("client_id", clientId)
     .maybeSingle();
+  if (enrollmentErr) throw new Error(`program enrollment load failed: ${enrollmentErr.message}`);
   if (!enrollmentRaw) return null;
   const e = enrollmentRaw as unknown as {
     id: string;

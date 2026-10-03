@@ -51,3 +51,21 @@ export function nextMonday(from: string): string {
   d.setUTCDate(d.getUTCDate() + ((8 - iso) % 7));
   return d.toISOString().slice(0, 10);
 }
+
+// F-14: which enrollment week (1-indexed) does `today` fall in, using the SQL
+// convention as the source of truth? Both create_*_enrollment_atomic RPCs
+// schedule each day at `start_date + (w - 1) * 7 + (day_of_week - isodow(start))`,
+// so week w spans the offsets [(w-1)*7 - (isoStart-1), w*7 - isoStart] — with a
+// mid-week start, week 1 is the partial week ending the Sunday after start.
+// Solving for w gives floor((offset + isoStart - 1) / 7) + 1, which this helper
+// implements; plain floor(offset / 7) + 1 drifts a full week behind for every
+// Monday/Tuesday after a mid-week start. Days before start_date report week 1
+// (nothing is scheduled yet); the result is clamped to [1, durationWeeks].
+export function enrollmentWeekOf(startDate: string, today: string, durationWeeks: number): number {
+  const diff = Math.round(
+    (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86400000
+  );
+  if (!Number.isFinite(diff) || diff <= 0) return 1;
+  const week = Math.floor((diff + isoWeekday(startDate) - 1) / 7) + 1;
+  return Math.min(Math.max(week, 1), Math.max(1, Math.trunc(durationWeeks) || 1));
+}

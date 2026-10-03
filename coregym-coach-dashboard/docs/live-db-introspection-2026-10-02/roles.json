@@ -1,0 +1,32 @@
+[
+  {
+    "rolname": "authenticated",
+    "rolsuper": false,
+    "rolbypassrls": false,
+    "rolcanlogin": false
+  },
+  {
+    "rolname": "anon",
+    "rolsuper": false,
+    "rolbypassrls": false,
+    "rolcanlogin": false
+  },
+  {
+    "rolname": "service_role",
+    "rolsuper": false,
+    "rolbypassrls": true,
+    "rolcanlogin": false
+  },
+  {
+    "rolname": "postgres",
+    "rolsuper": false,
+    "rolbypassrls": true,
+    "rolcanlogin": true
+  },
+  {
+    "rolname": "authenticator",
+    "rolsuper": false,
+    "rolbypassrls": false,
+    "rolcanlogin": true
+  }
+]

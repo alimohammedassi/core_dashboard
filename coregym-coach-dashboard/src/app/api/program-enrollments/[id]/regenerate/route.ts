@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -12,6 +13,12 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(_req: NextRequest, { params }: RouteContext) {
   const ctx = await requireCoachContext();
   if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  // API-05: regeneration rewrites the future assignment tree — 10/min per
+  // coach/instance caps runaway fan-out.
+  if (rateLimit(`regen:${ctx.coachId}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Too many regenerations — please wait a moment" }, { status: 429 });
+  }
 
   const { id } = await params;
   const svc = await createServiceClient();

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
-import { daysAgoISO, diffDays, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
+import { daysAgoISO, loadAssignedWorkouts, loadClientProgress } from "@/lib/workouts";
+import { enrollmentWeekOf } from "@/lib/program-dates";
 import { loadClientEnrollments } from "@/lib/programs";
 import {
   loadClientNutritionEnrollments,
@@ -15,10 +16,11 @@ import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
 import { RegenerateNutritionButton } from "@/components/subscribers/RegenerateNutritionButton";
 import { EnrollmentActions } from "@/components/subscribers/EnrollmentActions";
-import { ExerciseResults } from "@/components/subscribers/ExerciseResults";
+// P-06: lazy recharts wrappers — same components, async chunk on the client.
+import { ExerciseResults } from "@/components/subscribers/ExerciseResultsLazy";
 import { ProfileTelemetryTiles } from "@/components/subscribers/ProfileTelemetryTiles";
 import { AiAnalysisCard } from "@/components/subscribers/ai/AiAnalysisCard";
-import { NutritionTrends } from "@/components/nutrition/NutritionTrends";
+import { NutritionTrends } from "@/components/nutrition/NutritionTrendsLazy";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -127,7 +129,10 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   if (user) {
     // subscriptions.coach_id references coaches.id, not the auth uid
     coachId = await resolveCoachId(supabase, user.id);
-    const { data } = await supabase
+    // F-03: a failed query (DB/network) must surface as an error, never as a
+    // fake 404. "No row returned with NO error" = genuinely missing or
+    // RLS-filtered (foreign coach) → notFound() below is correct.
+    const { data, error } = await supabase
       .from("subscriptions")
       .select(
         `
@@ -139,6 +144,7 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       .eq("id", id)
       .eq("coach_id", coachId)
       .maybeSingle();
+    if (error) throw new Error(`subscriber load failed: ${error.message}`);
     if (data) {
       const raw = data as unknown as Record<string, unknown>;
       const planRaw = raw.plan as unknown;
@@ -160,42 +166,38 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   if (!sub || !sub.client) notFound();
   const clientId = sub.client.id;
 
-  // ── Assigned workouts + progress (real records, no fabrication) ─────────────
-  const [assigned, progress, enrollments, nutritionEnrollments, todayNutrition, nutritionChanges] =
-    await Promise.all([
-      loadAssignedWorkouts(coachId, clientId),
-      loadClientProgress(coachId, clientId),
-      loadClientEnrollments(coachId, clientId),
-      loadClientNutritionEnrollments(coachId, clientId),
-      loadTodayNutrition(coachId, clientId, new Date().toISOString().slice(0, 10)),
-      loadRecentNutritionChanges(coachId, clientId, 10),
-    ]);
-  // Nutrition trends for the active enrollment (sibling of workout analytics,
-  // scoped to the enrollment — not the client's whole history).
-  const activeNutrition = nutritionEnrollments.find((ne) => ne.status === "active") ?? null;
-  const nutritionDetail = activeNutrition
-    ? await loadNutritionEnrollmentDetail(coachId, clientId, activeNutrition.id)
-    : null;
-  const prs = progress?.prs ?? [];
-  const weekly = progress?.weekly ?? [];
-  const sessionsLast30 = progress?.sessionsLast30 ?? 0;
-  const upcoming = assigned
-    .filter((a) => a.status === "assigned")
-    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
-  const inProgress = assigned.filter((a) => a.status === "started");
-  const completed = assigned.filter((a) => a.status === "completed");
-  const skipped = assigned.filter((a) => a.status === "skipped");
-  // Most recent completed session — the "Review & duplicate" entry point into
-  // the real performance page (where NextWorkoutEditor lives).
-  const reviewTarget =
-    completed.length > 0
-      ? [...completed].sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date))[0]
-      : null;
-
   // ── Client logged data (shared DB; RLS lets a coach read subscribed clients)
   const since = daysAgoISO(14);
-  const [goalsRes, summariesRes, nutritionRes, sessionsRes, measurementsRes] = await Promise.all([
-    supabase.from("user_goals").select("*").eq("user_id", clientId).maybeSingle(),
+
+  // ── Assigned workouts + progress + client logged data ──────────────────────
+  // P-01: the six coach-scoped loaders and the five client-logged-data reads
+  // are mutually independent once clientId is known — they previously ran as
+  // two sequential Promise.all waves and now share ONE parallel wave.
+  // P-10: user_goals selects only the columns the telemetry tiles read.
+  const [
+    assigned,
+    progress,
+    enrollments,
+    nutritionEnrollments,
+    todayNutrition,
+    nutritionChanges,
+    goalsRes,
+    summariesRes,
+    nutritionRes,
+    sessionsRes,
+    measurementsRes,
+  ] = await Promise.all([
+    loadAssignedWorkouts(coachId, clientId),
+    loadClientProgress(coachId, clientId),
+    loadClientEnrollments(coachId, clientId),
+    loadClientNutritionEnrollments(coachId, clientId),
+    loadTodayNutrition(coachId, clientId, new Date().toISOString().slice(0, 10)),
+    loadRecentNutritionChanges(coachId, clientId, 10),
+    supabase
+      .from("user_goals")
+      .select("daily_calories, weekly_workouts, target_weight_kg")
+      .eq("user_id", clientId)
+      .maybeSingle(),
     supabase
       .from("daily_summary")
       .select("summary_date, calories_consumed, steps, calories_burned, water_ml, sleep_hours, workout_done, protein_g")
@@ -222,8 +224,11 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
       .limit(10),
   ]);
 
+  // Nutrition trends for the active enrollment (sibling of workout analytics,
+  // scoped to the enrollment — not the client's whole history).
+  const activeNutrition = nutritionEnrollments.find((ne) => ne.status === "active") ?? null;
   const goals = (goalsRes.data ?? null) as
-    | { daily_calories: number | null; daily_steps: number | null; weekly_workouts: number | null; target_weight_kg: number | null }
+    | { daily_calories: number | null; weekly_workouts: number | null; target_weight_kg: number | null }
     | null;
   const summaries = (summariesRes.data ?? []) as unknown as DailySummary[];
   const nutrition = (nutritionRes.data ?? []) as unknown as NutritionLog[];
@@ -231,17 +236,40 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
   const measurements = (measurementsRes.data ?? []) as unknown as Measurement[];
 
   // Sets for all recent sessions (single query, grouped in memory) — feeds
-  // both the detail lists and the Exercise Results visual
+  // both the detail lists and the Exercise Results visual. P-01: this and the
+  // active-enrollment nutrition detail are mutually independent follow-ups of
+  // the wave above — previously two sequential awaits, now one wave.
   const sessionIds = sessions.map((s) => s.id);
-  const { data: setsData } = sessionIds.length
-    ? await supabase
-        .from("workout_sets")
-        .select("id, session_id, exercise_name, set_number, reps, weight_kg, is_warmup")
-        .in("session_id", sessionIds)
-        .order("logged_at", { ascending: true })
-        .limit(400)
-    : { data: [] as unknown[] };
-  const sets = (setsData ?? []) as unknown as WorkoutSet[];
+  const [nutritionDetail, setsRes] = await Promise.all([
+    activeNutrition
+      ? loadNutritionEnrollmentDetail(coachId, clientId, activeNutrition.id)
+      : Promise.resolve(null),
+    sessionIds.length
+      ? supabase
+          .from("workout_sets")
+          .select("id, session_id, exercise_name, set_number, reps, weight_kg, is_warmup")
+          .in("session_id", sessionIds)
+          .order("logged_at", { ascending: true })
+          .limit(400)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+  const sets = (setsRes.data ?? []) as unknown as WorkoutSet[];
+
+  const prs = progress?.prs ?? [];
+  const weekly = progress?.weekly ?? [];
+  const sessionsLast30 = progress?.sessionsLast30 ?? 0;
+  const upcoming = assigned
+    .filter((a) => a.status === "assigned")
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+  const inProgress = assigned.filter((a) => a.status === "started");
+  const completed = assigned.filter((a) => a.status === "completed");
+  const skipped = assigned.filter((a) => a.status === "skipped");
+  // Most recent completed session — the "Review & duplicate" entry point into
+  // the real performance page (where NextWorkoutEditor lives).
+  const reviewTarget =
+    completed.length > 0
+      ? [...completed].sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date))[0]
+      : null;
 
   // ── Derived numbers
   const weekAgo = daysAgoISO(7);
@@ -305,12 +333,11 @@ export default async function SubscriberDetailPage({ params }: { params: Promise
     }),
     { kcal: 0, p: 0, c: 0, f: 0 }
   );
-  // Same week math for the active NUTRITION enrollment (feeds the header badge)
+  // Same week math for the active NUTRITION enrollment (feeds the header
+  // badge) — F-14: SQL week convention via enrollmentWeekOf, matching the
+  // week_number stamped by create_nutrition_enrollment_atomic.
   const nutritionWeek = activeNutrition
-    ? Math.min(
-        Math.max(Math.floor((todayISO > activeNutrition.start_date ? diffDays(todayISO, activeNutrition.start_date) : 0) / 7) + 1, 1),
-        activeNutrition.duration_weeks
-      )
+    ? enrollmentWeekOf(activeNutrition.start_date, todayISO, activeNutrition.duration_weeks)
     : null;
   const otherNutritionEnrollments = nutritionEnrollments.filter((ne) => ne.id !== activeNutrition?.id);
   const latestPR = [...prs]

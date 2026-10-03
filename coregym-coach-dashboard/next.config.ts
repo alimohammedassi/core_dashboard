@@ -7,16 +7,20 @@ import type { NextConfig } from "next";
 // NOTE: Vercel regions / function maxDuration are intentionally left at
 // project defaults — pinning needs a plan/audience decision (manual step,
 // see docs/remediation-log.md item 12).
+// U-04: 'unsafe-eval' is REQUIRED by Turbopack HMR in development only;
+// production React/Next do not eval. Adding it unconditionally triggered the
+// dev CSP warning; gating it on NODE_ENV keeps production headers strict.
+const isDev = process.env.NODE_ENV !== "production";
+const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), "https://js.stripe.com"];
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      // CFG-04: 'unsafe-eval' removed — production React/Next do not require
-      // eval. Dev mode (Turbopack HMR) re-adds it automatically and is not
-      // affected by production headers. 'unsafe-inline' must stay until the
-      // inline bootstrap scripts are nonce-gated (documented follow-up).
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      // CFG-04: 'unsafe-eval' removed from production — React/Next do not
+      // require eval there. 'unsafe-inline' must stay until the inline
+      // bootstrap scripts are nonce-gated (documented follow-up).
+      `script-src ${scriptSrc.join(" ")}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://*.supabase.co",
       "media-src 'self' blob: https://*.supabase.co",

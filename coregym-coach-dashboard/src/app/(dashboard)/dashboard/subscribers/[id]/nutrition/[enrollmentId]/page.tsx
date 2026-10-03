@@ -12,7 +12,8 @@ import { StatCard } from "@/components/core/StatCard";
 import { EmptyState } from "@/components/core/EmptyState";
 import { Apple, CalendarDays, CheckCircle2, Target, TrendingUp, XCircle } from "lucide-react";
 import { RegenerateNutritionButton } from "@/components/subscribers/RegenerateNutritionButton";
-import { NutritionTrends } from "@/components/nutrition/NutritionTrends";
+// P-06: lazy recharts wrapper — same component, async chunk on the client.
+import { NutritionTrends } from "@/components/nutrition/NutritionTrendsLazy";
 import { MacroPill, MealChip, mealNo } from "@/components/nutrition/macro-display";
 import { cn } from "cn";
 
@@ -59,13 +60,15 @@ export default async function NutritionEnrollmentPage({
   if (!ctx) notFound();
 
   // `id` is the SUBSCRIPTION id (matching the profile route's convention).
+  // F-03: query failure → error boundary; no row (missing/RLS-filtered) → 404.
   const supabase = await createClient();
-  const { data: subRow } = await supabase
+  const { data: subRow, error: subErr } = await supabase
     .from("subscriptions")
     .select("client_id")
     .eq("id", id)
     .eq("coach_id", ctx.coachId)
     .maybeSingle();
+  if (subErr) throw new Error(`subscriber lookup failed: ${subErr.message}`);
   if (!subRow) notFound();
   const clientId = (subRow as { client_id: string }).client_id;
 

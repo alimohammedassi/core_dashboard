@@ -1,0 +1,242 @@
+[
+  {
+    "table": "barcode_products",
+    "est_rows": -1
+  },
+  {
+    "table": "barcode_scan_history",
+    "est_rows": -1
+  },
+  {
+    "table": "body_measurements",
+    "est_rows": -1
+  },
+  {
+    "table": "client_assignments",
+    "est_rows": -1
+  },
+  {
+    "table": "client_nutrition_enrollments",
+    "est_rows": -1
+  },
+  {
+    "table": "client_program_enrollments",
+    "est_rows": 11
+  },
+  {
+    "table": "coach_content",
+    "est_rows": -1
+  },
+  {
+    "table": "coach_onboarding",
+    "est_rows": -1
+  },
+  {
+    "table": "coach_profiles",
+    "est_rows": -1
+  },
+  {
+    "table": "coach_program_days",
+    "est_rows": 24
+  },
+  {
+    "table": "coach_programs",
+    "est_rows": -1
+  },
+  {
+    "table": "coach_reviews",
+    "est_rows": -1
+  },
+  {
+    "table": "coach_subscriptions",
+    "est_rows": -1
+  },
+  {
+    "table": "coaches",
+    "est_rows": 12
+  },
+  {
+    "table": "conversations",
+    "est_rows": 15
+  },
+  {
+    "table": "daily_activity",
+    "est_rows": 20
+  },
+  {
+    "table": "daily_summary",
+    "est_rows": 81
+  },
+  {
+    "table": "exercise_progress",
+    "est_rows": -1
+  },
+  {
+    "table": "exercises",
+    "est_rows": 57
+  },
+  {
+    "table": "food_scan_items",
+    "est_rows": 36
+  },
+  {
+    "table": "food_scans",
+    "est_rows": -1
+  },
+  {
+    "table": "foods",
+    "est_rows": 548
+  },
+  {
+    "table": "gym_attendance",
+    "est_rows": -1
+  },
+  {
+    "table": "gyms",
+    "est_rows": -1
+  },
+  {
+    "table": "messages",
+    "est_rows": 109
+  },
+  {
+    "table": "notification_log",
+    "est_rows": 4162
+  },
+  {
+    "table": "notification_preferences",
+    "est_rows": -1
+  },
+  {
+    "table": "notifications",
+    "est_rows": 224
+  },
+  {
+    "table": "nutrition_assignment_foods",
+    "est_rows": 28
+  },
+  {
+    "table": "nutrition_assignments",
+    "est_rows": 43
+  },
+  {
+    "table": "nutrition_change_log",
+    "est_rows": -1
+  },
+  {
+    "table": "nutrition_logs",
+    "est_rows": 154
+  },
+  {
+    "table": "nutrition_program_days",
+    "est_rows": 7
+  },
+  {
+    "table": "nutrition_program_foods",
+    "est_rows": 12
+  },
+  {
+    "table": "nutrition_program_meals",
+    "est_rows": 8
+  },
+  {
+    "table": "nutrition_programs",
+    "est_rows": -1
+  },
+  {
+    "table": "onboarding",
+    "est_rows": -1
+  },
+  {
+    "table": "payment_intents",
+    "est_rows": -1
+  },
+  {
+    "table": "profiles",
+    "est_rows": 93
+  },
+  {
+    "table": "program_day_exercises",
+    "est_rows": -1
+  },
+  {
+    "table": "program_days",
+    "est_rows": -1
+  },
+  {
+    "table": "reviews",
+    "est_rows": -1
+  },
+  {
+    "table": "streak_activity_log",
+    "est_rows": 14
+  },
+  {
+    "table": "stripe_customers",
+    "est_rows": -1
+  },
+  {
+    "table": "subscription_phases",
+    "est_rows": -1
+  },
+  {
+    "table": "subscription_plans",
+    "est_rows": 5
+  },
+  {
+    "table": "subscriptions",
+    "est_rows": 45
+  },
+  {
+    "table": "training_programs",
+    "est_rows": -1
+  },
+  {
+    "table": "user_active_program",
+    "est_rows": -1
+  },
+  {
+    "table": "user_goals",
+    "est_rows": 33
+  },
+  {
+    "table": "user_programs",
+    "est_rows": -1
+  },
+  {
+    "table": "user_streaks",
+    "est_rows": 8
+  },
+  {
+    "table": "voice_food_log_items",
+    "est_rows": 13
+  },
+  {
+    "table": "voice_food_logs",
+    "est_rows": -1
+  },
+  {
+    "table": "weekly_activity",
+    "est_rows": -1
+  },
+  {
+    "table": "workout_assignments",
+    "est_rows": 81
+  },
+  {
+    "table": "workout_sessions",
+    "est_rows": 27
+  },
+  {
+    "table": "workout_sets",
+    "est_rows": 70
+  },
+  {
+    "table": "workout_template_exercises",
+    "est_rows": 63
+  },
+  {
+    "table": "workout_templates",
+    "est_rows": 34
+  }
+]

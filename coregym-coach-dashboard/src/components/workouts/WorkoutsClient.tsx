@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Dumbbell, Layers, ListPlus, PlusCircle, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ export function WorkoutsClient({
   freshTemplates: Record<string, boolean>;
 }) {
   const { t, fmt } = useI18n();
+  const router = useRouter();
   const [templates, setTemplates] = React.useState(initialTemplates);
   const [builderSeed, setBuilderSeed] = React.useState<BuilderSeed | null>(null);
   const [builderNonce, setBuilderNonce] = React.useState(0);
@@ -78,6 +80,10 @@ export function WorkoutsClient({
       const exists = prev.some((p) => p.id === t.id);
       return exists ? prev.map((p) => (p.id === t.id ? t : p)) : [t, ...prev];
     });
+    // F-12: the header count and the pager totals are server-rendered —
+    // refresh so create/edit immediately reflects in them (the local list is
+    // already updated above; refresh() only re-renders the server tree).
+    router.refresh();
   }
 
   async function handleDuplicate(template: WorkoutTemplate) {
@@ -88,6 +94,8 @@ export function WorkoutsClient({
       if (!res.ok) throw new Error(body?.error ?? t("workouts.error.duplicateFailed"));
       setTemplates((prev) => [body as WorkoutTemplate, ...prev]);
       toast.success(t("workouts.toast.duplicatedAs", { name: (body as WorkoutTemplate).name }));
+      // F-12: keep the server-rendered count/pager in sync with the new copy.
+      router.refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("workouts.error.duplicateFailed"));
     } finally {
@@ -105,6 +113,8 @@ export function WorkoutsClient({
       if (!res.ok) throw new Error(body?.error ?? t("workouts.error.deleteFailed"));
       setTemplates((prev) => prev.filter((p) => p.id !== template.id));
       toast.success(t("workouts.toast.templateDeleted"));
+      // F-12: the count/pager still counted the deleted template — refresh.
+      router.refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("workouts.error.deleteFailed"));
     } finally {
@@ -366,6 +376,9 @@ export function WorkoutsClient({
           if (!v) setAssign(null);
         }}
         clients={clients}
+        // F-12: "used by N clients" is server-computed — refresh after a new
+        // assignment so the per-template count updates too.
+        onAssigned={() => router.refresh()}
       />
     </div>
   );

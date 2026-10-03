@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { dbError } from "@/lib/api-error";
+import { copyTemplateName } from "@/lib/workout-input";
+import { rateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -12,6 +14,11 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const ctx = await requireCoachContext();
   if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  // API-05: duplicates copy the full exercise tree — 10/min per coach/instance.
+  if (rateLimit(`dup-tpl:${ctx.coachId}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Too many duplicates — please wait a moment" }, { status: 429 });
+  }
 
   const svc = await createServiceClient();
   const { data: template, error: tErr } = await svc
@@ -32,9 +39,12 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
   if (eErr) return NextResponse.json(dbError("workout-templates/[id]/duplicate", eErr), { status: 400 });
 
   const t = template as { name: string; target_muscles: string[]; notes: string | null };
+  // F-17: "<name> (Copy)" must respect the same 200-char cap create/update
+  // enforce — the base name is truncated first so the copy is always editable
+  // afterwards (copyTemplateName is unit-tested in tests/workout-input.test.ts).
   const { data: newId, error } = await svc.rpc("create_workout_template_atomic", {
     p_coach_id: ctx.coachId,
-    p_name: `${t.name} (Copy)`,
+    p_name: copyTemplateName(t.name),
     p_target_muscles: t.target_muscles ?? [],
     p_notes: t.notes,
     p_exercises: exercises ?? [],

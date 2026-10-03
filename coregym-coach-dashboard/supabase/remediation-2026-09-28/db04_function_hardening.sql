@@ -42,3 +42,35 @@ ALTER FUNCTION public.is_my_active_client(client_uid uuid) SET search_path = pub
 -- Verify: select proname, proconfig from pg_proc
 --         where proname in ('is_coach','prevent_role_escalation','is_my_active_client');
 --         is_my_active_client.proconfig must contain "search_path=public".
+
+-- ============================================================================
+-- v3 ADDITION (2026-10-02, reconciled against the LIVE catalog dump in
+-- docs/live-db-introspection-2026-10-02/): the Sep-28 reconciliation predates
+-- several live functions. Today's live state has SEVEN secdef functions
+-- without pinned search_path; only is_my_active_client is covered above.
+-- The six below are trigger-shaped (zero args) but ARE callable via
+-- PostgREST rpc/ because of PUBLIC EXECUTE — pin their search_path too.
+-- Signatures verified live 2026-10-02 (all zero-arg).
+-- ============================================================================
+ALTER FUNCTION public.handle_subscription_accepted() SET search_path = public;
+ALTER FUNCTION public.notify_new_message() SET search_path = public;
+ALTER FUNCTION public.sync_nutrition_to_summary() SET search_path = public;
+ALTER FUNCTION public.sync_workout_to_summary() SET search_path = public;
+ALTER FUNCTION public.update_coach_rating() SET search_path = public;
+ALTER FUNCTION public.update_conversation_on_message() SET search_path = public;
+
+-- Grant tightening (NEW, evidence-based): these two are USER-facing analytics
+-- RPCs, not policy helpers — PUBLIC/anon EXECUTE is inconsistent with their
+-- siblings (get_leaderboard etc. are authenticated-only). authenticated X
+-- already present in the live ACL, so mobile (authenticated JWT) keeps
+-- working; verify with a mobile smoke test after apply.
+REVOKE EXECUTE ON FUNCTION public.record_daily_activity(text) FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.get_streak_status() FROM public, anon;
+
+-- Verify: select proname, proconfig from pg_proc where proname in
+--          ('handle_subscription_accepted','notify_new_message','sync_nutrition_to_summary',
+--           'sync_workout_to_summary','update_coach_rating','update_conversation_on_message');
+--         all proconfig must contain "search_path=public".
+-- Verify: select proname, proacl::text from pg_proc
+--         where proname in ('record_daily_activity','get_streak_status');
+--         proacl must NOT contain "=X" or "anon=X" entries.

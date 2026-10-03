@@ -1,6 +1,22 @@
 // Shared validation for template create/update payloads (spec §104).
 // Kept framework-free so both API routes and future server actions reuse it.
 
+/** Name cap shared by create/update (parseTemplatePayload) and duplicates. */
+export const TEMPLATE_NAME_CAP = 200;
+
+// F-17: duplicates are named "<name> (Copy)". Naive concatenation can push a
+// near-cap name past the 200-char cap the create/update parser enforces — the
+// row would save (the DB column is unbounded) but every later edit of the
+// copy would fail validation. Truncate the BASE name first so the copy name
+// always fits the cap with the suffix intact.
+export function copyTemplateName(base: string, cap: number = TEMPLATE_NAME_CAP): string {
+  const cleanBase = base.trim();
+  const suffix = " (Copy)";
+  if (suffix.length >= cap) return cleanBase.slice(0, cap);
+  const maxBase = cap - suffix.length;
+  return `${cleanBase.slice(0, maxBase)}${suffix}`;
+}
+
 export type ParsedExercise = {
   exercise_name: string;
   target_sets: number;
@@ -40,7 +56,9 @@ export function parseTemplatePayload(body: unknown): ParseResult {
   if (!name) return { ok: false, error: "Template name is required" };
   // W2 caps mirror the nutrition parser (names 200, notes 2000, bounded
   // counts/magnitudes) so oversized payloads fail fast instead of slow.
-  if (name.length > 200) return { ok: false, error: "Template name must be 200 characters or fewer" };
+  if (name.length > TEMPLATE_NAME_CAP) {
+    return { ok: false, error: `Template name must be ${TEMPLATE_NAME_CAP} characters or fewer` };
+  }
 
   const muscles = Array.isArray(b.target_muscles)
     ? b.target_muscles.map((m) => String(m).trim()).filter(Boolean).slice(0, 20)

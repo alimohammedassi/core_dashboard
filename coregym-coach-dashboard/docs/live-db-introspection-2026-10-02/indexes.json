@@ -1,0 +1,692 @@
+[
+  {
+    "tablename": "barcode_products",
+    "indexname": "barcode_products_pkey",
+    "indexdef": "CREATE UNIQUE INDEX barcode_products_pkey ON public.barcode_products USING btree (barcode)"
+  },
+  {
+    "tablename": "barcode_scan_history",
+    "indexname": "barcode_scan_history_pkey",
+    "indexdef": "CREATE UNIQUE INDEX barcode_scan_history_pkey ON public.barcode_scan_history USING btree (id)"
+  },
+  {
+    "tablename": "barcode_scan_history",
+    "indexname": "idx_barcode_history_barcode",
+    "indexdef": "CREATE INDEX idx_barcode_history_barcode ON public.barcode_scan_history USING btree (barcode)"
+  },
+  {
+    "tablename": "barcode_scan_history",
+    "indexname": "idx_barcode_history_user",
+    "indexdef": "CREATE INDEX idx_barcode_history_user ON public.barcode_scan_history USING btree (user_id)"
+  },
+  {
+    "tablename": "body_measurements",
+    "indexname": "body_measurements_pkey",
+    "indexdef": "CREATE UNIQUE INDEX body_measurements_pkey ON public.body_measurements USING btree (id)"
+  },
+  {
+    "tablename": "body_measurements",
+    "indexname": "body_measurements_user_id_measured_date_key",
+    "indexdef": "CREATE UNIQUE INDEX body_measurements_user_id_measured_date_key ON public.body_measurements USING btree (user_id, measured_date)"
+  },
+  {
+    "tablename": "body_measurements",
+    "indexname": "idx_measurements_user_date",
+    "indexdef": "CREATE INDEX idx_measurements_user_date ON public.body_measurements USING btree (user_id, measured_date)"
+  },
+  {
+    "tablename": "client_assignments",
+    "indexname": "client_assignments_client_id_content_id_key",
+    "indexdef": "CREATE UNIQUE INDEX client_assignments_client_id_content_id_key ON public.client_assignments USING btree (client_id, content_id)"
+  },
+  {
+    "tablename": "client_assignments",
+    "indexname": "client_assignments_pkey",
+    "indexdef": "CREATE UNIQUE INDEX client_assignments_pkey ON public.client_assignments USING btree (id)"
+  },
+  {
+    "tablename": "client_assignments",
+    "indexname": "idx_assignments_client",
+    "indexdef": "CREATE INDEX idx_assignments_client ON public.client_assignments USING btree (client_id)"
+  },
+  {
+    "tablename": "client_assignments",
+    "indexname": "idx_assignments_coach",
+    "indexdef": "CREATE INDEX idx_assignments_coach ON public.client_assignments USING btree (coach_id)"
+  },
+  {
+    "tablename": "client_nutrition_enrollments",
+    "indexname": "client_nutrition_enrollments_pkey",
+    "indexdef": "CREATE UNIQUE INDEX client_nutrition_enrollments_pkey ON public.client_nutrition_enrollments USING btree (id)"
+  },
+  {
+    "tablename": "client_nutrition_enrollments",
+    "indexname": "idx_cne_client_status",
+    "indexdef": "CREATE INDEX idx_cne_client_status ON public.client_nutrition_enrollments USING btree (client_id, status)"
+  },
+  {
+    "tablename": "client_nutrition_enrollments",
+    "indexname": "idx_cne_coach",
+    "indexdef": "CREATE INDEX idx_cne_coach ON public.client_nutrition_enrollments USING btree (coach_id, client_id)"
+  },
+  {
+    "tablename": "client_nutrition_enrollments",
+    "indexname": "idx_cne_program",
+    "indexdef": "CREATE INDEX idx_cne_program ON public.client_nutrition_enrollments USING btree (program_id)"
+  },
+  {
+    "tablename": "client_program_enrollments",
+    "indexname": "client_program_enrollments_pkey",
+    "indexdef": "CREATE UNIQUE INDEX client_program_enrollments_pkey ON public.client_program_enrollments USING btree (id)"
+  },
+  {
+    "tablename": "client_program_enrollments",
+    "indexname": "idx_cpe_coach",
+    "indexdef": "CREATE INDEX idx_cpe_coach ON public.client_program_enrollments USING btree (coach_id, client_id)"
+  },
+  {
+    "tablename": "client_program_enrollments",
+    "indexname": "idx_cpe_program",
+    "indexdef": "CREATE INDEX idx_cpe_program ON public.client_program_enrollments USING btree (program_id)"
+  },
+  {
+    "tablename": "coach_content",
+    "indexname": "coach_content_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_content_pkey ON public.coach_content USING btree (id)"
+  },
+  {
+    "tablename": "coach_content",
+    "indexname": "idx_coach_content_coach",
+    "indexdef": "CREATE INDEX idx_coach_content_coach ON public.coach_content USING btree (coach_id)"
+  },
+  {
+    "tablename": "coach_onboarding",
+    "indexname": "coach_onboarding_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_onboarding_pkey ON public.coach_onboarding USING btree (id)"
+  },
+  {
+    "tablename": "coach_onboarding",
+    "indexname": "coach_onboarding_user_id_key",
+    "indexdef": "CREATE UNIQUE INDEX coach_onboarding_user_id_key ON public.coach_onboarding USING btree (user_id)"
+  },
+  {
+    "tablename": "coach_profiles",
+    "indexname": "coach_profiles_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_profiles_pkey ON public.coach_profiles USING btree (id)"
+  },
+  {
+    "tablename": "coach_program_days",
+    "indexname": "coach_program_days_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_program_days_pkey ON public.coach_program_days USING btree (id)"
+  },
+  {
+    "tablename": "coach_program_days",
+    "indexname": "coach_program_days_program_id_day_of_week_key",
+    "indexdef": "CREATE UNIQUE INDEX coach_program_days_program_id_day_of_week_key ON public.coach_program_days USING btree (program_id, day_of_week)"
+  },
+  {
+    "tablename": "coach_program_days",
+    "indexname": "idx_cpd_program",
+    "indexdef": "CREATE INDEX idx_cpd_program ON public.coach_program_days USING btree (program_id, day_of_week)"
+  },
+  {
+    "tablename": "coach_programs",
+    "indexname": "coach_programs_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_programs_pkey ON public.coach_programs USING btree (id)"
+  },
+  {
+    "tablename": "coach_programs",
+    "indexname": "idx_cp_coach",
+    "indexdef": "CREATE INDEX idx_cp_coach ON public.coach_programs USING btree (coach_id)"
+  },
+  {
+    "tablename": "coach_reviews",
+    "indexname": "coach_reviews_coach_id_client_id_key",
+    "indexdef": "CREATE UNIQUE INDEX coach_reviews_coach_id_client_id_key ON public.coach_reviews USING btree (coach_id, client_id)"
+  },
+  {
+    "tablename": "coach_reviews",
+    "indexname": "coach_reviews_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_reviews_pkey ON public.coach_reviews USING btree (id)"
+  },
+  {
+    "tablename": "coach_subscriptions",
+    "indexname": "coach_subscriptions_client_id_coach_id_key",
+    "indexdef": "CREATE UNIQUE INDEX coach_subscriptions_client_id_coach_id_key ON public.coach_subscriptions USING btree (client_id, coach_id)"
+  },
+  {
+    "tablename": "coach_subscriptions",
+    "indexname": "coach_subscriptions_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coach_subscriptions_pkey ON public.coach_subscriptions USING btree (id)"
+  },
+  {
+    "tablename": "coaches",
+    "indexname": "coaches_pkey",
+    "indexdef": "CREATE UNIQUE INDEX coaches_pkey ON public.coaches USING btree (id)"
+  },
+  {
+    "tablename": "coaches",
+    "indexname": "coaches_user_id_key",
+    "indexdef": "CREATE UNIQUE INDEX coaches_user_id_key ON public.coaches USING btree (user_id)"
+  },
+  {
+    "tablename": "conversations",
+    "indexname": "conversations_client_id_coach_id_key",
+    "indexdef": "CREATE UNIQUE INDEX conversations_client_id_coach_id_key ON public.conversations USING btree (client_id, coach_id)"
+  },
+  {
+    "tablename": "conversations",
+    "indexname": "conversations_client_idx",
+    "indexdef": "CREATE INDEX conversations_client_idx ON public.conversations USING btree (client_id)"
+  },
+  {
+    "tablename": "conversations",
+    "indexname": "conversations_coach_idx",
+    "indexdef": "CREATE INDEX conversations_coach_idx ON public.conversations USING btree (coach_id)"
+  },
+  {
+    "tablename": "conversations",
+    "indexname": "conversations_pkey",
+    "indexdef": "CREATE UNIQUE INDEX conversations_pkey ON public.conversations USING btree (id)"
+  },
+  {
+    "tablename": "conversations",
+    "indexname": "idx_conversations_client",
+    "indexdef": "CREATE INDEX idx_conversations_client ON public.conversations USING btree (client_id, last_message_at DESC)"
+  },
+  {
+    "tablename": "conversations",
+    "indexname": "idx_conversations_coach",
+    "indexdef": "CREATE INDEX idx_conversations_coach ON public.conversations USING btree (coach_id, last_message_at DESC)"
+  },
+  {
+    "tablename": "daily_activity",
+    "indexname": "daily_activity_pkey",
+    "indexdef": "CREATE UNIQUE INDEX daily_activity_pkey ON public.daily_activity USING btree (id)"
+  },
+  {
+    "tablename": "daily_activity",
+    "indexname": "daily_activity_user_id_activity_date_key",
+    "indexdef": "CREATE UNIQUE INDEX daily_activity_user_id_activity_date_key ON public.daily_activity USING btree (user_id, activity_date)"
+  },
+  {
+    "tablename": "daily_activity",
+    "indexname": "idx_daily_activity_user_date",
+    "indexdef": "CREATE INDEX idx_daily_activity_user_date ON public.daily_activity USING btree (user_id, activity_date DESC)"
+  },
+  {
+    "tablename": "daily_summary",
+    "indexname": "daily_summary_pkey",
+    "indexdef": "CREATE UNIQUE INDEX daily_summary_pkey ON public.daily_summary USING btree (id)"
+  },
+  {
+    "tablename": "daily_summary",
+    "indexname": "daily_summary_user_id_summary_date_key",
+    "indexdef": "CREATE UNIQUE INDEX daily_summary_user_id_summary_date_key ON public.daily_summary USING btree (user_id, summary_date)"
+  },
+  {
+    "tablename": "daily_summary",
+    "indexname": "idx_summary_user_date",
+    "indexdef": "CREATE INDEX idx_summary_user_date ON public.daily_summary USING btree (user_id, summary_date)"
+  },
+  {
+    "tablename": "exercise_progress",
+    "indexname": "exercise_progress_pkey",
+    "indexdef": "CREATE UNIQUE INDEX exercise_progress_pkey ON public.exercise_progress USING btree (id)"
+  },
+  {
+    "tablename": "exercises",
+    "indexname": "exercises_pkey",
+    "indexdef": "CREATE UNIQUE INDEX exercises_pkey ON public.exercises USING btree (id)"
+  },
+  {
+    "tablename": "food_scan_items",
+    "indexname": "food_scan_items_pkey",
+    "indexdef": "CREATE UNIQUE INDEX food_scan_items_pkey ON public.food_scan_items USING btree (id)"
+  },
+  {
+    "tablename": "food_scan_items",
+    "indexname": "idx_food_scan_items_scan_id",
+    "indexdef": "CREATE INDEX idx_food_scan_items_scan_id ON public.food_scan_items USING btree (scan_id)"
+  },
+  {
+    "tablename": "food_scans",
+    "indexname": "food_scans_pkey",
+    "indexdef": "CREATE UNIQUE INDEX food_scans_pkey ON public.food_scans USING btree (id)"
+  },
+  {
+    "tablename": "food_scans",
+    "indexname": "idx_food_scans_user_scanned",
+    "indexdef": "CREATE INDEX idx_food_scans_user_scanned ON public.food_scans USING btree (user_id, scanned_at DESC)"
+  },
+  {
+    "tablename": "foods",
+    "indexname": "foods_pkey",
+    "indexdef": "CREATE UNIQUE INDEX foods_pkey ON public.foods USING btree (id)"
+  },
+  {
+    "tablename": "foods",
+    "indexname": "idx_foods_name",
+    "indexdef": "CREATE INDEX idx_foods_name ON public.foods USING btree (lower(name))"
+  },
+  {
+    "tablename": "gym_attendance",
+    "indexname": "gym_attendance_pkey",
+    "indexdef": "CREATE UNIQUE INDEX gym_attendance_pkey ON public.gym_attendance USING btree (id)"
+  },
+  {
+    "tablename": "gym_attendance",
+    "indexname": "gym_attendance_user_date_idx",
+    "indexdef": "CREATE INDEX gym_attendance_user_date_idx ON public.gym_attendance USING btree (user_id, date DESC)"
+  },
+  {
+    "tablename": "gym_attendance",
+    "indexname": "gym_attendance_user_id_gym_id_date_key",
+    "indexdef": "CREATE UNIQUE INDEX gym_attendance_user_id_gym_id_date_key ON public.gym_attendance USING btree (user_id, gym_id, date)"
+  },
+  {
+    "tablename": "gyms",
+    "indexname": "gyms_pkey",
+    "indexdef": "CREATE UNIQUE INDEX gyms_pkey ON public.gyms USING btree (id)"
+  },
+  {
+    "tablename": "messages",
+    "indexname": "idx_messages_conversation_id",
+    "indexdef": "CREATE INDEX idx_messages_conversation_id ON public.messages USING btree (conversation_id, created_at DESC)"
+  },
+  {
+    "tablename": "messages",
+    "indexname": "messages_conversation_idx",
+    "indexdef": "CREATE INDEX messages_conversation_idx ON public.messages USING btree (conversation_id, created_at DESC)"
+  },
+  {
+    "tablename": "messages",
+    "indexname": "messages_pkey",
+    "indexdef": "CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)"
+  },
+  {
+    "tablename": "messages",
+    "indexname": "messages_sender_idx",
+    "indexdef": "CREATE INDEX messages_sender_idx ON public.messages USING btree (sender_id)"
+  },
+  {
+    "tablename": "notification_log",
+    "indexname": "notification_log_pkey",
+    "indexdef": "CREATE UNIQUE INDEX notification_log_pkey ON public.notification_log USING btree (id)"
+  },
+  {
+    "tablename": "notification_log",
+    "indexname": "notification_log_user_recent",
+    "indexdef": "CREATE INDEX notification_log_user_recent ON public.notification_log USING btree (user_id, sent_at DESC)"
+  },
+  {
+    "tablename": "notification_log",
+    "indexname": "notification_log_user_unread",
+    "indexdef": "CREATE INDEX notification_log_user_unread ON public.notification_log USING btree (user_id, sent_at DESC) WHERE (read_at IS NULL)"
+  },
+  {
+    "tablename": "notification_preferences",
+    "indexname": "notification_preferences_pkey",
+    "indexdef": "CREATE UNIQUE INDEX notification_preferences_pkey ON public.notification_preferences USING btree (user_id)"
+  },
+  {
+    "tablename": "notifications",
+    "indexname": "notifications_pkey",
+    "indexdef": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+  },
+  {
+    "tablename": "notifications",
+    "indexname": "notifications_user_list_idx",
+    "indexdef": "CREATE INDEX notifications_user_list_idx ON public.notifications USING btree (user_id, created_at DESC)"
+  },
+  {
+    "tablename": "notifications",
+    "indexname": "notifications_user_unread_idx",
+    "indexdef": "CREATE INDEX notifications_user_unread_idx ON public.notifications USING btree (user_id, is_read) WHERE (is_read = false)"
+  },
+  {
+    "tablename": "nutrition_assignment_foods",
+    "indexname": "idx_naf_assignment",
+    "indexdef": "CREATE INDEX idx_naf_assignment ON public.nutrition_assignment_foods USING btree (assignment_id, order_index)"
+  },
+  {
+    "tablename": "nutrition_assignment_foods",
+    "indexname": "nutrition_assignment_foods_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_assignment_foods_pkey ON public.nutrition_assignment_foods USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_assignments",
+    "indexname": "idx_na_client",
+    "indexdef": "CREATE INDEX idx_na_client ON public.nutrition_assignments USING btree (client_id, scheduled_date)"
+  },
+  {
+    "tablename": "nutrition_assignments",
+    "indexname": "idx_na_enrollment",
+    "indexdef": "CREATE INDEX idx_na_enrollment ON public.nutrition_assignments USING btree (enrollment_id, scheduled_date)"
+  },
+  {
+    "tablename": "nutrition_assignments",
+    "indexname": "nutrition_assignments_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_assignments_pkey ON public.nutrition_assignments USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_change_log",
+    "indexname": "idx_ncl_client",
+    "indexdef": "CREATE INDEX idx_ncl_client ON public.nutrition_change_log USING btree (client_id, created_at DESC)"
+  },
+  {
+    "tablename": "nutrition_change_log",
+    "indexname": "idx_ncl_coach",
+    "indexdef": "CREATE INDEX idx_ncl_coach ON public.nutrition_change_log USING btree (coach_id, created_at DESC)"
+  },
+  {
+    "tablename": "nutrition_change_log",
+    "indexname": "nutrition_change_log_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_change_log_pkey ON public.nutrition_change_log USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_logs",
+    "indexname": "idx_nutrition_user_date",
+    "indexdef": "CREATE INDEX idx_nutrition_user_date ON public.nutrition_logs USING btree (user_id, logged_date)"
+  },
+  {
+    "tablename": "nutrition_logs",
+    "indexname": "nutrition_logs_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_logs_pkey ON public.nutrition_logs USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_program_days",
+    "indexname": "idx_npd_program",
+    "indexdef": "CREATE INDEX idx_npd_program ON public.nutrition_program_days USING btree (program_id, day_of_week)"
+  },
+  {
+    "tablename": "nutrition_program_days",
+    "indexname": "nutrition_program_days_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_program_days_pkey ON public.nutrition_program_days USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_program_days",
+    "indexname": "nutrition_program_days_program_id_day_of_week_key",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_program_days_program_id_day_of_week_key ON public.nutrition_program_days USING btree (program_id, day_of_week)"
+  },
+  {
+    "tablename": "nutrition_program_foods",
+    "indexname": "idx_npf_meal",
+    "indexdef": "CREATE INDEX idx_npf_meal ON public.nutrition_program_foods USING btree (meal_id, order_index)"
+  },
+  {
+    "tablename": "nutrition_program_foods",
+    "indexname": "nutrition_program_foods_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_program_foods_pkey ON public.nutrition_program_foods USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_program_meals",
+    "indexname": "idx_npm_day",
+    "indexdef": "CREATE INDEX idx_npm_day ON public.nutrition_program_meals USING btree (day_id, order_index)"
+  },
+  {
+    "tablename": "nutrition_program_meals",
+    "indexname": "nutrition_program_meals_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_program_meals_pkey ON public.nutrition_program_meals USING btree (id)"
+  },
+  {
+    "tablename": "nutrition_programs",
+    "indexname": "idx_np_coach",
+    "indexdef": "CREATE INDEX idx_np_coach ON public.nutrition_programs USING btree (coach_id)"
+  },
+  {
+    "tablename": "nutrition_programs",
+    "indexname": "nutrition_programs_pkey",
+    "indexdef": "CREATE UNIQUE INDEX nutrition_programs_pkey ON public.nutrition_programs USING btree (id)"
+  },
+  {
+    "tablename": "onboarding",
+    "indexname": "onboarding_pkey",
+    "indexdef": "CREATE UNIQUE INDEX onboarding_pkey ON public.onboarding USING btree (id)"
+  },
+  {
+    "tablename": "onboarding",
+    "indexname": "onboarding_user_id_key",
+    "indexdef": "CREATE UNIQUE INDEX onboarding_user_id_key ON public.onboarding USING btree (user_id)"
+  },
+  {
+    "tablename": "payment_intents",
+    "indexname": "idx_payment_intents_client",
+    "indexdef": "CREATE INDEX idx_payment_intents_client ON public.payment_intents USING btree (client_id)"
+  },
+  {
+    "tablename": "payment_intents",
+    "indexname": "idx_payment_intents_stripe",
+    "indexdef": "CREATE INDEX idx_payment_intents_stripe ON public.payment_intents USING btree (stripe_payment_id)"
+  },
+  {
+    "tablename": "payment_intents",
+    "indexname": "payment_intents_pkey",
+    "indexdef": "CREATE UNIQUE INDEX payment_intents_pkey ON public.payment_intents USING btree (id)"
+  },
+  {
+    "tablename": "profiles",
+    "indexname": "profiles_pkey",
+    "indexdef": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+  },
+  {
+    "tablename": "program_day_exercises",
+    "indexname": "program_day_exercises_pkey",
+    "indexdef": "CREATE UNIQUE INDEX program_day_exercises_pkey ON public.program_day_exercises USING btree (id)"
+  },
+  {
+    "tablename": "program_days",
+    "indexname": "program_days_pkey",
+    "indexdef": "CREATE UNIQUE INDEX program_days_pkey ON public.program_days USING btree (id)"
+  },
+  {
+    "tablename": "reviews",
+    "indexname": "reviews_pkey",
+    "indexdef": "CREATE UNIQUE INDEX reviews_pkey ON public.reviews USING btree (id)"
+  },
+  {
+    "tablename": "reviews",
+    "indexname": "unique_review",
+    "indexdef": "CREATE UNIQUE INDEX unique_review ON public.reviews USING btree (client_id, coach_id)"
+  },
+  {
+    "tablename": "streak_activity_log",
+    "indexname": "streak_activity_log_pkey",
+    "indexdef": "CREATE UNIQUE INDEX streak_activity_log_pkey ON public.streak_activity_log USING btree (id)"
+  },
+  {
+    "tablename": "streak_activity_log",
+    "indexname": "streak_activity_log_user_id_activity_date_key",
+    "indexdef": "CREATE UNIQUE INDEX streak_activity_log_user_id_activity_date_key ON public.streak_activity_log USING btree (user_id, activity_date)"
+  },
+  {
+    "tablename": "stripe_customers",
+    "indexname": "stripe_customers_pkey",
+    "indexdef": "CREATE UNIQUE INDEX stripe_customers_pkey ON public.stripe_customers USING btree (id)"
+  },
+  {
+    "tablename": "stripe_customers",
+    "indexname": "stripe_customers_stripe_customer_id_key",
+    "indexdef": "CREATE UNIQUE INDEX stripe_customers_stripe_customer_id_key ON public.stripe_customers USING btree (stripe_customer_id)"
+  },
+  {
+    "tablename": "stripe_customers",
+    "indexname": "stripe_customers_user_id_key",
+    "indexdef": "CREATE UNIQUE INDEX stripe_customers_user_id_key ON public.stripe_customers USING btree (user_id)"
+  },
+  {
+    "tablename": "subscription_phases",
+    "indexname": "subscription_phases_pkey",
+    "indexdef": "CREATE UNIQUE INDEX subscription_phases_pkey ON public.subscription_phases USING btree (id)"
+  },
+  {
+    "tablename": "subscription_plans",
+    "indexname": "subscription_plans_pkey",
+    "indexdef": "CREATE UNIQUE INDEX subscription_plans_pkey ON public.subscription_plans USING btree (id)"
+  },
+  {
+    "tablename": "subscriptions",
+    "indexname": "idx_subscriptions_client_status",
+    "indexdef": "CREATE INDEX idx_subscriptions_client_status ON public.subscriptions USING btree (client_id, status)"
+  },
+  {
+    "tablename": "subscriptions",
+    "indexname": "idx_subscriptions_coach_status",
+    "indexdef": "CREATE INDEX idx_subscriptions_coach_status ON public.subscriptions USING btree (coach_id, status)"
+  },
+  {
+    "tablename": "subscriptions",
+    "indexname": "subscriptions_pkey",
+    "indexdef": "CREATE UNIQUE INDEX subscriptions_pkey ON public.subscriptions USING btree (id)"
+  },
+  {
+    "tablename": "subscriptions",
+    "indexname": "unique_active_client_sub",
+    "indexdef": "CREATE UNIQUE INDEX unique_active_client_sub ON public.subscriptions USING btree (client_id) WHERE (status = 'active'::subscription_status)"
+  },
+  {
+    "tablename": "training_programs",
+    "indexname": "training_programs_pkey",
+    "indexdef": "CREATE UNIQUE INDEX training_programs_pkey ON public.training_programs USING btree (id)"
+  },
+  {
+    "tablename": "user_active_program",
+    "indexname": "user_active_program_pkey",
+    "indexdef": "CREATE UNIQUE INDEX user_active_program_pkey ON public.user_active_program USING btree (id)"
+  },
+  {
+    "tablename": "user_active_program",
+    "indexname": "user_active_program_user_id_key",
+    "indexdef": "CREATE UNIQUE INDEX user_active_program_user_id_key ON public.user_active_program USING btree (user_id)"
+  },
+  {
+    "tablename": "user_goals",
+    "indexname": "user_goals_pkey",
+    "indexdef": "CREATE UNIQUE INDEX user_goals_pkey ON public.user_goals USING btree (id)"
+  },
+  {
+    "tablename": "user_goals",
+    "indexname": "user_goals_user_id_key",
+    "indexdef": "CREATE UNIQUE INDEX user_goals_user_id_key ON public.user_goals USING btree (user_id)"
+  },
+  {
+    "tablename": "user_programs",
+    "indexname": "user_programs_pkey",
+    "indexdef": "CREATE UNIQUE INDEX user_programs_pkey ON public.user_programs USING btree (id)"
+  },
+  {
+    "tablename": "user_streaks",
+    "indexname": "user_streaks_pkey",
+    "indexdef": "CREATE UNIQUE INDEX user_streaks_pkey ON public.user_streaks USING btree (user_id)"
+  },
+  {
+    "tablename": "voice_food_log_items",
+    "indexname": "voice_food_log_items_log_id_idx",
+    "indexdef": "CREATE INDEX voice_food_log_items_log_id_idx ON public.voice_food_log_items USING btree (log_id)"
+  },
+  {
+    "tablename": "voice_food_log_items",
+    "indexname": "voice_food_log_items_nutrition_log_id_idx",
+    "indexdef": "CREATE INDEX voice_food_log_items_nutrition_log_id_idx ON public.voice_food_log_items USING btree (nutrition_log_id)"
+  },
+  {
+    "tablename": "voice_food_log_items",
+    "indexname": "voice_food_log_items_pkey",
+    "indexdef": "CREATE UNIQUE INDEX voice_food_log_items_pkey ON public.voice_food_log_items USING btree (id)"
+  },
+  {
+    "tablename": "voice_food_logs",
+    "indexname": "voice_food_logs_logged_at_idx",
+    "indexdef": "CREATE INDEX voice_food_logs_logged_at_idx ON public.voice_food_logs USING btree (logged_at)"
+  },
+  {
+    "tablename": "voice_food_logs",
+    "indexname": "voice_food_logs_pkey",
+    "indexdef": "CREATE UNIQUE INDEX voice_food_logs_pkey ON public.voice_food_logs USING btree (id)"
+  },
+  {
+    "tablename": "voice_food_logs",
+    "indexname": "voice_food_logs_user_id_idx",
+    "indexdef": "CREATE INDEX voice_food_logs_user_id_idx ON public.voice_food_logs USING btree (user_id)"
+  },
+  {
+    "tablename": "weekly_activity",
+    "indexname": "weekly_activity_pkey",
+    "indexdef": "CREATE UNIQUE INDEX weekly_activity_pkey ON public.weekly_activity USING btree (id)"
+  },
+  {
+    "tablename": "weekly_activity",
+    "indexname": "weekly_activity_user_id_week_start_day_index_key",
+    "indexdef": "CREATE UNIQUE INDEX weekly_activity_user_id_week_start_day_index_key ON public.weekly_activity USING btree (user_id, week_start, day_index)"
+  },
+  {
+    "tablename": "workout_assignments",
+    "indexname": "idx_wa_client",
+    "indexdef": "CREATE INDEX idx_wa_client ON public.workout_assignments USING btree (client_id, scheduled_date)"
+  },
+  {
+    "tablename": "workout_assignments",
+    "indexname": "idx_wa_coach",
+    "indexdef": "CREATE INDEX idx_wa_coach ON public.workout_assignments USING btree (coach_id, scheduled_date)"
+  },
+  {
+    "tablename": "workout_assignments",
+    "indexname": "idx_wa_enrollment",
+    "indexdef": "CREATE INDEX idx_wa_enrollment ON public.workout_assignments USING btree (enrollment_id, week_number)"
+  },
+  {
+    "tablename": "workout_assignments",
+    "indexname": "idx_wa_template",
+    "indexdef": "CREATE INDEX idx_wa_template ON public.workout_assignments USING btree (template_id)"
+  },
+  {
+    "tablename": "workout_assignments",
+    "indexname": "workout_assignments_pkey",
+    "indexdef": "CREATE UNIQUE INDEX workout_assignments_pkey ON public.workout_assignments USING btree (id)"
+  },
+  {
+    "tablename": "workout_sessions",
+    "indexname": "idx_sessions_user_date",
+    "indexdef": "CREATE INDEX idx_sessions_user_date ON public.workout_sessions USING btree (user_id, session_date)"
+  },
+  {
+    "tablename": "workout_sessions",
+    "indexname": "idx_ws_assignment",
+    "indexdef": "CREATE INDEX idx_ws_assignment ON public.workout_sessions USING btree (assignment_id)"
+  },
+  {
+    "tablename": "workout_sessions",
+    "indexname": "workout_sessions_pkey",
+    "indexdef": "CREATE UNIQUE INDEX workout_sessions_pkey ON public.workout_sessions USING btree (id)"
+  },
+  {
+    "tablename": "workout_sets",
+    "indexname": "idx_sets_session",
+    "indexdef": "CREATE INDEX idx_sets_session ON public.workout_sets USING btree (session_id)"
+  },
+  {
+    "tablename": "workout_sets",
+    "indexname": "workout_sets_pkey",
+    "indexdef": "CREATE UNIQUE INDEX workout_sets_pkey ON public.workout_sets USING btree (id)"
+  },
+  {
+    "tablename": "workout_template_exercises",
+    "indexname": "idx_wte_template",
+    "indexdef": "CREATE INDEX idx_wte_template ON public.workout_template_exercises USING btree (template_id, order_index)"
+  },
+  {
+    "tablename": "workout_template_exercises",
+    "indexname": "workout_template_exercises_pkey",
+    "indexdef": "CREATE UNIQUE INDEX workout_template_exercises_pkey ON public.workout_template_exercises USING btree (id)"
+  },
+  {
+    "tablename": "workout_templates",
+    "indexname": "idx_wt_coach",
+    "indexdef": "CREATE INDEX idx_wt_coach ON public.workout_templates USING btree (coach_id)"
+  },
+  {
+    "tablename": "workout_templates",
+    "indexname": "workout_templates_pkey",
+    "indexdef": "CREATE UNIQUE INDEX workout_templates_pkey ON public.workout_templates USING btree (id)"
+  }
+]

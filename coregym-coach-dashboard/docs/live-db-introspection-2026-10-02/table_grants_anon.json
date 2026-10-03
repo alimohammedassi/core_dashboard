@@ -1,0 +1,1766 @@
+[
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "barcode_products",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "barcode_scan_history",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "body_measurements",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "client_assignments",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "client_nutrition_enrollments",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "client_program_enrollments",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_content",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_onboarding",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_profiles",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_program_days",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_programs",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_reviews",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coach_subscriptions",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "coaches",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "conversations",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "daily_activity",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "daily_summary",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "exercise_progress",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "exercises",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "food_scan_items",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "food_scans",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "foods",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "gym_attendance",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "gyms",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "messages",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "notification_log",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "notification_preferences",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "notifications",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_assignment_foods",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_assignments",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_change_log",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_logs",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_program_days",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_program_foods",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_program_meals",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "nutrition_programs",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "onboarding",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "payment_intents",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "personal_records",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "profiles",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "program_day_exercises",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "program_days",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "reviews",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "streak_activity_log",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "stripe_customers",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "subscription_phases",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "subscription_plans",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "subscriptions",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "training_programs",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "user_active_program",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "user_goals",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "user_programs",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "user_streaks",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "voice_food_log_items",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "voice_food_logs",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "weekly_activity",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "weekly_progress",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "weight_progress",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "workout_assignments",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "workout_sessions",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "workout_sets",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "workout_template_exercises",
+    "privilege_type": "UPDATE"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "DELETE"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "INSERT"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "REFERENCES"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "SELECT"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "TRIGGER"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "TRUNCATE"
+  },
+  {
+    "table_name": "workout_templates",
+    "privilege_type": "UPDATE"
+  }
+]

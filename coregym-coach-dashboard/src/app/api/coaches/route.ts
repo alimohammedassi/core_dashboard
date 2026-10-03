@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api-error";
+import { checkCooldown } from "@/lib/rate-limit";
 
 // Coach onboarding after website sign-up. Creates the coach's rows in the
 // SHARED database so the mobile app's "Find a Coach" screen sees them:
@@ -28,6 +29,13 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // API-05: onboarding writes span profiles/coaches/coach_onboarding under
+  // service role — one attempt per user per minute (per instance) blunts
+  // repeated role/onboarding abuse while leaving the normal flow untouched.
+  if (checkCooldown(`coaches-post:${user.id}`, 60_000)) {
+    return NextResponse.json({ error: "Too many attempts — please wait a moment" }, { status: 429 });
   }
 
   const body = (await req.json().catch(() => ({}))) as CoachPayload;

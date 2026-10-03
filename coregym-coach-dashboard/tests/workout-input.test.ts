@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseTemplatePayload } from "../src/lib/workout-input.ts";
+import { copyTemplateName, parseTemplatePayload } from "../src/lib/workout-input.ts";
 
 const validExercise = {
   exercise_name: "Bench Press",
@@ -81,5 +81,40 @@ describe("parseTemplatePayload W2 caps", () => {
   it("still rejects empty names and empty exercise lists", () => {
     assert.equal(parseTemplatePayload({ ...validBody(), name: "  " }).ok, false);
     assert.equal(parseTemplatePayload({ ...validBody(), exercises: [] }).ok, false);
+  });
+});
+
+// F-17: duplicate names must respect the same 200-char cap create/update
+// enforce, so a copy is never saved in a state its own editor rejects.
+describe("copyTemplateName", () => {
+  it("appends ' (Copy)' to normal names", () => {
+    assert.equal(copyTemplateName("Push Day"), "Push Day (Copy)");
+  });
+
+  it("trims the base before appending", () => {
+    assert.equal(copyTemplateName("  Full Body  "), "Full Body (Copy)");
+  });
+
+  it("stays within the 200-char cap when the base name is at the cap", () => {
+    const atCap = "A".repeat(200);
+    const copy = copyTemplateName(atCap);
+    assert.ok(copy.length <= 200, `copy length ${copy.length} exceeds cap`);
+    assert.ok(copy.endsWith(" (Copy)"));
+    assert.equal(copy, `${"A".repeat(193)} (Copy)`);
+  });
+
+  it("keeps the result parseable by parseTemplatePayload", () => {
+    const atCap = "B".repeat(200);
+    const r = parseTemplatePayload({
+      name: copyTemplateName(atCap),
+      exercises: [{ ...validExercise }],
+    });
+    assert.equal(r.ok, true, "a 200-char copy name must pass create/update validation");
+  });
+
+  it("handles empty bases and pathological caps without throwing", () => {
+    assert.equal(copyTemplateName("", 200), " (Copy)");
+    const tiny = copyTemplateName("Any", 6); // suffix >= cap → hard slice
+    assert.ok(tiny.length <= 6, `length ${tiny.length} exceeds custom cap`);
   });
 });

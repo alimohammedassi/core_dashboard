@@ -1,0 +1,362 @@
+[
+  {
+    "schema": "public",
+    "table": "barcode_products",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "barcode_scan_history",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "body_measurements",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "client_assignments",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "client_nutrition_enrollments",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "client_program_enrollments",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_content",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_onboarding",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_profiles",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_program_days",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_programs",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_reviews",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coach_subscriptions",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "coaches",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "conversations",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "daily_activity",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "daily_summary",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "exercise_progress",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "exercises",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "food_scan_items",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "food_scans",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "foods",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "gym_attendance",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "gyms",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "messages",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "notification_log",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "notification_preferences",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "notifications",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_assignment_foods",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_assignments",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_change_log",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_logs",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_program_days",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_program_foods",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_program_meals",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "nutrition_programs",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "onboarding",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "payment_intents",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "profiles",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "program_day_exercises",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "program_days",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "reviews",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "streak_activity_log",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "stripe_customers",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "subscription_phases",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "subscription_plans",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "subscriptions",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "training_programs",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "user_active_program",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "user_goals",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "user_programs",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "user_streaks",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "voice_food_log_items",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "voice_food_logs",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "weekly_activity",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "workout_assignments",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "workout_sessions",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "workout_sets",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "workout_template_exercises",
+    "rls": true,
+    "force_rls": false
+  },
+  {
+    "schema": "public",
+    "table": "workout_templates",
+    "rls": true,
+    "force_rls": false
+  }
+]

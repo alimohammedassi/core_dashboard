@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { chatBucketFor, CHAT_SIGNED_URL_TTL } from "@/lib/chat-media";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BATCH_LIMIT = 50;
@@ -17,6 +18,12 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // API-05: signed-URL minting per thread open — 30/min per user/instance is
+  // far above legitimate prefetch traffic but caps scripted enumeration.
+  if (rateLimit(`chat-att:${user.id}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Too many requests — please wait a moment" }, { status: 429 });
+  }
 
   const body = (await req.json().catch(() => null)) as { messageId?: string; messageIds?: unknown } | null;
 

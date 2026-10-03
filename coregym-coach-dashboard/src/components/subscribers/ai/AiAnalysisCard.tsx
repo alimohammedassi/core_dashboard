@@ -19,9 +19,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { describeError } from "@/lib/user-error";
+import dynamic from "next/dynamic";
 import type { AiAnalysisResult } from "@/lib/ai/contract";
 import type { AiAnalysisMetrics } from "@/lib/ai/metrics";
-import { AiCharts } from "./AiCharts";
+// P-06: recharts loads as an async chunk — the metric chips above render
+// immediately and the charts hydrate into a fixed-height placeholder
+// (AiCharts renders two 140px charts plus labels, ~320 total).
+const AiCharts = dynamic(() => import("./AiCharts").then((m) => m.AiCharts), {
+  loading: () => <div style={{ height: 320 }} aria-hidden="true" />,
+});
 import { AiProposalCard } from "./AiProposalCard";
 
 // "Analysis with AI" card (client component) — the visual, actionable version:

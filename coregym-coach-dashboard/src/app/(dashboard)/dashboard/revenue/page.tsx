@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
 import { getStripe } from "@/lib/stripe/server";
+import { unstable_cache } from "next/cache";
 import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
 import { clampPage, parsePageParam, pageRange, pageCount } from "@/lib/pagination";
@@ -35,6 +36,62 @@ const STATUS_LABELS: Record<string, TKey> = {
   cancelled: "revenue.status.canceled",
   processing: "revenue.status.processing",
 };
+
+// P-12: the three Stripe reads (payouts / balance / balance transactions) are
+// wrapped in unstable_cache with a SHORT TTL (60s) and a cache key that
+// includes the connected account id — data is never shared across coaches and
+// the connect/payout flow (all writes live in settings + the webhook) is
+// untouched: this caches read-only lists only. Plain-object projections are
+// cached, never raw Stripe SDK objects. A Stripe outage resolves to nulls
+// inside the cached fn (same masked-note fallback as before) rather than
+// poisoning the render with a throw.
+type CachedStripeOverview = {
+  payouts: PayoutRow[] | null;
+  bt: { source: string; amount: number; net: number; type: string; created: number }[] | null;
+  balance: { available: number; pending: number } | null;
+};
+
+function loadStripeOverviewCached(acct: string): () => Promise<CachedStripeOverview> {
+  return unstable_cache(
+    async (): Promise<CachedStripeOverview> => {
+      const stripe = getStripe();
+      const [payoutList, bt, bal] = await Promise.all([
+        stripe.payouts.list({ limit: 10 }, { stripeAccount: acct }).catch(() => null),
+        stripe.balanceTransactions.list({ limit: 100 }, { stripeAccount: acct }).catch(() => null),
+        stripe.balance.retrieve({}, { stripeAccount: acct }).catch(() => null),
+      ]);
+      return {
+        payouts: payoutList
+          ? payoutList.data.map<PayoutRow>((p) => ({
+              id: p.id,
+              amount: p.amount,
+              currency: p.currency,
+              arrival_date: p.arrival_date,
+              status: p.status,
+              method: typeof p.method === "string" ? p.method : null,
+            }))
+          : null,
+        bt: bt
+          ? bt.data.map((x) => ({
+              source: String(x.source),
+              amount: x.amount,
+              net: x.net,
+              type: x.type,
+              created: x.created,
+            }))
+          : null,
+        balance: bal
+          ? {
+              available: bal.available.reduce((s, x) => s + x.amount, 0),
+              pending: bal.pending.reduce((s, x) => s + x.amount, 0),
+            }
+          : null,
+      };
+    },
+    ["revenue-stripe-overview-v1", acct],
+    { revalidate: 60, tags: [`stripe-acct-${acct}`] }
+  );
+}
 
 type TxRow = {
   id: string;
@@ -194,45 +251,31 @@ export default async function RevenuePage({
       }
     }
 
-    // Live Stripe reads — every call .catch()-guarded so a Stripe failure can
-    // never throw into render; the masked note tells the coach instead.
+    // Live Stripe reads (P-12: cached per connected account, 60s TTL) — a
+    // failure still can never throw into render; the masked note tells the
+    // coach instead.
     try {
       const acct = (coachRes.data as { stripe_account_id?: string } | null)?.stripe_account_id ?? null;
       if (acct && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("placeholder")) {
         acctId = acct;
-        const stripe = getStripe();
-        const [payoutList, bt, bal] = await Promise.all([
-          stripe.payouts.list({ limit: 10 }, { stripeAccount: acct }).catch(() => null),
-          stripe.balanceTransactions.list({ limit: 100 }, { stripeAccount: acct }).catch(() => null),
-          stripe.balance.retrieve({}, { stripeAccount: acct }).catch(() => null),
-        ]);
-        if (payoutList) {
-          payouts = payoutList.data.map((p) => ({
-            id: p.id,
-            amount: p.amount,
-            currency: p.currency,
-            arrival_date: p.arrival_date,
-            status: p.status,
-            method: typeof p.method === "string" ? p.method : null,
-          }));
+        const overview = await loadStripeOverviewCached(acct)();
+        if (overview.payouts) {
+          payouts = overview.payouts;
           isStripe = true;
         }
-        if (bal) {
-          balance = {
-            available: bal.available.reduce((s, x) => s + x.amount, 0),
-            pending: bal.pending.reduce((s, x) => s + x.amount, 0),
-          };
+        if (overview.balance) {
+          balance = overview.balance;
         }
-        if (bt) {
+        if (overview.bt) {
           // Honest accounting from real balance transactions:
           //   gross = Σ amount, net = Σ net (Stripe fees already deducted),
           //   platform commission = the actual amount − net delta.
           const startMs = start ? start.getTime() : null;
-          const payments = bt.data.filter(
+          const payments = overview.bt.filter(
             (x) => x.type === "payment" && (startMs == null || x.created * 1000 >= startMs),
           );
-          for (const x of bt.data) {
-            feeBySource.set(String(x.source), x.amount - x.net);
+          for (const x of overview.bt) {
+            feeBySource.set(x.source, x.amount - x.net);
           }
           const stripeGross = payments.reduce((s, x) => s + x.amount, 0);
           const stripeNet = payments.reduce((s, x) => s + x.net, 0);

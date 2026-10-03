@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
+import { rateLimit } from "@/lib/rate-limit";
 import { handleProposalApplyRequest } from "@/lib/ai/proposal-apply-handler";
 
 // POST /api/ai/proposal-apply — apply a coach-approved AI proposal.
@@ -18,6 +19,16 @@ import { handleProposalApplyRequest } from "@/lib/ai/proposal-apply-handler";
 // without the coach's explicit apply action.
 
 export async function POST(req: NextRequest) {
+  // API-05: apply is an expensive multi-write (LLM-derived program tree via
+  // atomic RPCs) — 10/min per coach/instance. Unauthenticated callers fall
+  // through so the handler owns its own 401/403 contract.
+  const ctx = await requireCoachContext();
+  if (ctx && rateLimit(`ai-apply:${ctx.coachId}`, 10, 60_000)) {
+    return NextResponse.json(
+      { error: "Too many apply attempts — please wait a moment" },
+      { status: 429, headers: { "Cache-Control": "no-store" } }
+    );
+  }
   const body = await req.json().catch(() => null);
   const result = await handleProposalApplyRequest(
     {

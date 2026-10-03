@@ -2,11 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Duplicate a nutrition program with its full tree as an independent copy.
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireCoachContext();
   if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  // API-05: duplicates copy the full day/meal/food tree — 10/min per
+  // coach/instance.
+  if (rateLimit(`dup-plan:${ctx.coachId}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Too many duplicates — please wait a moment" }, { status: 429 });
+  }
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "Program id is required" }, { status: 400 });
 

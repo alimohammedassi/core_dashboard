@@ -228,3 +228,120 @@ No secret values appear in this log.
 ## Verification summary (final, 2026-09-27)
 - `npm test`: 61/61 pass. `tsc --noEmit`: clean. `eslint`: clean. `npm run build`: success. `npm audit`: 0 vulnerabilities.
 - Regression traps intact: cached auth helpers, `coaches.stripe_account_id`, `coaches.user_id` RLS pattern, chat pagination, review math (moved verbatim).
+
+---
+
+# 2026-10-02 — Full audit remediation (second pass)
+
+Baseline: docs/remediation-baseline-2026-10-02.md (tsc/lint/209 tests/build ALL GREEN @ bec37bc + design-agent uncommitted work preserved).
+Plan: docs/remediation-execution-map-2026-10-02.md.
+
+### S-06 — Existence oracle in program-enrollments (lead)
+- Changed: `src/app/api/program-enrollments/route.ts` POST — program lookup now scoped `.eq("coach_id", ctx.coachId)`; foreign and missing both → 404 "Program not found" (removed 403 "belongs to another coach"). Mirrors the API-03 convention already used by workout routes.
+- Changed: `src/app/api/nutrition-enrollments/[id]/regenerate/route.ts` POST — same normalization (scoped read; removed 403 branch; unused `isCoachOwned` import removed).
+- Verified: tsc clean, eslint clean, 209/209 tests. Status: **Done (code).**
+
+### S-08 — Rate-limit gaps (lead)
+- Inventory: 24 mutating API routes had no rate limiting; helper = `src/lib/rate-limit.ts` (per-instance, documented limitation).
+- Changed (limits on expensive/fan-out/abuse-sensitive only; plain coach CRUD deliberately left to auth+RLS to avoid breaking legitimate flows):
+  - `ai/proposal-apply` POST — 10/min per coach (LLM + multi-write)
+  - `chat/attachments` POST — 30/min per user (signed-URL minting)
+  - `coaches` POST — cooldown 60s per user (onboarding writes under service role)
+  - `program-enrollments` POST + `nutrition-enrollments` POST — 10/min per coach (assignment/meal-tree generation)
+  - both `[id]/regenerate` POSTs — 10/min per coach (future-tree rewrite)
+  - `workout-assignments` POST — 30/min per coach (template copy + per-date rows)
+  - `workout-templates/[id]/duplicate` + `nutrition-programs/[id]/duplicate` — 10/min per coach
+- Verified: tsc clean, eslint clean, 209/209 tests. Status: **Done (code).**
+
+### U-04 — Dev CSP warning (lead)
+- Changed: `next.config.ts` — `script-src` gains `'unsafe-eval'` ONLY when `NODE_ENV !== "production"` (Turbopack HMR requires it in dev). Production headers unchanged (no eval in prod CSP).
+- Verified: tsc/eslint clean. Status: **Done (code). Live prod header re-probe still pending deploy (existing item 8).**
+
+### F-15 — Password mismatch UX (disposition, no code)
+- Verified in the design agent's current uncommitted code: `reset-password` shows an explicit error toast on mismatch (`toast.error(t("auth.reset.errors.mismatch"))`) and disables submit only while fields are empty; `signup` has no confirm-password field at all (no mismatch scenario). The "silently disables the button" symptom no longer exists.
+- Status: **Resolved in design-agent code. No changes made (protected files).** Optional inline hint (type-time mismatch message) = design-agent polish, handed off.
+
+### S-04/DB1 F1 — Coach credentials in public bucket (storage auditor; disposition by lead)
+- Finding (HIGH): `CredentialsManager.tsx` uploads certificates AND achievements to the PUBLIC `coach-media` bucket; public URLs stored in `coach_content.file_url` (`is_public: true`); bucket is anon-enumerable. Intentional product behavior today (marketplace display contract).
+- Dashboard does not render these anywhere except the owner's settings; the public-URL consumer is the MOBILE marketplace. Flipping to a private bucket + signed URLs would break mobile rendering — blocked by the cross-platform rule until Flutter usage is inspected.
+- Prepared (NOT EXECUTED): `supabase/remediation-2026-10-02/db07_storage_policies.sql` (+rollback) — 33 least-privilege policies incl. optional anon-list revocation on public buckets (stops enumeration, keeps `/object/public/` GET) and the staged private-bucket fix runbook in docs/storage-audit-2026-10-02.md.
+- Status: **Documented + SQL prepared. Blocked on: Flutter inspection + product decision (marketplace display of credentials).**
+
+### LIVE SECURITY VERIFICATION (Management API + PostgREST probes, 2026-10-02)
+Access: `.env.qa` = scoped Management API token (database query access, projects_read NOT granted). Target: mkrjvrnysuvtokqkyoll. Full catalog dump: docs/live-db-introspection-2026-10-02/. Probe report: docs/live-security-probe-2026-10-02.md.
+- S-01/S-02 CONFIRMED LIVE (anon full-row reads; exact policies identified). S-03 CONFIRMED (cross-tenant conversation INSERT 201; probe row deleted). S-07 CONFIRMED fail-closed (coach own-plans = 0 rows). Cross-tenant reads by id = denied. RPC negative test = fails closed. `apply_coach_meal_edit` now LIVE (LV4 closed).
+- db08 realtime migration NOT NEEDED: `messages` + `conversations` + day-partitions already in `supabase_realtime` (F-20 root cause lies client-side — E2E will pin).
+- NEW finding: `participants_can_update_messages` allows content tampering by any participant → covered by prepared db09 trigger.
+- F-01 SQL need confirmed: no unique index on conversations(coach_id, client_id); 0 duplicate pairs live.
+- Prepared (NOT EXECUTED, awaiting authorization): supabase/remediation-2026-10-02/db09_conversation_security.sql + rollback (unique index, subscription-verified conversation INSERT policy, message update-scope trigger).
+
+### U-06 — Builder empty rows (disposition)
+- Verified: TemplateBuilder starts with 0 rows, `validate()` toasts "add an exercise", save feedback explicit. The "3 empty rows break first save" symptom does not exist in the current reconstructed builder. **FALSE POSITIVE (already resolved)** — no change.
+
+### F-01..F-17 functional wave (agent, verified)
+- F-01 secure server-side chat bootstrap (UUID check → ownership via subscriptions → find-or-create via user client under RLS; race re-select). F-03 error/404 split on all 4 dynamic pages + 3 lib loaders + NEW dashboard/error.tsx. F-11 server-side active-enrollment 409 on nutrition-enrollments. F-12 router.refresh after template create/duplicate/delete/assign. F-13 server-side search (?q=) composing with pagination + no-results state. F-14 enrollmentWeekOf() aligned to SQL convention + tests. F-16 subscription-vs-program date labels (EN+AR). F-17 copyTemplateName 200-char cap. Files: chat/page.tsx, subscribers pages ×5, workouts/nutrition/programs libs, ai/payload.ts, i18n/subscribers.ts, workout-input.ts, api routes, tests (231/231 pass, build green).
+
+### F-20 Realtime — root cause RESOLVED via live experiments (2026-10-02)
+- Experiment scripts: scripts/probes-2026-10-02/f20-realtime-experiment{,2}.mjs (one tagged message each; message+notification deleted, conversation counters reverted after each — full cleanup verified).
+- ChatClient code verified CORRECT (single channel, INSERT/UPDATE bindings on messages + UPDATE on conversations, no filters needed, proper cleanup).
+- Experiment 1 (channel with an extra binding on partition `messages_2026_10_02`): SUBSCRIBED but ZERO events → a postgres_changes binding on a PARTITION table poisons the whole channel registration server-side (dashboard never does this — documented hazard).
+- Experiment 2 (clean channel, live JWT): **INSERT messages + UPDATE conversations events DELIVERED end-to-end** while subscribed; replication slots active/streaming, 0 lag.
+- Verdict: original F-20 cause = missing publication membership at audit time; **fixed out-of-band since** (messages + conversations + messages_2026_10_* day-partitions now in supabase_realtime, plus supabase_realtime_messages_publication). db08 migration correctly NOT created (would be redundant). Remaining: real-browser double-tab confirmation in E2E.
+- Push side-effect note: every test message fires one real push to the QA fixture client via send-chat-push edge function (accepted; minimal; documented).
+
+### Read-receipt contract verified (for db09 tampering trigger backlog)
+- Dashboard: ChatClient updates ONLY `is_read` on client messages of the open thread; UPDATE handler merges is_read + coach_unread.
+- Mobile: `mark_conversation_read` RPC (SECURITY DEFINER, participant-checked) sets is_read + conversation counters.
+- → db09's trigger (non-sender participants may change only is_read) is compatible with ALL legitimate flows, dashboard and mobile.
+
+### Browser E2E regression (2026-10-02, real UI via playwright-core Edge profile)
+- Auth: login/reload/logout/unauth-redirect/wrong-password all PASS (screenshots a1-*).
+- Pages: overview, subscribers (+search, pagination next/prev/clear), profile, programs, workouts, nutrition, plans, settings, revenue, chat all render without error boundaries (b1-*, b2-*, b3-*).
+- Template CRUD: create "[e2e 10-02] Push Day" → duplicate → rename → delete both; list counts consistent (c1-*). Enrollment create + removal verified (c2-*). F-11 409 surfaced in assign dialog for client with active enrollment (c3-*).
+- Chat realtime TWO-TAB: message sent in tab 2 appeared in tab 1 WITHOUT reload (d1-tab1-realtime-arrived.png, d1b-*) — F-20 confirmed in real UI.
+- F-01 bootstrap: /dashboard/chat?client=<never-messaged QA client> rendered the thread and CREATED conversation 7bef06ec… (deleted, 200; z2-f01.mjs). PASS.
+- CSV export: 200 text/csv, 27 rows, proper quoting, zero unguarded formula-leading cells (z1-gaps.mjs). PASS.
+- Throttled (Slow-3G-ish): skeleton visible immediately on workouts; settle 2.4s workouts / 4.6s profile (z1-gaps.mjs). U-02/U-03: no blank frame, no wrong-boundary flash observed.
+- Settings: sections + theme toggle render; save feedback present (h.mjs, z1-*).
+- Defects noted (minor, pre-existing/partially new): React duplicate-key console warnings from SubscribersPage list rendering (non-blocking); AI run button not driven via text-click in the harness (AI covered by unit/runtime tests instead of an E2E click-through).
+- E2E agent hit an account quota limit mid-run; remaining checks completed by lead via scripts z1/z2/z3/z4 (same harness). Leftover tagged message + notification from the interrupted run were found and deleted; final sweep shows 0 artifacts.
+
+### Adversarial security pass (API-route level, real session)
+- S-06 CONFIRMED at route level: foreign program → 404 "Program not found" (no 403 oracle); foreign enrollment PATCH (valid status) → 404; foreign enrollment DELETE → 404; invalid duration → 400.
+- AI route: foreign client fails closed (400 "A valid subscription id is required", no existence leak).
+- Chat attachments: foreign message without attachment → 400 pre-participant-check (uniform-ish; requires unguessable UUID — accepted risk, noted).
+- S-08 rate limits VERIFIED LIVE: chat/attachments 30 allowed → 429 at #31; program-enrollments 9 allowed → 429 at #10; coaches cooldown 400 → 429 on immediate retry; AFTER 62s cooldown the limiter released (business 400, not 429) — legitimate retries work. 429 bodies are generic (no internals leaked).
+
+---
+
+# CONTROLLED PRODUCTION-REMEDIATION PHASE — 2026-10-03 (authorized: 5 safe migrations)
+
+Pre-apply revalidation: catalog matched baseline (60 tables/182 policies/39 fns/32 storage policies) except one benign out-of-band drift (get_streak_status + record_daily_activity search_path pinned externally — not in db04's ALTER list; their PUBLIC EXECUTE grants unchanged). All per-migration preconditions verified.
+
+### 1. db05 — subscription_plans policy fix: **APPLIED + VERIFIED**
+- Preflight: broken policy captured verbatim; coach owns 3 plans, reads 0 (fail-closed confirmed live).
+- Post: coach reads own 3 plans; foreign plan by id → 0 rows; anon → 0 rows; client_read_subscribed_plans preserved verbatim; coach INSERT own plan 201 (probe row 76a7736c created then deleted — a first delete attempt silently missed; final sweep deleted it, coach plans = 3); coach INSERT foreign → 403.
+- Rollback available: db05_*.rollback.sql (restores exact broken policy).
+
+### 2. api01 — enrollment duration cap: **APPLIED + VERIFIED**
+- Preflight: live body = pre-cap (verified), grants {postgres,authenticated,service_role}.
+- Post: duration 53 → 400 P0001 "Duration must be between 1 and 52 weeks"; duration 0 → 400; valid duration 1 succeeds inside BEGIN…ROLLBACK (enrollment_id returned, count 7→7 unchanged); grants unchanged; mobile signature identical.
+- (First verify run had a probe-script bug — 400 misread as unverified; dedicated probe confirmed the exact new-cap message. No rollback needed.)
+
+### 3. db04 — SECURITY DEFINER hardening (v3): **APPLIED + VERIFIED**
+- Applied: search_path pinned on is_my_active_client + handle_subscription_accepted, notify_new_message, sync_nutrition_to_summary, sync_workout_to_summary, update_coach_rating, update_conversation_on_message; REVOKE public,anon on record_daily_activity + get_streak_status; is_coach/prevent_role_escalation DO-blocks no-opped (absent).
+- Post: all 7 proconfig pinned; both analytics RPCs = {postgres,authenticated,service_role} only; is_my_active_client own→true / foreign→false; get_streak_status authenticated 200 / anon 401; OpenAPI RPC inventory intact (≥19).
+
+### 4. str02 — webhook idempotency/ordering: **APPLIED + VERIFIED (DB-level)**
+- Compatibility: production still runs the OLD fail-open webhook (probe → mock-200); migration is additive and compatible with both code generations.
+- Post: table exists (RLS on, zero policies, anon read → []); subscriptions.last_stripe_event_at added (34 rows, 0 watermarked); duplicate-claim → 409 23505 (first insert 201); probe rows cleaned (0 rows remain); auto-PK accounted in index count.
+- Pending: end-to-end dedupe/ordering verification requires the NEW webhook code deploy + real STRIPE secrets (owner action).
+
+### 5. db10 — missing indexes: **APPLIED + VERIFIED**
+- 3 × CREATE INDEX CONCURRENTLY (one statement per call, all valid): idx_payment_intents_coach_status_created, idx_cpe_client, idx_workout_sets_user_weight.
+- EXPLAIN: personal-records max(weight_kg) already uses INDEX ONLY SCAN on the new index; cpe/payments EXPLAINs seq-scan at today's tiny scale (planner-honest; benefit materializes with growth). No duplicates (142 = 138 baseline + 3 + str02 auto-PK).
+
+### Post-remediation state
+- Catalog: 61 tables (+stripe_webhook_events), 182 policies, 39 functions, 142 indexes, 2 publications, 32 storage policies, 32/39 functions pinned.
+- Still open (by design, awaiting authorization/decisions): S-01/S-02 anon reads (db01 — Flutter check), S-03 RLS conversation creation (db09 — product), db06 (product), S-04 coach-media (Flutter).
+- Data changes: only probe rows, all cleaned (0 artifacts). No commit/push/deploy.

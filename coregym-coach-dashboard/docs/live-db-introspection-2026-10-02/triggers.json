@@ -1,0 +1,114 @@
+[
+  {
+    "table": "client_nutrition_enrollments",
+    "trigger_name": "np_touch_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION np_touch_updated_at()"
+  },
+  {
+    "table": "client_program_enrollments",
+    "trigger_name": "cp_touch_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION cp_touch_updated_at()"
+  },
+  {
+    "table": "coach_onboarding",
+    "trigger_name": "trg_coach_onboarding_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION update_coach_onboarding_updated_at()"
+  },
+  {
+    "table": "coach_programs",
+    "trigger_name": "cp_touch_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION cp_touch_updated_at()"
+  },
+  {
+    "table": "coach_reviews",
+    "trigger_name": "on_review_created",
+    "timing": "AFTER",
+    "events": "UPDATE,INSERT",
+    "action_statement": "EXECUTE FUNCTION update_coach_rating()"
+  },
+  {
+    "table": "coach_subscriptions",
+    "trigger_name": "on_subscription_status_change",
+    "timing": "AFTER",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION handle_subscription_accepted()"
+  },
+  {
+    "table": "coaches",
+    "trigger_name": "coaches_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION update_updated_at()"
+  },
+  {
+    "table": "messages",
+    "trigger_name": "trg_notify_new_message",
+    "timing": "AFTER",
+    "events": "INSERT",
+    "action_statement": "EXECUTE FUNCTION notify_new_message()"
+  },
+  {
+    "table": "messages",
+    "trigger_name": "trg_update_conversation_on_message",
+    "timing": "AFTER",
+    "events": "INSERT",
+    "action_statement": "EXECUTE FUNCTION update_conversation_on_message()"
+  },
+  {
+    "table": "nutrition_logs",
+    "trigger_name": "nutrition_log_sync",
+    "timing": "AFTER",
+    "events": "UPDATE,DELETE,INSERT",
+    "action_statement": "EXECUTE FUNCTION sync_nutrition_to_summary()"
+  },
+  {
+    "table": "nutrition_programs",
+    "trigger_name": "np_touch_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION np_touch_updated_at()"
+  },
+  {
+    "table": "profiles",
+    "trigger_name": "profiles_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION update_updated_at()"
+  },
+  {
+    "table": "reviews",
+    "trigger_name": "reviews_update_rating",
+    "timing": "AFTER",
+    "events": "UPDATE,DELETE,INSERT",
+    "action_statement": "EXECUTE FUNCTION refresh_coach_rating()"
+  },
+  {
+    "table": "subscriptions",
+    "trigger_name": "subscriptions_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION update_updated_at()"
+  },
+  {
+    "table": "workout_sessions",
+    "trigger_name": "workout_session_sync",
+    "timing": "AFTER",
+    "events": "UPDATE,DELETE,INSERT",
+    "action_statement": "EXECUTE FUNCTION sync_workout_to_summary()"
+  },
+  {
+    "table": "workout_templates",
+    "trigger_name": "wt_touch_updated_at",
+    "timing": "BEFORE",
+    "events": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION wt_touch_updated_at()"
+  }
+]

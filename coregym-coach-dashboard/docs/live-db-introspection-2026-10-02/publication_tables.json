@@ -1,0 +1,42 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "conversations"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "messages"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_09_29"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_09_30"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_10_01"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_10_02"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_10_03"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_10_04"
+  },
+  {
+    "schemaname": "realtime",
+    "tablename": "messages_2026_10_05"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "notifications"
+  }
+]

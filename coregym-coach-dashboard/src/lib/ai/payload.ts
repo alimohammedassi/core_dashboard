@@ -336,11 +336,16 @@ export type AiAnalysisPayload = {
 
 // ── Builder ───────────────────────────────────────────────────────────────────
 
+// F-14: week math shared with the pages, aligned to the SQL convention
+// (program-dates.ts is pure — this file stays framework-free and unit-testable
+// under node --test, so the import is relative with an explicit extension).
+import { enrollmentWeekOf } from "../program-dates.ts";
+
 function currentWeek(startISO: string, durationWeeks: number, today: string): number | null {
   const start = Date.parse(`${startISO}T00:00:00Z`);
   const now = Date.parse(`${today}T00:00:00Z`);
   if (Number.isNaN(start) || Number.isNaN(now) || now < start) return null;
-  return Math.min(Math.floor((now - start) / (7 * 86400000)) + 1, Math.max(1, durationWeeks));
+  return enrollmentWeekOf(startISO, today, durationWeeks);
 }
 
 function clamp<T>(list: T[] | null | undefined, max: number): T[] {

@@ -219,8 +219,11 @@ describe("AI payload — status semantics (spec §8)", () => {
 
   it("derives current_week from the enrollment start date", () => {
     const p = buildAnalysisPayload(baseBundle());
-    // 2026-09-01 → 2026-09-28 is week 4 of 12.
-    assert.equal(p.workout_program.enrollment?.current_week, 4);
+    // F-14, SQL convention: 2026-09-01 is a Tuesday (ISO 2) and 2026-09-28 is
+    // offset 27 → floor((27 + 2 - 1) / 7) + 1 = week 5 of 12 (week 1 is the
+    // partial Tue–Sun week; Sep 28 is the Monday that opens week 5). The old
+    // floor(days/7)+1 expectation here (4) was the mid-week off-by-one.
+    assert.equal(p.workout_program.enrollment?.current_week, 5);
   });
 });
 

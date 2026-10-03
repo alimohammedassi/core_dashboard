@@ -72,13 +72,15 @@ export default async function EnrollmentProgressPage({
 
   // `id` is the SUBSCRIPTION id (matching the profile route's convention);
   // resolve the real client profile id from it.
+  // F-03: query failure → error boundary; no row (missing/RLS-filtered) → 404.
   const supabase = await createClient();
-  const { data: subRow } = await supabase
+  const { data: subRow, error: subErr } = await supabase
     .from("subscriptions")
     .select("client_id")
     .eq("id", id)
     .eq("coach_id", ctx.coachId)
     .maybeSingle();
+  if (subErr) throw new Error(`subscriber lookup failed: ${subErr.message}`);
   if (!subRow) notFound();
   const clientId = (subRow as { client_id: string }).client_id;
 

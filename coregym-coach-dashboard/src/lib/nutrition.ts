@@ -42,33 +42,10 @@ export type NutritionProgram = {
 
 // Server-rendered library read. Returns [] when the migration has not been
 // applied yet or RLS denies — the page renders the empty state.
-export async function loadNutritionPrograms(coachId: string): Promise<NutritionProgram[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("nutrition_programs")
-    .select(
-      `
-      id, name, description, is_active, updated_at,
-      days:nutrition_program_days(
-        id, day_of_week, notes,
-        meals:nutrition_program_meals(
-          id, name, order_index,
-          foods:nutrition_program_foods(
-            id, food_id, quantity, order_index,
-            food:foods(id, name, serving_unit, serving_size, calories, protein_g, carbs_g, fat_g)
-          )
-        )
-      )
-      `
-    )
-    .eq("coach_id", coachId)
-    .order("updated_at", { ascending: false });
-  if (error) return [];
+// P-11: the unpaged loadNutritionPrograms was removed — no page referenced it
+// (every caller uses the bounded loadNutritionProgramsPage below).
 
-  return mapNutritionProgramRows((data ?? []) as unknown as Record<string, unknown>[]);
-}
-
-// P3: paged library read — same rows as loadNutritionPrograms, bounded by
+// P3: paged library read — same rows as the removed unpaged loader, bounded by
 // range() with an exact total for the pager.
 export async function loadNutritionProgramsPage(
   coachId: string,
@@ -481,13 +458,15 @@ export async function loadNutritionEnrollmentDetail(
 ): Promise<NutritionEnrollmentDetail | null> {
   const svc = await createServiceClient();
 
-  const { data: enrollmentRaw } = await svc
+  // F-03: query failure → throw (error boundary), never a fake 404 via null.
+  const { data: enrollmentRaw, error: enrollmentErr } = await svc
     .from("client_nutrition_enrollments")
     .select("id, program_id, client_id, start_date, duration_weeks, status")
     .eq("id", enrollmentId)
     .eq("coach_id", coachId)
     .eq("client_id", clientId)
     .maybeSingle();
+  if (enrollmentErr) throw new Error(`nutrition enrollment load failed: ${enrollmentErr.message}`);
   if (!enrollmentRaw) return null;
   const e = enrollmentRaw as unknown as {
     id: string;

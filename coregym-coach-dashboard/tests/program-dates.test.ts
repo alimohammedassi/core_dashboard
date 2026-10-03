@@ -3,7 +3,12 @@
 // Run: node --test tests/program-dates.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateEnrollmentDates, isoWeekday, nextMonday } from "../src/lib/program-dates.ts";
+import {
+  enrollmentWeekOf,
+  generateEnrollmentDates,
+  isoWeekday,
+  nextMonday,
+} from "../src/lib/program-dates.ts";
 
 test("isoWeekday follows ISO convention (Mon=1 .. Sun=7)", () => {
   assert.equal(isoWeekday("2026-09-14"), 1); // Monday
@@ -66,5 +71,58 @@ test("dates are strictly increasing and never before the start date", () => {
   }
   for (const s of slots) {
     assert.ok(s.date >= "2026-09-16");
+  }
+});
+
+// F-14: enrollmentWeekOf must agree with the SQL week_number convention
+// (scheduled = start + (w-1)*7 + (dow - isodow(start))). The oracle here
+// derives the expected week straight from generateEnrollmentDates, which is
+// already pinned against the RPC behavior above.
+test("enrollmentWeekOf matches the SQL week_number for a Monday start", () => {
+  // 2026-09-14 is a Monday — the simple floor(offset/7)+1 case.
+  const slots = generateEnrollmentDates("2026-09-14", 4, [1, 3, 5]);
+  for (const s of slots) {
+    assert.equal(
+      enrollmentWeekOf("2026-09-14", s.date, 4),
+      s.week,
+      `${s.date} should be week ${s.week}`
+    );
+  }
+});
+
+test("enrollmentWeekOf matches the SQL week_number for mid-week starts", () => {
+  // Wednesday start (ISO 3): the first Monday/Tuesday AFTER the start date
+  // belong to SQL week 2 — plain floor(days/7)+1 used to report week 1.
+  for (const start of ["2026-09-16", "2026-09-18", "2026-09-20"]) {
+    const slots = generateEnrollmentDates(start, 6, [1, 3, 5, 6, 7]);
+    for (const s of slots) {
+      assert.equal(
+        enrollmentWeekOf(start, s.date, 6),
+        s.week,
+        `start ${start}, ${s.date} should be week ${s.week}`
+      );
+    }
+  }
+});
+
+test("enrollmentWeekOf clamps and handles the pre-start boundary", () => {
+  const start = "2026-09-16"; // Wednesday
+  assert.equal(enrollmentWeekOf(start, "2026-09-10", 4), 1); // before start → week 1
+  assert.equal(enrollmentWeekOf(start, start, 4), 1); // start day → week 1
+  assert.equal(enrollmentWeekOf(start, "2026-10-20", 4), 4); // way past end → clamped
+  assert.equal(enrollmentWeekOf(start, "2026-12-01", 1), 1); // single-week clamp
+});
+
+test("enrollmentWeekOf stays in sync with the regenerate RPC date math", () => {
+  // Every (date → week) pair the generator produces must round-trip: the
+  // dashboard badge and the detail grid both key off week_number.
+  const start = "2026-09-17"; // Thursday (ISO 4)
+  const slots = generateEnrollmentDates(start, 8, [2, 4, 7]);
+  const seen = new Set<string>();
+  for (const s of slots) {
+    const key = `${s.date}:${s.week}`;
+    assert.ok(!seen.has(key), `duplicate date/week pair ${key}`);
+    seen.add(key);
+    assert.equal(enrollmentWeekOf(start, s.date, 8), s.week);
   }
 });

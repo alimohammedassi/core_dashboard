@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { generateEnrollmentDates } from "@/lib/program-dates";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -12,6 +13,12 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function POST(req: NextRequest) {
   const ctx = await requireCoachContext();
   if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  // API-05: enrollment generates the whole assignment tree in one RPC —
+  // 10/min per coach/instance caps runaway generation.
+  if (rateLimit(`enroll:${ctx.coachId}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Too many enrollments — please wait a moment" }, { status: 429 });
+  }
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -55,16 +62,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Program must belong to the resolved coach.
+  // Program must belong to the resolved coach. API-03/S-06: scoped read —
+  // foreign-owned and missing ids are indistinguishable (both 404), so the
+  // route cannot be used as a cross-tenant existence oracle.
   const { data: program } = await svc
     .from("coach_programs")
     .select("id, coach_id")
     .eq("id", programId)
+    .eq("coach_id", ctx.coachId)
     .maybeSingle();
   if (!program) return NextResponse.json({ error: "Program not found" }, { status: 404 });
-  if ((program as { coach_id: string }).coach_id !== ctx.coachId) {
-    return NextResponse.json({ error: "This program belongs to another coach" }, { status: 403 });
-  }
 
   // Client must be an active subscriber of this coach (§44 convention).
   const { data: sub } = await svc

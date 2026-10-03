@@ -55,6 +55,8 @@ export type ActiveClient = {
 };
 
 // Active subscribers of the resolved coach (subscriptions.coach_id = coaches.id).
+// P-11: defensively bounded — the roster page and every dropdown caller only
+// renders a slice of this list; the cap only engages on pathological data.
 export async function loadActiveClients(coachId: string): Promise<ActiveClient[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -66,7 +68,8 @@ export async function loadActiveClients(coachId: string): Promise<ActiveClient[]
       `
     )
     .eq("coach_id", coachId)
-    .eq("status", "active");
+    .eq("status", "active")
+    .limit(1000);
 
   const rows = (data ?? []) as unknown as Record<string, unknown>[];
   const byClient = new Map<string, ActiveClient>();
@@ -97,10 +100,15 @@ export type ExerciseCatalogItem = { id: string; name: string; muscleGroup: strin
 // coach reads — it contains no personal data, only exercise names.
 export async function loadExerciseCatalog(): Promise<ExerciseCatalogItem[]> {
   const supabase = await createClient();
-  let { data, error } = await supabase.from("exercises").select("id, name, muscle_group").order("name");
+  // P-11: defensive cap — the catalog feeds autocomplete, never a full render.
+  let { data, error } = await supabase
+    .from("exercises")
+    .select("id, name, muscle_group")
+    .order("name")
+    .limit(2000);
   if (error) {
     const svc = await createServiceClient();
-    const res = await svc.from("exercises").select("id, name, muscle_group").order("name");
+    const res = await svc.from("exercises").select("id, name, muscle_group").order("name").limit(2000);
     data = res.data;
     error = res.error;
   }
@@ -208,13 +216,21 @@ export async function loadAssignmentPerformance(
 ): Promise<AssignmentPerformance | null> {
   const svc = await createServiceClient();
 
-  const { data: assignmentRaw } = await svc
+  // F-03: a failed ownership read is a query error, not a missing row — throw
+  // so the error boundary renders, and reserve null for "query succeeded,
+  // nothing matched" (missing or foreign-owned → caller renders 404).
+  // P-10: explicit columns (the typed row) — select * would also ship the
+  // live table's week_number/enrollment_id columns the dashboard never reads.
+  const { data: assignmentRaw, error: assignmentErr } = await svc
     .from("workout_assignments")
-    .select("*")
+    .select(
+      "id, template_id, coach_id, client_id, program_id, scheduled_date, status, created_at"
+    )
     .eq("id", assignmentId)
     .eq("coach_id", coachId)
     .eq("client_id", clientId)
     .maybeSingle();
+  if (assignmentErr) throw new Error(`assignment load failed: ${assignmentErr.message}`);
   if (!assignmentRaw) return null;
   const assignment = assignmentRaw as unknown as WorkoutAssignment;
 
@@ -516,7 +532,10 @@ export async function loadClientProgress(coachId: string, clientId: string): Pro
   const svc = await createServiceClient();
   const since = new Date(Date.now() - 56 * 86400000).toISOString().slice(0, 10);
 
-  const [{ data: sessionsRaw }, { data: prRaw }] = await Promise.all([
+  // P-01: the completed-assignment head-count is independent of the session /
+  // PR reads below — it previously ran as a separate sequential round trip
+  // after the sets fetch and now joins the first parallel wave.
+  const [{ data: sessionsRaw }, { data: prRaw }, completedRes] = await Promise.all([
     svc
       .from("workout_sessions")
       .select("id, session_date")
@@ -529,7 +548,14 @@ export async function loadClientProgress(coachId: string, clientId: string): Pro
       .eq("user_id", clientId)
       .order("max_weight", { ascending: false })
       .limit(12),
+    svc
+      .from("workout_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("coach_id", coachId)
+      .eq("client_id", clientId)
+      .eq("status", "completed"),
   ]);
+  const completedCount = completedRes.count;
 
   const sessions = (sessionsRaw ?? []) as unknown as { id: string; session_date: string | null }[];
 
@@ -577,13 +603,6 @@ export async function loadClientProgress(coachId: string, clientId: string): Pro
     sessionCountByWeek.set(wk, (sessionCountByWeek.get(wk) ?? 0) + 1);
   }
   for (const w of weekly) w.sessions = sessionCountByWeek.get(w.weekStart) ?? 0;
-
-  const { count: completedCount } = await svc
-    .from("workout_assignments")
-    .select("id", { count: "exact", head: true })
-    .eq("coach_id", coachId)
-    .eq("client_id", clientId)
-    .eq("status", "completed");
 
   const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const sessionsLast30 = sessions.filter((s) => (s.session_date ?? "") >= thirtyAgo).length;

@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { parseTemplatePayload } from "@/lib/workout-input";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -15,6 +16,13 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function POST(req: NextRequest) {
   const ctx = await requireCoachContext();
   if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  // API-05: assignment creation can mint a template copy + per-date rows —
+  // 30/min per coach/instance is far above deliberate use but caps scripted
+  // floods.
+  if (rateLimit(`assign:${ctx.coachId}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Too many requests — please wait a moment" }, { status: 429 });
+  }
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });

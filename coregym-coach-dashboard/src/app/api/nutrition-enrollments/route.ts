@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireCoachContext } from "@/lib/workouts";
 import { isCoachOwned } from "@/lib/ownership";
 import { dbError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Enroll a client in a nutrition program: validates program ownership + the
 // client's ACTIVE subscription, then materializes every meal row in one
@@ -10,6 +11,12 @@ import { dbError } from "@/lib/api-error";
 export async function POST(req: NextRequest) {
   const ctx = await requireCoachContext();
   if (!ctx) return NextResponse.json({ error: "Coach profile not found" }, { status: 403 });
+
+  // API-05: enrollment materializes a whole meal tree in one RPC — 10/min
+  // per coach/instance caps runaway generation.
+  if (rateLimit(`enroll:${ctx.coachId}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Too many enrollments — please wait a moment" }, { status: 429 });
+  }
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const programId = String(body?.program_id ?? "");
@@ -47,6 +54,32 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!sub) {
     return NextResponse.json({ error: "Client must have an active subscription" }, { status: 400 });
+  }
+
+  // F-11 / data integrity: refuse a second ACTIVE nutrition enrollment for
+  // the same client — the first enrollment already materializes meal rows for
+  // its whole window, so a second one silently double-books the same dates
+  // with duplicate ACTIVE nutrition_assignments. Mirrors the program side's
+  // 409 convention (program-enrollments POST): the coach must end/pause the
+  // current enrollment first. The check runs in the same request as the
+  // insert (server-side; the double-submit window shrinks to the RPC itself).
+  const { data: existingEnrollment } = await svc
+    .from("client_nutrition_enrollments")
+    .select("id, program_id")
+    .eq("coach_id", ctx.coachId)
+    .eq("client_id", clientId)
+    .eq("status", "active")
+    .order("start_date", { ascending: false })
+    .limit(1);
+  if (existingEnrollment && existingEnrollment.length > 0) {
+    const e = existingEnrollment[0] as { id: string; program_id: string };
+    return NextResponse.json(
+      {
+        error: "This client already has an active nutrition plan. End or pause it before assigning a new one.",
+        existing_enrollment_id: e.id,
+      },
+      { status: 409 }
+    );
   }
 
   const { data: enrollmentId, error } = await svc.rpc("create_nutrition_enrollment_atomic", {

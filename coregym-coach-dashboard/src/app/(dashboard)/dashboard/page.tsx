@@ -8,7 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { GlobalLink } from "@/components/shared/link";
 import { RangeSelector } from "@/components/dashboard/overview/RangeSelector";
-import { RevenueGrowthChart, WeekdayBarChart, AdherenceGauge } from "@/components/dashboard/overview/OverviewCharts";
+// P-06: lazy recharts wrappers — same components, async chunk on the client.
+import {
+  RevenueGrowthChart,
+  WeekdayBarChart,
+  AdherenceGauge,
+} from "@/components/dashboard/overview/OverviewChartsLazy";
 import { TopClientsTable } from "@/components/dashboard/overview/TopClientsTable";
 import { PageHeader } from "@/components/core/PageHeader";
 import { StatCard, StatCardChip } from "@/components/core/StatCard";

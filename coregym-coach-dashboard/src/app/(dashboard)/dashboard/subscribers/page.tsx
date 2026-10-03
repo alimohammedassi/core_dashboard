@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveCoachId } from "@/lib/coach";
-import { daysAgoISO, diffDays } from "@/lib/workouts";
+import { daysAgoISO } from "@/lib/workouts";
+import { enrollmentWeekOf } from "@/lib/program-dates";
+import { buildSubscribersHref, sanitizeSearchTerm } from "@/lib/pagination";
 import { getI18n } from "@/lib/i18n/server";
 import type { TKey } from "@/lib/i18n/dictionary";
 import { Badge } from "@/components/ui/badge";
@@ -39,12 +41,16 @@ function joinOne(p: unknown): { name?: string; price_usd?: number } | null {
 export default async function SubscribersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; q?: string }>;
 }) {
   const { t, fmt } = await getI18n();
   const statusLabel = (status: string) => (STATUS_LABELS[status] ? t(STATUS_LABELS[status]) : status);
   const params = await searchParams;
-  const filter = params.status;
+  const filter = params.status?.trim() || null;
+  // F-13: the search box is now a server-side query param. The old client-side
+  // input only filtered the 25 rows on the current page, so a client on page 3
+  // was unfindable. Sanitize before it touches any PostgREST filter.
+  const q = sanitizeSearchTerm(params.q);
   // 1-based page; the pager clamps out-of-range values below
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const from = (page - 1) * PAGE_SIZE;
@@ -74,6 +80,41 @@ export default async function SubscribersPage({
   if (user) {
     // subscriptions.coach_id references coaches.id, not the auth uid
     coachId = await resolveCoachId(supabase, user.id);
+
+    // F-13: resolve the search term to coach-scoped ids BEFORE the page query.
+    // Embedded-column or() filters don't parse on the live PostgREST (verified
+    // in a prior session — see /api/coach/clients/search), so the two-step
+    // resolution is the established idiom: match profiles by name/email and
+    // the coach's own plans by name, then filter subscriptions with a plain
+    // or() over the FK columns. The coach_id filter on the main query drops
+    // any foreign profile that matched step 1, so the result stays tenant-safe.
+    let searchFilter: string | null = null;
+    let searchMiss = false;
+    if (q) {
+      const [profRes, planRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id")
+          .or(`full_name.ilike.%${q}%,name.ilike.%${q}%,email.ilike.%${q}%`)
+          // Bounded like every roster search in the app; rosters this table
+          // serves are far below the cap (page-1 KPI counts).
+          .limit(500),
+        supabase
+          .from("subscription_plans")
+          .select("id")
+          .eq("coach_id", coachId)
+          .ilike("name", `%${q}%`)
+          .limit(100),
+      ]);
+      const matchedClientIds = ((profRes.data ?? []) as { id: string }[]).map((r) => r.id);
+      const matchedPlanIds = ((planRes.data ?? []) as { id: string }[]).map((r) => r.id);
+      const parts: string[] = [];
+      if (matchedClientIds.length > 0) parts.push(`client_id.in.(${matchedClientIds.join(",")})`);
+      if (matchedPlanIds.length > 0) parts.push(`plan_id.in.(${matchedPlanIds.join(",")})`);
+      if (parts.length > 0) searchFilter = parts.join(",");
+      else searchMiss = true; // nothing matches → empty page, correct "no results" UI
+    }
+
     const query = supabase
       .from("subscriptions")
       .select(
@@ -89,16 +130,17 @@ export default async function SubscribersPage({
       .range(from, to);
 
     if (filter) query.eq("status", filter);
+    if (searchFilter) query.or(searchFilter);
 
     const head = (status?: string) => {
-      const q = supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("coach_id", coachId);
-      return status ? q.eq("status", status) : q;
+      const q2 = supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("coach_id", coachId);
+      return status ? q2.eq("status", status) : q2;
     };
 
     // Roster KPIs + chip counts + MRR aggregate — head-counts and prices only,
-    // no rows shipped beyond the visible page.
+    // no rows shipped beyond the visible page. Independent of ?q=/?status=.
     const [res, allC, activeC, trialC, dueC, cancelledC, expiredC, pausedC, mrrRes] = await Promise.all([
-      query,
+      searchMiss ? Promise.resolve(null) : query,
       head(),
       head("active"),
       head("trialing"),
@@ -113,12 +155,17 @@ export default async function SubscribersPage({
         .eq("status", "active"),
     ]);
 
-    if (res.error) {
-      // S-mask: never surface DB internals to the coach (remediation-log rule).
-      error = "load-failed";
-    } else {
-      rows = (res.data ?? []) as unknown as Row[];
-      total = res.count;
+    if (searchMiss) {
+      rows = [];
+      total = 0;
+    } else if (res) {
+      if (res.error) {
+        // S-mask: never surface DB internals to the coach (remediation-log rule).
+        error = "load-failed";
+      } else {
+        rows = (res.data ?? []) as unknown as Row[];
+        total = res.count;
+      }
     }
     kpis = { active: activeC.count ?? 0, trialing: trialC.count ?? 0, pastDue: dueC.count ?? 0 };
     counts = {
@@ -145,6 +192,13 @@ export default async function SubscribersPage({
 
   if (clientIds.length > 0 && coachId) {
     const since30 = daysAgoISO(30);
+    // P-05: the daily-summary read is bounded to a 180-day window (previously
+    // unbounded window at limit 10000). Prescribed dates never precede since30,
+    // so the adherence pairing only needs recent rows; 25 visible clients ×
+    // 180 days = 4500 rows max, so the 5000 cap can never truncate. The only
+    // display edge: a client whose LAST-EVER check-in is older than 180 days
+    // now shows "no check-in" instead of a stale date.
+    const since180 = daysAgoISO(180);
     const [progRes, assignRes, summaryRes] = await Promise.all([
       // Active program enrollment per client (latest first — first row wins)
       supabase
@@ -169,8 +223,9 @@ export default async function SubscribersPage({
         .from("daily_summary")
         .select("user_id, summary_date, calories_consumed")
         .in("user_id", clientIds)
+        .gte("summary_date", since180)
         .order("summary_date", { ascending: false })
-        .limit(10000),
+        .limit(5000),
     ]);
 
     for (const raw of (progRes.data ?? []) as unknown as Record<string, unknown>[]) {
@@ -250,10 +305,9 @@ export default async function SubscribersPage({
     const prog = programByClient.get(r.client_id) ?? null;
     let weekLabel: string | null = null;
     if (prog) {
-      const week = Math.min(
-        Math.max(Math.floor((todayISO > prog.start_date ? diffDays(todayISO, prog.start_date) : 0) / 7) + 1, 1),
-        prog.duration_weeks
-      );
+      // F-14: SQL week convention (enrollmentWeekOf) — matches the
+      // week_number the enrollment RPCs stamp on every generated row.
+      const week = enrollmentWeekOf(prog.start_date, todayISO, prog.duration_weeks);
       weekLabel = t("subscribers.enrollmentPage.weekShort", { n: week });
     }
     const checkIn = checkInByClient.get(r.client_id) ?? null;
@@ -279,13 +333,9 @@ export default async function SubscribersPage({
 
   const statuses = ["active", "cancelled", "past_due", "trialing", "expired", "paused"] as const;
   const totalPages = total != null ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1;
-  const pageHref = (p: number) => {
-    const q = new URLSearchParams();
-    if (filter) q.set("status", filter);
-    if (p > 1) q.set("page", String(p));
-    const qs = q.toString();
-    return qs ? `/dashboard/subscribers?${qs}` : "/dashboard/subscribers";
-  };
+  // F-13: the pager must preserve the active search + status filter; only the
+  // page number moves. Serializer is pure + unit-tested (lib/pagination).
+  const pageHref = (p: number) => buildSubscribersHref({ status: filter, q, page: p });
   const shownFrom = total === 0 ? 0 : from + 1;
   const shownTo = Math.min(from + rows.length, total ?? from + rows.length);
 
@@ -318,6 +368,10 @@ export default async function SubscribersPage({
     clearFilter: t("subscribers.list.clearFilter"),
     clearHref: "/dashboard/subscribers",
   };
+
+  // F-13: filter chips compose with the search term (no page → resets to 1);
+  // the "All" chip clears the status but keeps the search.
+  const chipHref = (status: string | null) => buildSubscribersHref({ status, q });
 
   return (
     <div className="flex flex-col gap-5">
@@ -393,14 +447,17 @@ export default async function SubscribersPage({
       <SubscribersToolbar
         rows={toolbarRows}
         labels={labels}
+        query={q}
+        statusFilter={filter}
+        clearSearchHref={buildSubscribersHref({ status: filter })}
         chips={
           <>
-            <GlobalLink href="/dashboard/subscribers" className={chipClass(!filter)}>
+            <GlobalLink href={chipHref(null)} className={chipClass(!filter)}>
               {t("common.state.all")}
               <span className={chipCountClass(null, !filter)}>{fmt.num(allTotal)}</span>
             </GlobalLink>
             {statuses.map((s) => (
-              <GlobalLink key={s} href={`/dashboard/subscribers?status=${s}`} className={chipClass(filter === s)}>
+              <GlobalLink key={s} href={chipHref(s)} className={chipClass(filter === s)}>
                 {statusLabel(s)}
                 <span className={chipCountClass(s, filter === s)}>{fmt.num(counts[s] ?? 0)}</span>
               </GlobalLink>

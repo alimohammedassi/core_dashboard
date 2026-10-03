@@ -191,7 +191,10 @@ export async function getOverviewData(
   };
 
   // Round 1 — independent queries
-  const [subsRes, paysRes, convRes, payCountRes] = await Promise.all([
+  // P-09: the duplicate succeeded-payment head-count was removed — hasPayments
+  // is derived from the bounded payments read itself (empty ⟺ count 0; the
+  // 5000-row cap can never make a non-empty set look empty).
+  const [subsRes, paysRes, convRes] = await Promise.all([
     supabase
       .from("subscriptions")
       .select(
@@ -210,11 +213,6 @@ export async function getOverviewData(
       .order("created_at", { ascending: true })
       .limit(5000),
     supabase.from("conversations").select("id, coach_unread").eq("coach_id", userId),
-    supabase
-      .from("payment_intents")
-      .select("id", { count: "exact", head: true })
-      .eq("coach_id", coachId)
-      .eq("status", "succeeded"),
   ]);
 
   const subs = ((subsRes.data ?? []) as unknown as SubRow[]).map((s) => ({
@@ -224,7 +222,7 @@ export async function getOverviewData(
   }));
 
   const payments = (paysRes.data ?? []) as unknown as Array<{ amount: number; created_at: string; client_id: string | null }>;
-  const hasPayments = (payCountRes.count ?? 0) > 0;
+  const hasPayments = payments.length > 0;
 
   // KPI 1 — active subscribers now vs live at the end of the previous window
   const activeNow = subs.filter((s) => s.status === "active").length;
@@ -247,7 +245,10 @@ export async function getOverviewData(
     0
   );
 
-  // Round 2 — queries that depend on the coach's client ids / conversation ids
+  // Round 2 — queries that depend on the coach's client ids / conversation ids.
+  // P-03: the today check-ins / meals / active-program counts only need
+  // activeIds (round-1 output), so they join this wave instead of forming a
+  // separate sequential round; only the foods read below depends on round 2.
   const convIds = (convRes.data ?? []).map((c: { id: string }) => c.id);
   const clientIds = Array.from(new Set(subs.map((s) => s.client_id).filter(Boolean))) as string[];
   const activeIds = Array.from(
@@ -256,7 +257,7 @@ export async function getOverviewData(
 
   // Adherence is derived from the coach-readable prescription chain:
   // nutrition_assignments (+ foods) per client/date vs daily_summary calories.
-  const [msgRes, sessionsRes, assignsRes, summariesRes] = await Promise.all([
+  const [msgRes, sessionsRes, assignsRes, summariesRes, checkinsRes, mealsRes, enrollmentsRes] = await Promise.all([
     convIds.length
       ? supabase
           .from("messages")
@@ -294,26 +295,43 @@ export async function getOverviewData(
           .order("summary_date", { ascending: false })
           .limit(5000)
       : Promise.resolve({ data: [] as unknown[] }),
+    activeIds.length
+      ? supabase
+          .from("daily_summary")
+          .select("user_id, summary_date")
+          .in("user_id", activeIds)
+          .eq("summary_date", new Date().toISOString().slice(0, 10))
+          .limit(500)
+      : Promise.resolve({ data: [] as unknown[] }),
+    activeIds.length
+      ? supabase
+          .from("nutrition_logs")
+          .select("id, user_id")
+          .in("user_id", activeIds)
+          .eq("logged_date", new Date().toISOString().slice(0, 10))
+          .limit(500)
+      : Promise.resolve({ data: [] as unknown[] }),
+    supabase
+      .from("client_program_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("coach_id", coachId)
+      .eq("status", "active"),
   ]);
 
-    // Round 2b — prescribed calories per assignment (coach-readable, no goals read)
+  // Round 2b — prescribed calories per assignment (coach-readable, no goals
+  // read). The only round-2-dependent query left.
   const assignIds = ((assignsRes.data ?? []) as unknown as Array<{ id: string }>).map((a) => a.id);
-  const [checkinsRes, mealsRes, enrollmentsRes, assignFoodsRes] = await Promise.all([
-    activeIds.length ? supabase.from('daily_summary').select('user_id, summary_date').in('user_id', activeIds).eq('summary_date', new Date().toISOString().slice(0, 10)).limit(500) : Promise.resolve({ data: [] as unknown[] }),
-    activeIds.length ? supabase.from('nutrition_logs').select('id, user_id').in('user_id', activeIds).eq('logged_date', new Date().toISOString().slice(0, 10)).limit(500) : Promise.resolve({ data: [] as unknown[] }),
-    supabase.from('client_program_enrollments').select('id', { count: 'exact', head: true }).eq('coach_id', coachId).eq('status', 'active'),
-    assignIds.length
-      ? supabase
-          .from("nutrition_assignment_foods")
-          .select("assignment_id, original_calories")
-          .in("assignment_id", assignIds)
-          .limit(8000)
-      : Promise.resolve({ data: [] as unknown[] }),
-  ]);
+  const assignFoodsRes = assignIds.length
+    ? await supabase
+        .from("nutrition_assignment_foods")
+        .select("assignment_id, original_calories")
+        .in("assignment_id", assignIds)
+        .limit(8000)
+    : { data: [] as unknown[] };
   const todayCheckIns = new Set(((checkinsRes.data ?? []) as unknown as Array<{ user_id: string }>).map((r) => r.user_id)).size;
   const todayMeals = (mealsRes.data ?? []).length;
   const activePrograms = enrollmentsRes.count ?? 0;
-const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sender_id: string }>;
+  const msgs = (msgRes.data ?? []) as unknown as Array<{ created_at: string; sender_id: string }>;
   const msgsCur = msgs.filter((m) => inWindow(m.created_at, period.start, period.end)).length;
   const msgsPrev = msgs.filter((m) => inWindow(m.created_at, period.prevStart, period.prevEnd)).length;
 

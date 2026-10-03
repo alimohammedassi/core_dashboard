@@ -1,0 +1,322 @@
+[
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "avatar_public_read",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(bucket_id = 'avatars'::text)",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "avatar_update",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "((bucket_id = 'avatars'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "avatar_upload",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'avatars'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_files_delete_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'chat-files'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_files_insert_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'chat-files'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_files_select_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((bucket_id = 'chat-files'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_files_update_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "((bucket_id = 'chat-files'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": "((bucket_id = 'chat-files'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_images_delete_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'chat-images'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_images_insert_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'chat-images'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_images_select_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((bucket_id = 'chat-images'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_images_update_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "((bucket_id = 'chat-images'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": "((bucket_id = 'chat-images'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_voice_delete_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'chat-voice-notes'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_voice_insert_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'chat-voice-notes'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_voice_select_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((bucket_id = 'chat-voice-notes'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "chat_voice_update_participants",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "((bucket_id = 'chat-voice-notes'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))",
+    "with_check": "((bucket_id = 'chat-voice-notes'::text) AND (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND ((c.client_id = auth.uid()) OR (c.coach_id = auth.uid()))))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_media_coach_delete",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'coach-media'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_media_coach_update",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "((bucket_id = 'coach-media'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_media_coach_upload",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'coach-media'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_media_public_read",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(bucket_id = 'coach-media'::text)",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_pdfs_coach_delete",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'coach-pdfs'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_pdfs_coach_upload",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'coach-pdfs'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "coach_pdfs_public_read",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(bucket_id = 'coach-pdfs'::text)",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_images_coach_delete",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'food-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text) AND (EXISTS ( SELECT 1\n   FROM profiles p\n  WHERE ((p.id = auth.uid()) AND (p.role = 'coach'::user_role)))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_images_coach_insert",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'food-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text) AND (EXISTS ( SELECT 1\n   FROM profiles p\n  WHERE ((p.id = auth.uid()) AND (p.role = 'coach'::user_role)))))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_images_coach_update",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "((bucket_id = 'food-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text) AND (EXISTS ( SELECT 1\n   FROM profiles p\n  WHERE ((p.id = auth.uid()) AND (p.role = 'coach'::user_role)))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_images_public_read",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(bucket_id = 'food-images'::text)",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_scan_images_delete_own",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'food-scans'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_scan_images_insert_own",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'food-scans'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "food_scan_images_select_own",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((bucket_id = 'food-scans'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "voice_food_audio_delete_own",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "((bucket_id = 'voice-food-logs'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "voice_food_audio_insert_own",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((bucket_id = 'voice-food-logs'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+  },
+  {
+    "schemaname": "storage",
+    "tablename": "objects",
+    "policyname": "voice_food_audio_select_own",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((bucket_id = 'voice-food-logs'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+    "with_check": null
+  }
+]
